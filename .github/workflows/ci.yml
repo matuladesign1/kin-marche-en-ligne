@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  mobile:
+    name: Application mobile — types et dépendances
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Aligner les versions sur le SDK Expo
+        run: npx expo install --check || npx expo install --fix
+      - run: npx tsc --noEmit
+
+  secrets:
+    name: Aucune clé secrète dans le dépôt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recherche de clés service_role ou privées
+        run: |
+          if grep -rIn --exclude-dir=.git -E "service_role\"?\s*[:=]\s*\"?eyJ|sk_live_|BEGIN (RSA |EC )?PRIVATE KEY" . ; then
+            echo "Clé secrète détectée" && exit 1
+          fi
