@@ -1,5 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { View } from 'react-native';
+import type { TranslationKey } from '@/lib/i18n';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Card, Chip, EmptyState, Input, Loading, Notice, Row, Screen, SectionHeader, T } from '@/components/ui';
 import { errorMessage } from '@/lib/errors';
@@ -11,11 +13,15 @@ import { useSettings } from '@/providers/SettingsProvider';
 type Channel = 'general' | 'store' | 'driver';
 
 export default function Support() {
-  const { orderId } = useLocalSearchParams<{ orderId?: string }>();
-  const { t, language } = useSettings();
+  const params = useLocalSearchParams<{ orderId?: string }>();
+  const { t, language, money } = useSettings();
+  const [linked, setLinked] = useState<{ id: string; order_number: string; status: string; payment_status: string; total_usd: number } | null>(null);
+  const [lookup, setLookup] = useState('');
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const orderId = linked?.id ?? params.orderId;
   const { session } = useAuth();
   const qc = useQueryClient();
-  const [channel, setChannel] = useState<Channel>(orderId ? 'store' : 'general');
+  const [channel, setChannel] = useState<Channel>(params.orderId ? 'store' : 'general');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +36,17 @@ export default function Support() {
   });
 
   if (!session) return <EmptyState message={t('auth.required')} action={t('auth.signIn')} onAction={() => router.push('/(auth)/sign-in')} />;
+
+  const runLookup = async () => {
+    setLookupError(null);
+    if (!lookup.trim()) return;
+    const { data } = await supabase.rpc('lookup_my_order', { p_order_number: lookup.trim() });
+    const found = data as typeof linked;
+    if (!found?.id) { setLinked(null); return setLookupError(t('orders.lookupNotFound')); }
+    setLinked(found);
+    setChannel('store');
+    if (!subject.trim()) setSubject(t('orders.number', { n: found.order_number }));
+  };
 
   const create = async () => {
     setError(null);
@@ -59,6 +76,22 @@ export default function Support() {
 
   return (
     <Screen>
+      <SectionHeader title={t('support.checkOrder')} />
+      <Row style={{ alignItems: 'flex-end' }}>
+        <View style={{ flex: 1 }}><Input value={lookup} onChangeText={setLookup} placeholder={t('orders.lookupPlaceholder')} autoCapitalize="characters" onSubmitEditing={runLookup} /></View>
+        <Button title={t('common.check')} variant="secondary" icon="search-outline" onPress={runLookup} />
+      </Row>
+      {lookupError ? <Notice tone="warning" text={lookupError} /> : null}
+      {linked ? (
+        <Card onPress={() => router.push(`/order/${linked.id}`)}>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <T weight="700">{linked.order_number}</T>
+            <T weight="700">{money(linked.total_usd)}</T>
+          </Row>
+          <T size="sm">{t(`status.${linked.status}` as TranslationKey)} · {t(`payStatus.${linked.payment_status}` as TranslationKey)}</T>
+        </Card>
+      ) : null}
+
       <SectionHeader title={t('support.new')} />
       <Row style={{ flexWrap: 'wrap' }}>
         <Chip label={t('support.channel.general')} active={channel === 'general'} onPress={() => setChannel('general')} />
@@ -74,7 +107,7 @@ export default function Support() {
       {tickets.isLoading ? <Loading /> : !tickets.data?.length ? <T muted>{t('support.empty')}</T> : tickets.data.map((tk) => (
         <Card key={tk.id} onPress={() => router.push(`/support/${tk.id}`)}>
           <T weight="700">{tk.subject}</T>
-          <T size="xs" muted>{t(`support.channel.${tk.channel}`)}{tk.orders ? ` · ${tk.orders.order_number}` : ''} · {formatDate(tk.created_at, language)} · {tk.status}</T>
+          <T size="xs" muted>{t(`support.channel.${tk.channel}`)}{tk.orders ? ` · ${tk.orders.order_number}` : ''} · {formatDate(tk.created_at, language)} · {t(`support.status.${tk.status}` as TranslationKey)}</T>
         </Card>
       ))}
     </Screen>

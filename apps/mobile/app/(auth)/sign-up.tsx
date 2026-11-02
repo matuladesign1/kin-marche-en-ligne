@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform } from 'react-native';
 import { BrandLogo } from '@/components/BrandHeader';
+import { SocialLogin } from '@/components/SocialLogin';
 import { Button, Input, Notice, Screen, T } from '@/components/ui';
 import { errorMessage } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
@@ -48,6 +49,7 @@ export default function SignUp() {
         <Input label={t('auth.email')} value={form.email} onChangeText={set('email')} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
         <Input label={`${t('auth.password')} — ${t('auth.passwordRule')}`} value={form.password} onChangeText={set('password')} secureTextEntry autoComplete="new-password" />
         <Button title={t('auth.signUp')} onPress={submit} loading={loading} />
+        <SocialLogin />
         <Button title={t('auth.haveAccount') + ' ' + t('auth.signIn')} variant="ghost" onPress={() => router.replace('/(auth)/sign-in')} />
       </Screen>
     </KeyboardAvoidingView>

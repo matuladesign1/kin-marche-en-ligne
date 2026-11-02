@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettings } from '@/providers/SettingsProvider';
+import { BasketLoader } from './BasketLoader';
 import { font, radius, spacing } from '@/lib/theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -137,14 +138,8 @@ export function SectionHeader({ title, action, onAction }: { title: string; acti
   );
 }
 
-export function Loading() {
-  const { colors, t } = useSettings();
-  return (
-    <View style={styles.center}>
-      <ActivityIndicator color={colors.primary} size="large" />
-      <T muted>{t('common.loading')}</T>
-    </View>
-  );
+export function Loading({ label }: { label?: string } = {}) {
+  return <BasketLoader size="small" label={label} />;
 }
 
 export function EmptyState({ icon = 'basket-outline', message, action, onAction }: {

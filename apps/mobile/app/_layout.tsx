@@ -1,11 +1,27 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { View } from 'react-native';
+import { BasketLoader } from '@/components/BasketLoader';
+import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AuthProvider } from '@/providers/AuthProvider';
 import { SettingsProvider, useSettings } from '@/providers/SettingsProvider';
 import { useNotificationNavigation, usePushRegistration } from '@/hooks/usePushRegistration';
+
+// Écran d'ouverture animé : affiché au démarrage le temps de charger la session (au moins 2,4 s).
+function StartupOverlay() {
+  const { colors } = useSettings();
+  const { loading } = useAuth();
+  const [minElapsed, setMinElapsed] = useState(false);
+  useEffect(() => { const h = setTimeout(() => setMinElapsed(true), 2400); return () => clearTimeout(h); }, []);
+  if (!loading && minElapsed) return null;
+  return (
+    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.background, zIndex: 10 }}>
+      <BasketLoader size="large" />
+    </View>
+  );
+}
 
 function Navigator() {
   const { colors, isDark, t } = useSettings();
@@ -43,6 +59,16 @@ function Navigator() {
         <Stack.Screen name="support/[id]" options={{ title: t('support.title') }} />
         <Stack.Screen name="cake" options={{ title: t('cake.title') }} />
         <Stack.Screen name="settings" options={{ title: t('account.settings') }} />
+        <Stack.Screen name="me/profile" options={{ title: t('account.editProfile') }} />
+        <Stack.Screen name="me/password" options={{ title: t('account.changePassword') }} />
+        <Stack.Screen name="me/email" options={{ title: t('account.changeEmail') }} />
+        <Stack.Screen name="me/delete" options={{ title: t('account.deleteAccount') }} />
+        <Stack.Screen name="me/rate" options={{ title: t('account.rateApp') }} />
+        <Stack.Screen name="me/permissions" options={{ title: t('account.permissions') }} />
+        <Stack.Screen name="legal/[doc]" options={{ title: '' }} />
+        <Stack.Screen name="order/proof/[id]" options={{ title: t('proof.title') }} />
+        <Stack.Screen name="order/review/[id]" options={{ title: t('review.title') }} />
+        <Stack.Screen name="auth-callback" options={{ headerShown: false }} />
         <Stack.Screen name="store-admin/index" options={{ title: t('role.storeAdmin') }} />
         <Stack.Screen name="driver/index" options={{ title: t('role.driver') }} />
         <Stack.Screen name="driver/mission/[id]" options={{ title: t('driver.mission') }} />
@@ -51,6 +77,7 @@ function Navigator() {
         <Stack.Screen name="driver-signup" options={{ title: t('driver.signupTitle') }} />
         <Stack.Screen name="admin/index" options={{ title: t('role.superAdmin') }} />
       </Stack>
+      <StartupOverlay />
     </>
   );
 }

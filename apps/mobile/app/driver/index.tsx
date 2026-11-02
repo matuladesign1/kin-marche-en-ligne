@@ -117,6 +117,7 @@ export default function DriverHome() {
             <Switch value={d.is_available} onValueChange={toggle} trackColor={{ true: colors.success }} />
           </Row>
         ) : <Notice text={t('err.DRIVER_NOT_VERIFIED')} />}
+        {!d ? <Button title={t('driver.completeFile')} icon="document-text-outline" onPress={() => router.push('/driver-signup')} /> : null}
         {sharing ? <T size="xs" muted>{t('driver.shareLocation')}</T> : null}
         {locError ? <Notice tone="warning" text={t('driver.locationDenied')} /> : null}
       </Card>

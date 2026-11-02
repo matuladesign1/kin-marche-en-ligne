@@ -68,6 +68,8 @@ export default function OrderScreen() {
           <Button title={t('orders.cancel')} variant="ghost" onPress={cancel} />
         </Row>
       ) : null}
+      {unpaid ? <Button title={t('orders.submitProof')} variant="secondary" icon="document-attach-outline" onPress={() => router.push(`/order/proof/${order.id}`)} /> : null}
+      {order.status === 'completed' ? <Button title={t('orders.review')} variant="secondary" icon="star-outline" onPress={() => router.push(`/order/review/${order.id}`)} /> : null}
 
       {otp && !otp.verified_at && order.payment_status === 'succeeded' ? (
         <Card style={{ borderColor: colors.primary, borderWidth: 2, alignItems: 'center' }}>
