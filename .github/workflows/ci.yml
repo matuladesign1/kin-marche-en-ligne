@@ -22,6 +22,35 @@ jobs:
         run: npx expo install --check || npx expo install --fix
       - run: npx tsc --noEmit
 
+  admin:
+    name: Administration web — types et build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/admin
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://trobgcehelmxkvqjtdbo.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_rli_t0Z108wF-V5yMc3f_w_9HDXp9_X
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Types
+        run: |
+          set -o pipefail
+          npx tsc --noEmit 2>&1 | tee /tmp/admin.log
+      - name: Build
+        run: |
+          set -o pipefail
+          npx next build 2>&1 | tee -a /tmp/admin.log
+      - if: failure()
+        run: |
+          msg=$(grep -E "error|Error|Type" /tmp/admin.log | tail -30 | cut -c1-300 | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g')
+          echo "::error title=Erreur admin::${msg}"
+
   secrets:
     name: Aucune clé secrète dans le dépôt
     runs-on: ubuntu-latest

@@ -1,0 +1,65 @@
+:root {
+  --primary: #DE3530; --primary-dark: #B5241F; --primary-soft: #FDECEB;
+  --accent: #0097FC; --accent-2: #01789D;
+  --bg: #F6F7F9; --surface: #FFFFFF; --surface-alt: #F0F2F5;
+  --text: #16181D; --muted: #626A76; --border: #E3E6EB;
+  --success: #13A35F; --warning: #C77D00; --danger: #D93025;
+  --radius: 12px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary-soft: #3A1513; --bg: #0F1115; --surface: #181B21; --surface-alt: #20242B;
+    --text: #F2F3F5; --muted: #A0A6B0; --border: #2C313A;
+    --success: #3DD68C; --warning: #F5B544; --danger: #FF6B66;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 24px; margin: 0 0 16px; }
+h2 { font-size: 18px; margin: 24px 0 12px; }
+.shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+.side { background: var(--surface); border-right: 1px solid var(--border); padding: 20px 16px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; }
+.side img { width: 180px; height: auto; margin-bottom: 16px; }
+.side a { display: block; padding: 9px 12px; border-radius: 8px; color: var(--text); }
+.side a:hover { background: var(--surface-alt); text-decoration: none; }
+.side .who { margin-top: auto; font-size: 13px; color: var(--muted); }
+.main { padding: 28px; max-width: 1200px; width: 100%; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.stat .v { font-size: 26px; font-weight: 700; }
+.stat .l { color: var(--muted); font-size: 13px; }
+table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 14px; }
+th { background: var(--surface-alt); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+.table-wrap { overflow-x: auto; }
+form.stack { display: grid; gap: 12px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+.cols { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+input, select, textarea { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; min-height: 40px; }
+input[type=checkbox] { min-height: auto; }
+button, .btn { font: inherit; font-weight: 600; border: none; border-radius: 8px; padding: 9px 16px; min-height: 40px; background: var(--primary); color: #fff; cursor: pointer; }
+button.secondary, .btn.secondary { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); }
+button.danger { background: var(--danger); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: var(--surface-alt); }
+.badge.ok { background: color-mix(in srgb, var(--success) 18%, transparent); color: var(--success); }
+.badge.warn { background: color-mix(in srgb, var(--warning) 18%, transparent); color: var(--warning); }
+.badge.bad { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+.notice { border: 1px solid var(--border); border-left: 4px solid var(--accent-2); background: var(--surface); padding: 12px; border-radius: 8px; margin: 12px 0; }
+.notice.err { border-left-color: var(--danger); }
+.notice.ok { border-left-color: var(--success); }
+.muted { color: var(--muted); }
+.login { max-width: 380px; margin: 10vh auto; }
+.login img { width: 240px; display: block; margin: 0 auto 24px; }
+@media (max-width: 800px) {
+  .shell { grid-template-columns: 1fr; }
+  .side { position: static; height: auto; flex-direction: row; flex-wrap: wrap; }
+  .side img { width: 120px; margin: 0 8px 0 0; }
+  .side .who { margin-top: 0; width: 100%; }
+  .main { padding: 16px; }
+}
