@@ -25,7 +25,7 @@ export default function Support() {
     queryKey: ['tickets'],
     enabled: !!session,
     queryFn: async () => unwrap(await supabase.from('support_tickets').select('id, subject, status, channel, created_at, orders(order_number)')
-      .eq('customer_id', session!.user.id).order('updated_at', { ascending: false })) as
+        .eq('customer_id', session!.user.id).order('updated_at', { ascending: false })) as unknown as
       { id: string; subject: string; status: string; channel: Channel; created_at: string; orders: { order_number: string } | null }[],
   });
 

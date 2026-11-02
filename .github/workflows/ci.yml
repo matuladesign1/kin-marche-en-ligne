@@ -29,6 +29,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Recherche de clés service_role ou privées
         run: |
-          if grep -rIn --exclude-dir=.git -E "service_role\"?\s*[:=]\s*\"?eyJ|sk_live_|BEGIN (RSA |EC )?PRIVATE KEY" . ; then
+          if grep -rIn --exclude-dir=.git --exclude-dir=.github -E "service_role\"?\s*[:=]\s*\"?eyJ|sk_live_|BEGIN (RSA |EC )?PRIVATE KEY" . ; then
             echo "Clé secrète détectée" && exit 1
           fi
