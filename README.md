@@ -14,8 +14,9 @@ Application de commerce électronique pour les clients des supermarchés Kin Mar
 | 1 | Paiement : architecture serveur + Edge Function `payments-initiate` | ✅ déployée, **en attente d'un prestataire agréé** |
 | 2 | Administration web (Next.js) : admin de supermarché + admin général | ✅ code livré (`apps/admin`) |
 | 2 | APK Android de test | ✅ généré automatiquement par GitHub (onglet Releases) |
-| 3 | Espace livreur (mobile) | à faire (fonctions serveur déjà prêtes) |
-| 4 | Admin général : livreurs, finances/budgets, bannières, coupons, rapports | à faire (tables prêtes) |
+| 3 | Espace livreur (mobile) : candidature, missions, scan colis, OTP, revenus, carte QR | ✅ |
+| 4 | Admin général : livreurs, finances et budgets, coupons, bannières, partenaires, catégories | ✅ |
+| 5 | Paiement réel, carte interactive, recherche photo/voix, envoi des notifications push, exports | à faire |
 
 ## Structure
 
