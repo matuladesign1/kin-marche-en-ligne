@@ -7,7 +7,7 @@ import { dateTime, usd } from '@/lib/format';
 import { supabaseServer } from '@/lib/supabase-server';
 
 const back = (q: string) => redirect(`/admin/marketing?${q}`);
-const BRANDING = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/branding/`;
+const BRANDING = `${(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, '')}/storage/v1/object/public/branding/`;
 /** N'accepte que des fichiers envoyés dans le dossier public « branding » du projet. */
 const brandingUrl = (v: FormDataEntryValue | null) => {
   const s = String(v ?? '').trim();

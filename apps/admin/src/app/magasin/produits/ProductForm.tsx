@@ -1,3 +1,4 @@
+import { ProductMediaUpload } from '@/components/ProductMediaUpload';
 import { UNIT_FR } from '@/lib/format';
 
 export function ProductForm({ categories, product, inventory }: {
@@ -52,7 +53,7 @@ export function ProductForm({ categories, product, inventory }: {
       <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" name="is_available" defaultChecked={inventory ? i.is_available : true} /> Disponible à la vente (décocher = marqué épuisé)</label>
 
       <h2>Photos et vidéos</h2>
-      <label>Ajouter des fichiers<input type="file" name="media" multiple accept="image/*,video/mp4,video/quicktime" /></label>
+      <ProductMediaUpload />
     </>
   );
 }

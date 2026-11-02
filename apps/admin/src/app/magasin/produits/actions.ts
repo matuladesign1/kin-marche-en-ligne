@@ -47,18 +47,21 @@ function inventoryFields(f: FormData) {
   };
 }
 
-async function uploadImages(productId: string, files: FormDataEntryValue[]) {
+// Adresses publiques du stockage « product-media » envoyées par le navigateur (ProductMediaUpload).
+const MEDIA_PREFIX = `${(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, '')}/storage/v1/object/public/product-media/`;
+
+async function attachMedia(productId: string, urls: FormDataEntryValue[]) {
   const sb = await supabaseServer();
-  let order = 0;
-  for (const file of files) {
-    if (!(file instanceof File) || file.size === 0) continue;
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) continue;
-    const path = `${productId}/${Date.now()}-${order}.${file.name.split('.').pop() ?? 'jpg'}`;
-    const up = await sb.storage.from('product-media').upload(path, file, { contentType: file.type });
-    if (up.error) throw up.error;
-    const url = sb.storage.from('product-media').getPublicUrl(path).data.publicUrl;
-    if (file.type.startsWith('video/')) await sb.from('product_videos').insert({ product_id: productId, url, sort_order: order });
-    else await sb.from('product_images').insert({ product_id: productId, url, sort_order: order });
+  const { count } = await sb.from('product_images').select('id', { count: 'exact', head: true }).eq('product_id', productId);
+  let order = count ?? 0;
+  for (const v of urls) {
+    const url = String(v ?? '');
+    if (!url.startsWith(MEDIA_PREFIX)) continue;
+    const isVideo = /\.(mp4|mov|webm)$/i.test(url);
+    const { error } = isVideo
+      ? await sb.from('product_videos').insert({ product_id: productId, url, sort_order: order })
+      : await sb.from('product_images').insert({ product_id: productId, url, sort_order: order });
+    if (error) throw error;
     order++;
   }
 }
@@ -85,7 +88,7 @@ export async function createProduct(formData: FormData) {
   const invRes = await sb.from('store_inventory').insert({ ...inv, store_id: storeId, product_id: productId }).select('id').single();
   if (invRes.error) redirect(`/magasin/produits/nouveau?err=${encodeURIComponent(invRes.error.message.includes('duplicate') ? 'Ce produit est déjà dans le catalogue de ce magasin.' : invRes.error.message)}`);
   try {
-    await uploadImages(productId!, formData.getAll('media'));
+    await attachMedia(productId!, formData.getAll('media_url'));
   } catch (e) {
     redirect(`/magasin/produits/${invRes.data.id}?err=${encodeURIComponent('Produit créé, mais l’envoi des photos a échoué : ' + (e as Error).message)}`);
   }
@@ -106,7 +109,7 @@ export async function updateProduct(formData: FormData) {
   const r2 = await sb.from('store_inventory').update(inv).eq('id', invId);
   if (r2.error) back('err=' + encodeURIComponent(r2.error.message));
   try {
-    await uploadImages(productId, formData.getAll('media'));
+    await attachMedia(productId, formData.getAll('media_url'));
   } catch (e) {
     back('err=' + encodeURIComponent((e as Error).message));
   }
