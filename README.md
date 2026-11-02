@@ -117,7 +117,9 @@ npm install
 npm run dev          # http://localhost:3000
 ```
 
-Mise en ligne : importer le dépôt sur Vercel, « Root Directory » = `apps/admin`, ajouter les deux variables `NEXT_PUBLIC_…` de `.env.example`.
+**En ligne : https://kin-marche-admin.vercel.app** (projet Vercel « kin-marche-admin », connexion sur `/connexion`).
+
+Mise en ligne d'origine : importer le dépôt sur Vercel, « Root Directory » = `apps/admin`, ajouter les deux variables `NEXT_PUBLIC_…` de `.env.example`.
 
 - **Administrateur général** (`/admin`) : tableau de bord, supermarchés (saisie, import CSV, correction GPS, historique, activation), gestionnaires par magasin, rôles des comptes, taux CDF/EUR avec historique, logo et couleurs.
 - **Admin de supermarché** (`/magasin`) : chiffre d'affaires payé (24 h / 7 j / 30 j), commandes par statut, alertes de stock, meilleures ventes ; file des commandes avec validation étape par étape (préparation → vérifiés → emballés → prête, qui déclenche l'appel automatique d'un livreur), code colis, signalement de produits manquants ; produits, prix, promotions datées, stock, photos et vidéos.
