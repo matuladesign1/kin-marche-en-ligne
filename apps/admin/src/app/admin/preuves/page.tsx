@@ -11,10 +11,9 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   pending: { label: 'À vérifier', cls: 'warn' }, approved: { label: 'Acceptée', cls: 'ok' }, rejected: { label: 'Refusée', cls: 'bad' },
 };
 
-async function decide(formData: FormData) {
+async function decide(formData: FormData, approve: boolean) {
   'use server';
   const sb = await supabaseServer();
-  const approve = formData.get('decision') === 'approve';
   const amount = Number(String(formData.get('amount') ?? '').replace(',', '.'));
   const { error } = await sb.rpc('review_payment_proof', {
     p_proof_id: String(formData.get('id')), p_approve: approve,
@@ -24,6 +23,10 @@ async function decide(formData: FormData) {
   revalidatePath('/admin/preuves');
   redirect(`/admin/preuves?${error ? 'err=' + encodeURIComponent(error.message) : 'ok=' + encodeURIComponent(approve ? 'Paiement confirmé après vérification' : 'Preuve refusée, client notifié')}`);
 }
+
+async function approveProof(formData: FormData) { 'use server'; await decide(formData, true); }
+async function rejectProof(formData: FormData) { 'use server'; await decide(formData, false); }
+async function noDecision() { 'use server'; }
 
 export default async function Preuves({ searchParams }: { searchParams: Promise<{ f?: string; ok?: string; err?: string }> }) {
   const sp = await searchParams;
@@ -68,14 +71,14 @@ export default async function Preuves({ searchParams }: { searchParams: Promise<
                 : <a href={url} target="_blank" rel="noreferrer"><img src={url} alt="Preuve" style={{ maxWidth: 220, maxHeight: 220, borderRadius: 8 }} /></a>) : null}
             </div>
             {p.status === 'pending' ? (
-              <form action={decide} className="row" style={{ marginTop: 12 }}>
+              <form action={noDecision} className="row" style={{ marginTop: 12 }}>
                 <input type="hidden" name="id" value={p.id} />
                 <label>Montant reçu <input name="amount" inputMode="decimal" placeholder="ex. 45.50" /></label>
                 <label>Devise <select name="currency" defaultValue="USD"><option>USD</option><option>CDF</option><option>EUR</option></select></label>
                 <label>Référence vérifiée <input name="reference" defaultValue={p.reference ?? ''} /></label>
                 <label>Note au client <input name="note" maxLength={300} /></label>
-                <button name="decision" value="approve">Confirmer le paiement</button>
-                <button name="decision" value="reject" className="secondary">Refuser</button>
+                <button formAction={approveProof}>Confirmer le paiement</button>
+                <button formAction={rejectProof} className="secondary">Refuser</button>
               </form>
             ) : null}
           </div>

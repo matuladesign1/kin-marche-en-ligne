@@ -13,15 +13,21 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 const DOC: Record<string, string> = { id_photo: 'Pièce d’identité', vehicle_registration: 'Document du véhicule', license: 'Permis', other: 'Autre' };
 const TRANSPORT: Record<string, string> = { foot: 'À pied', bicycle: 'Vélo', motorbike: 'Moto', car: 'Voiture', van: 'Camionnette', truck: 'Camion' };
 
-async function review(formData: FormData) {
+async function decide(formData: FormData, status: 'verified' | 'suspended' | 'rejected') {
   'use server';
   const sb = await supabaseServer();
   const { error } = await sb.rpc('review_driver', {
-    p_driver_id: String(formData.get('id')), p_status: String(formData.get('status')), p_note: String(formData.get('note') ?? '') || null,
+    p_driver_id: String(formData.get('id')), p_status: status, p_note: String(formData.get('note') ?? '').trim() || null,
   });
   revalidatePath('/admin/livreurs');
   redirect(`/admin/livreurs?f=${formData.get('f') ?? 'pending_review'}&${error ? 'err=' + encodeURIComponent(error.message) : 'ok=Décision enregistrée et notifiée au livreur'}`);
 }
+// Une action par bouton : la décision ne dépend pas de la valeur du bouton cliqué (non transmise par certains navigateurs).
+async function certify(formData: FormData) { 'use server'; await decide(formData, 'verified'); }
+async function suspend(formData: FormData) { 'use server'; await decide(formData, 'suspended'); }
+async function reject(formData: FormData) { 'use server'; await decide(formData, 'rejected'); }
+// Touche Entrée dans le champ note : aucune décision.
+async function noDecision() { 'use server'; }
 
 export default async function Livreurs({ searchParams }: { searchParams: Promise<{ f?: string; ok?: string; err?: string }> }) {
   const sp = await searchParams;
@@ -74,12 +80,12 @@ export default async function Livreurs({ searchParams }: { searchParams: Promise
             ))}
             {!d.driver_documents?.length ? <span className="badge bad">Aucun document</span> : null}
           </div>
-          <form action={review} className="row" style={{ marginTop: 12 }}>
+          <form action={noDecision} className="row" style={{ marginTop: 12 }}>
             <input type="hidden" name="id" value={d.id} /><input type="hidden" name="f" value={f} />
             <label>Note au livreur (facultatif)<input name="note" /></label>
-            {d.status !== 'verified' ? <button name="status" value="verified">Certifier</button> : null}
-            {d.status === 'verified' ? <button name="status" value="suspended" className="danger">Suspendre</button> : null}
-            {d.status === 'pending_review' ? <button name="status" value="rejected" className="secondary">Refuser</button> : null}
+            {d.status !== 'verified' ? <button formAction={certify}>Certifier</button> : null}
+            {d.status === 'verified' ? <button formAction={suspend} className="danger">Suspendre</button> : null}
+            {d.status === 'pending_review' ? <button formAction={reject} className="secondary">Refuser</button> : null}
           </form>
         </div>
       ))}
