@@ -12,14 +12,16 @@ Application de commerce électronique pour les clients des supermarchés Kin Mar
 | 1 | Base de données Supabase complète (≈ 50 tables, RLS, logique métier serveur) | ✅ installée |
 | 1 | Application mobile Expo — espace client | ✅ code livré |
 | 1 | Paiement : architecture serveur + Edge Function `payments-initiate` | ✅ déployée, **en attente d'un prestataire agréé** |
-| 2 | Espace administrateur de supermarché (Next.js) | à faire |
+| 2 | Administration web (Next.js) : admin de supermarché + admin général | ✅ code livré (`apps/admin`) |
+| 2 | APK Android de test | ✅ généré automatiquement par GitHub (onglet Releases) |
 | 3 | Espace livreur (mobile) | à faire (fonctions serveur déjà prêtes) |
-| 4 | Espace administrateur général (Next.js) | à faire |
+| 4 | Admin général : livreurs, finances/budgets, bannières, coupons, rapports | à faire (tables prêtes) |
 
 ## Structure
 
 ```
 apps/mobile/              Application Expo (Android, iOS, web) — TypeScript, expo-router
+apps/admin/               Administration web Next.js (admin général + admin de supermarché)
 supabase/migrations/      Schéma SQL versionné (à appliquer dans l'ordre)
 supabase/manual/          2 fonctions à coller dans le SQL Editor (voir plus bas)
 supabase/functions/       Edge Functions (paiements)
@@ -102,6 +104,26 @@ Langues : français et anglais complets ; **swahili et lingala partiels, à fair
 Logo : `assets/images/logo-wide.png` (thème) et `assets/images/icon.png` (icône), non modifiés. L'administrateur peut remplacer le logo et les couleurs via `app_settings.branding` sans toucher au code.
 
 Notifications push : exécuter `eas init` pour obtenir le `projectId`, puis l'envoi serveur sera ajouté avec l'espace admin. Les notifications internes fonctionnent déjà en temps réel.
+
+## Administration web (`apps/admin`)
+
+```bash
+cd apps/admin
+cp .env.example .env.local
+npm install
+npm run dev          # http://localhost:3000
+```
+
+Mise en ligne : importer le dépôt sur Vercel, « Root Directory » = `apps/admin`, ajouter les deux variables `NEXT_PUBLIC_…` de `.env.example`.
+
+- **Administrateur général** (`/admin`) : tableau de bord, supermarchés (saisie, import CSV, correction GPS, historique, activation), gestionnaires par magasin, rôles des comptes, taux CDF/EUR avec historique, logo et couleurs.
+- **Admin de supermarché** (`/magasin`) : chiffre d'affaires payé (24 h / 7 j / 30 j), commandes par statut, alertes de stock, meilleures ventes ; file des commandes avec validation étape par étape (préparation → vérifiés → emballés → prête, qui déclenche l'appel automatique d'un livreur), code colis, signalement de produits manquants ; produits, prix, promotions datées, stock, photos et vidéos.
+
+Chaque espace n'est accessible qu'au bon rôle, et la RLS empêche un directeur de voir un autre magasin même en modifiant l'URL.
+
+## APK Android de test
+
+À chaque modification de l'application mobile, GitHub compile un APK et le publie dans **Releases** du dépôt. Il est signé avec la clé de débogage : il sert aux tests (installation directe sur un téléphone Android), pas à la publication sur le Play Store, qui demandera une clé de signature dédiée (EAS ou keystore privé).
 
 ## Pas encore inclus (prochaines étapes)
 
