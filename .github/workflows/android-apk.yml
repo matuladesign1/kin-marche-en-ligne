@@ -35,6 +35,16 @@ jobs:
         run: |
           set -o pipefail
           (npm install --no-audit --no-fund && npx expo install --fix) 2>&1 | tee -a /tmp/build.log
+      - name: Diagnostic des versions Expo
+        run: |
+          {
+            echo "== versions =="; npm ls expo expo-modules-autolinking expo-modules-core react-native --depth=0 2>/dev/null || true
+            echo "== doctor =="; npx --yes expo-doctor 2>&1 | tail -30 || true
+            echo "== modules avec publication =="
+            npx expo-modules-autolinking resolve --platform android --json 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);j.modules.forEach((m,i)=>(m.projects||[]).forEach(p=>console.log(i,m.packageName,m.packageVersion,JSON.stringify(p.publication||null))))})' || true
+          } 2>&1 | tee /tmp/diag.log
+          msg=$(cut -c1-250 /tmp/diag.log | tail -60 | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g')
+          echo "::warning title=Diagnostic Expo::${msg}"
       - name: Générer le projet Android natif
         run: |
           set -o pipefail
