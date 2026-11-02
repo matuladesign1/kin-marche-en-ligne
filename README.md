@@ -16,7 +16,9 @@ Application de commerce électronique pour les clients des supermarchés Kin Mar
 | 2 | APK Android de test | ✅ généré automatiquement par GitHub (onglet Releases) |
 | 3 | Espace livreur (mobile) : candidature, missions, scan colis, OTP, revenus, carte QR | ✅ |
 | 4 | Admin général : livreurs, finances et budgets, coupons, bannières, partenaires, catégories | ✅ |
-| 5 | Paiement réel, carte interactive, recherche photo/voix, envoi des notifications push, exports | à faire |
+| 5 | Carte Google, temps de trajet réel, recherche photo/voix/vidéo, notifications push, rapports et exports | ✅ |
+| 6 | Espace client v2 : profil et photo, sécurité du compte, suppression, CGU/licence/confidentialité/cookies, autorisations, commandes par onglets, preuves de paiement, avis, messagerie avec photos (mobile + web), connexion Google/Facebook, animation de chargement, lingala et swahili complets | ✅ |
+| 7 | Paiement réel auprès d'un prestataire agréé | à faire (en attente du contrat) |
 
 ## Structure
 
@@ -126,8 +128,15 @@ Chaque espace n'est accessible qu'au bon rôle, et la RLS empêche un directeur 
 
 À chaque modification de l'application mobile, GitHub compile un APK et le publie dans **Releases** du dépôt. Il est signé avec la clé de débogage : il sert aux tests (installation directe sur un téléphone Android), pas à la publication sur le Play Store, qui demandera une clé de signature dédiée (EAS ou keystore privé).
 
+## Actions à faire côté comptes (une seule fois)
+
+- **Connexion Google / Facebook** : Supabase → Authentication → Providers → activer Google et Facebook (identifiants OAuth créés dans Google Cloud et Meta for Developers), puis Authentication → URL Configuration → ajouter `kinmarche://auth-callback` aux Redirect URLs.
+- **Recherche par photo** : activer l'API Cloud Vision sur le projet Google (déjà prévu dans la fonction `image-search`).
+- **Cartes et notifications push dans l'APK** : secrets GitHub `GOOGLE_MAPS_ANDROID_KEY`, `EAS_PROJECT_ID`, `GOOGLE_SERVICES_JSON_BASE64`.
+- **Textes juridiques** (`apps/mobile/src/legal`) : à faire valider par le juriste de Kin Marché / Groupe BNB. Le français fait foi.
+- **Traductions lingala et swahili** : complètes, à faire relire par un locuteur natif avant publication.
+
 ## Pas encore inclus (prochaines étapes)
 
-- Recherche par photo, vidéo et voix (nécessite un vrai service de reconnaissance — non simulé).
-- Carte interactive (Google Maps / Mapbox, clé API requise) et calcul de temps de trajet par un service de navigation.
-- Espaces magasin, livreur et administrateur ; import CSV des magasins ; module finances/budgets (tables prêtes).
+- Paiement réel (M-Pesa, Orange Money, Airtel Money, Afrimoney, cartes) : à brancher dès qu'un prestataire agréé est choisi.
+- Publication Play Store / App Store (clé de signature dédiée, fiches des stores).
