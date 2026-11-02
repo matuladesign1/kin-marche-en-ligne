@@ -1,4 +1,5 @@
 import { revalidatePath } from 'next/cache';
+import { requireSuper } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Flash } from '@/components/Shell';
 import { supabaseServer } from '@/lib/supabase-server';
@@ -35,6 +36,7 @@ async function saveBranding(formData: FormData) {
 }
 
 export default async function Parametres({ searchParams }: { searchParams: Promise<{ ok?: string; err?: string }> }) {
+  await requireSuper();
   const sp = await searchParams;
   const sb = await supabaseServer();
   const { data } = await sb.from('app_settings').select('value').eq('key', 'branding').single();

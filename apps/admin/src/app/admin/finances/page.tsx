@@ -1,4 +1,5 @@
 import { revalidatePath } from 'next/cache';
+import { requirePermission } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Flash } from '@/components/Shell';
 import { dateTime, usd } from '@/lib/format';
@@ -46,6 +47,7 @@ async function createBudget(formData: FormData) {
 }
 
 export default async function Finances({ searchParams }: { searchParams: Promise<{ from?: string; to?: string; ok?: string; err?: string }> }) {
+  await requirePermission('finance');
   const sp = await searchParams;
   const p = period(sp);
   const sb = await supabaseServer();

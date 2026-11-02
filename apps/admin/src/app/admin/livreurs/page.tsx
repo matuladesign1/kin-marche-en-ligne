@@ -1,4 +1,5 @@
 import { revalidatePath } from 'next/cache';
+import { requirePermission } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Flash } from '@/components/Shell';
 import { dateTime } from '@/lib/format';
@@ -29,12 +30,26 @@ async function reject(formData: FormData) { 'use server'; await decide(formData,
 // Touche Entrée dans le champ note : aucune décision.
 async function noDecision() { 'use server'; }
 
+// Un client devient livreur « à vérifier » : il complète ensuite son dossier dans l'application.
+async function makeDriver(formData: FormData) {
+  'use server';
+  const sb = await supabaseServer();
+  const { error } = await sb.rpc('staff_make_driver', { p_email: String(formData.get('email') ?? '').trim() });
+  const messages: Record<string, string> = {
+    USER_NOT_FOUND: "Aucun compte avec cet e-mail : la personne doit d'abord créer son compte dans l'application.",
+    ROLE_CONFLICT: 'Ce compte a déjà un autre rôle (directeur, agent ou administrateur).',
+  };
+  revalidatePath('/admin/livreurs');
+  redirect(`/admin/livreurs?${error ? 'err=' + encodeURIComponent(messages[error.message] ?? error.message) : 'ok=' + encodeURIComponent('Espace livreur ouvert : la personne complète son dossier dans l’application')}`);
+}
+
 export default async function Livreurs({ searchParams }: { searchParams: Promise<{ f?: string; ok?: string; err?: string }> }) {
+  await requirePermission('drivers');
   const sp = await searchParams;
   const f = STATUS[sp.f ?? ''] ? sp.f! : 'pending_review';
   const sb = await supabaseServer();
   const { data: drivers } = await sb.from('drivers')
-    .select('id, driver_code, status, address, zone_communes, emergency_contact_name, emergency_contact_phone, payout_method, payout_account_masked, is_available, verified_at, rating, rating_count, created_at, profiles(full_name, email, phone, avatar_url), driver_vehicles(mode, plate_number, max_weight_kg), driver_documents(id, doc_type, storage_path, status, created_at)')
+    .select('id, driver_code, status, province, city, address, zone_communes, emergency_contact_name, emergency_contact_phone, payout_method, payout_account_masked, is_available, verified_at, rating, rating_count, created_at, profiles(full_name, email, phone, avatar_url), driver_vehicles(mode, plate_number, max_weight_kg), driver_documents(id, doc_type, storage_path, status, created_at)')
     .eq('status', f).order('created_at', { ascending: true });
 
   // Documents d'identité : bucket privé, liens signés valables 10 minutes, visibles par l'admin uniquement.
@@ -48,7 +63,12 @@ export default async function Livreurs({ searchParams }: { searchParams: Promise
   return (
     <>
       <h1>Livreurs</h1>
+      <p className="page-sub">Candidatures, certification et suivi des livreurs de votre zone.</p>
       <Flash ok={sp.ok} err={sp.err} />
+      <form action={makeDriver} className="card row" style={{ marginBottom: 16 }}>
+        <label style={{ flex: 1, minWidth: 260 }}>Ouvrir l&apos;espace livreur pour un compte existant (e-mail)<input name="email" type="email" required placeholder="livreur@exemple.com" /></label>
+        <button type="submit">Ouvrir l&apos;espace livreur</button>
+      </form>
       <div className="row" style={{ marginBottom: 12 }}>
         {Object.entries(STATUS).map(([k, v]) => <a key={k} className={`btn ${k === f ? '' : 'secondary'}`} href={`/admin/livreurs?f=${k}`}>{v.label}</a>)}
       </div>
@@ -68,6 +88,7 @@ export default async function Livreurs({ searchParams }: { searchParams: Promise
           </div>
           <div className="cols" style={{ marginTop: 12 }}>
             <div><div className="muted">Adresse</div>{d.address}</div>
+            <div><div className="muted">Région</div>{[d.city, d.province].filter(Boolean).join(', ')}</div>
             <div><div className="muted">Zones</div>{(d.zone_communes ?? []).join(', ')}</div>
             <div><div className="muted">Transport</div>{(d.driver_vehicles ?? []).map((v: any) => `${TRANSPORT[v.mode]}${v.plate_number ? ' · ' + v.plate_number : ''}${v.max_weight_kg ? ' · ' + v.max_weight_kg + ' kg' : ''}`).join(' ; ')}</div>
             <div><div className="muted">Contact d&apos;urgence</div>{d.emergency_contact_name} · {d.emergency_contact_phone}</div>

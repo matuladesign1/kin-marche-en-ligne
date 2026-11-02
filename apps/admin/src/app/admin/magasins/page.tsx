@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import { requirePermission } from '@/lib/auth';
 import { Flash } from '@/components/Shell';
 import { supabaseServer } from '@/lib/supabase-server';
 import { importStores } from './actions';
 import { StoreForm } from './StoreForm';
 
 export default async function Magasins({ searchParams }: { searchParams: Promise<{ ok?: string; err?: string }> }) {
+  await requirePermission('stores');
   const sp = await searchParams;
   const sb = await supabaseServer();
   const { data: stores } = await sb.from('stores').select('id, name, commune, quartier, phone, is_open, is_active, address_verified, latitude').order('name');

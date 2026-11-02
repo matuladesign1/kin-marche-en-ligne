@@ -1,4 +1,5 @@
 import { revalidatePath } from 'next/cache';
+import { requireSuper } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Flash } from '@/components/Shell';
 import { dateTime } from '@/lib/format';
@@ -16,6 +17,7 @@ async function saveRate(formData: FormData) {
 }
 
 export default async function Taux({ searchParams }: { searchParams: Promise<{ ok?: string; err?: string }> }) {
+  await requireSuper();
   const sp = await searchParams;
   const sb = await supabaseServer();
   const [{ data: rates }, { data: history }] = await Promise.all([

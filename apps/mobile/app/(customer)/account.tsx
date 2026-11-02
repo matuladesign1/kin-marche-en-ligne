@@ -70,7 +70,7 @@ export default function Account() {
         { icon: 'star-outline', label: t('loyalty.title'), href: '/loyalty', auth: true },
         { icon: 'pricetag-outline', label: t('coupons.title'), href: '/coupons', auth: true },
         { icon: 'notifications-outline', label: t('account.notifications'), href: '/notifications', auth: true },
-        { icon: 'chatbubbles-outline', label: t('support.title'), href: '/support', auth: true },
+        { icon: 'chatbubbles-outline', label: t('inbox.title'), href: '/support', auth: true },
         { icon: 'storefront-outline', label: t('stores.title'), href: '/stores' },
       ],
     },

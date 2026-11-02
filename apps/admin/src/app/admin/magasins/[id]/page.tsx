@@ -1,10 +1,12 @@
 import { Flash } from '@/components/Shell';
+import { requirePermission } from '@/lib/auth';
 import { dateTime } from '@/lib/format';
 import { supabaseServer } from '@/lib/supabase-server';
 import { addManager, removeManager, setStoreActive } from '../actions';
 import { StoreForm } from '../StoreForm';
 
 export default async function Magasin({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; err?: string }> }) {
+  await requirePermission('stores');
   const { id } = await params;
   const sp = await searchParams;
   const sb = await supabaseServer();

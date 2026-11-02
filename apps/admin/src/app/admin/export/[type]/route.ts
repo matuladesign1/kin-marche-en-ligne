@@ -4,7 +4,7 @@ import { supabaseServer } from '@/lib/supabase-server';
 
 export async function GET(request: Request, { params }: { params: Promise<{ type: string }> }) {
   const user = await currentUser();
-  if (user?.role !== 'super_admin') return new Response('Accès refusé', { status: 403 });
+  if (!user || !user.permissions.includes('finance')) return new Response('Accès refusé', { status: 403 });
   const { type } = await params;
   const sp = Object.fromEntries(new URL(request.url).searchParams.entries());
   const sb = await supabaseServer();

@@ -1,4 +1,5 @@
 import { revalidatePath } from 'next/cache';
+import { requireSuper } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Flash } from '@/components/Shell';
 import { supabaseServer } from '@/lib/supabase-server';
@@ -37,6 +38,7 @@ function CategoryForm({ c, parents }: { c?: any; parents: { id: string; name: { 
 }
 
 export default async function Categories({ searchParams }: { searchParams: Promise<{ ok?: string; err?: string }> }) {
+  await requireSuper();
   const sp = await searchParams;
   const sb = await supabaseServer();
   const { data } = await sb.from('product_categories').select('*').order('sort_order');

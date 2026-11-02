@@ -127,14 +127,14 @@ export async function addManager(formData: FormData) {
   const storeId = String(formData.get('store_id'));
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   const title = String(formData.get('title') ?? 'directeur');
-  const { data: p } = await sb.from('profiles').select('id, role').eq('email', email).maybeSingle();
-  if (!p) redirect(`/admin/magasins/${storeId}?err=${encodeURIComponent("Aucun compte avec cet e-mail : la personne doit d'abord créer son compte dans l'application.")}`);
-  if (p.role !== 'store_admin') {
-    const up = await sb.from('profiles').update({ role: 'store_admin' }).eq('id', p.id);
-    if (up.error) redirect(`/admin/magasins/${storeId}?err=${encodeURIComponent(up.error.message)}`);
-  }
-  const ins = await sb.from('store_managers').upsert({ store_id: storeId, user_id: p.id, title });
-  if (ins.error) redirect(`/admin/magasins/${storeId}?err=${encodeURIComponent(ins.error.message)}`);
+  // Vérifié côté serveur : mission « supermarchés » dans la région du magasin, rôle compatible.
+  const { error } = await sb.rpc('staff_add_store_manager', { p_store_id: storeId, p_email: email, p_title: title });
+  const messages: Record<string, string> = {
+    USER_NOT_FOUND: "Aucun compte avec cet e-mail : la personne doit d'abord créer son compte dans l'application.",
+    ROLE_CONFLICT: 'Ce compte a déjà un autre rôle (livreur, agent ou administrateur).',
+    FORBIDDEN: 'Ce magasin est hors de votre zone.',
+  };
+  if (error) redirect(`/admin/magasins/${storeId}?err=${encodeURIComponent(messages[error.message] ?? error.message)}`);
   revalidatePath(`/admin/magasins/${storeId}`);
   redirect(`/admin/magasins/${storeId}?ok=Gestionnaire ajouté`);
 }

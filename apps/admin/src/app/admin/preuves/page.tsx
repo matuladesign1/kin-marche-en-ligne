@@ -1,4 +1,5 @@
 import { revalidatePath } from 'next/cache';
+import { requirePermission } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Flash } from '@/components/Shell';
 import { dateTime, usd } from '@/lib/format';
@@ -29,6 +30,7 @@ async function rejectProof(formData: FormData) { 'use server'; await decide(form
 async function noDecision() { 'use server'; }
 
 export default async function Preuves({ searchParams }: { searchParams: Promise<{ f?: string; ok?: string; err?: string }> }) {
+  await requirePermission('finance');
   const sp = await searchParams;
   const f = STATUS[sp.f ?? ''] ? sp.f! : 'pending';
   const sb = await supabaseServer();
