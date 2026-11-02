@@ -44,6 +44,10 @@ function Navigator() {
         <Stack.Screen name="settings" options={{ title: t('account.settings') }} />
         <Stack.Screen name="store-admin/index" options={{ title: t('role.storeAdmin') }} />
         <Stack.Screen name="driver/index" options={{ title: t('role.driver') }} />
+        <Stack.Screen name="driver/mission/[id]" options={{ title: t('driver.mission') }} />
+        <Stack.Screen name="driver/earnings" options={{ title: t('driver.earnings') }} />
+        <Stack.Screen name="driver/card" options={{ title: t('driver.card') }} />
+        <Stack.Screen name="driver-signup" options={{ title: t('driver.signupTitle') }} />
         <Stack.Screen name="admin/index" options={{ title: t('role.superAdmin') }} />
       </Stack>
     </>

@@ -19,6 +19,7 @@ export default function Account() {
     { icon: 'notifications-outline', label: t('account.notifications'), href: '/notifications', auth: true },
     { icon: 'chatbubbles-outline', label: t('support.title'), href: '/support', auth: true },
     { icon: 'storefront-outline', label: t('stores.title'), href: '/stores' },
+    { icon: 'bicycle-outline', label: t('driver.becomeDriver'), href: '/driver-signup', auth: true },
     { icon: 'settings-outline', label: t('account.settings'), href: '/settings' },
   ];
 
