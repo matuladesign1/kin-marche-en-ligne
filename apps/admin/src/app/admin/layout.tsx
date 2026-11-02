@@ -11,6 +11,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: '/admin/magasins', label: 'Supermarchés' },
         { href: '/admin/livreurs', label: 'Livreurs' },
         { href: '/admin/utilisateurs', label: 'Utilisateurs et rôles' },
+        { href: '/admin/finances', label: 'Finances et budgets' },
+        { href: '/admin/marketing', label: 'Coupons, bannières, partenaires' },
+        { href: '/admin/categories', label: 'Catégories' },
         { href: '/admin/taux', label: 'Taux de change' },
         { href: '/admin/parametres', label: 'Logo et couleurs' },
       ]}
