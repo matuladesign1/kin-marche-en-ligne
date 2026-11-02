@@ -33,8 +33,10 @@ export default function Notifications() {
     <Screen>
       {q.data.map((n) => {
         const orderId = typeof n.data?.order_id === 'string' ? n.data.order_id : null;
+        const ticketId = typeof n.data?.ticket_id === 'string' ? n.data.ticket_id : null;
+        const open = ticketId ? () => router.push(`/support/${ticketId}`) : orderId ? () => router.push(`/order/${orderId}`) : undefined;
         return (
-          <Card key={n.id} onPress={orderId ? () => router.push(`/order/${orderId}`) : undefined}
+          <Card key={n.id} onPress={open}
             style={!n.read_at ? { borderLeftWidth: 4, borderLeftColor: colors.primary } : undefined}>
             <T weight="700">{n.title}</T>
             {n.body ? <T size="sm">{n.body}</T> : null}

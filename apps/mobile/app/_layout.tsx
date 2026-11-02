@@ -55,8 +55,9 @@ function Navigator() {
         <Stack.Screen name="favorites" options={{ title: t('favorites.title') }} />
         <Stack.Screen name="coupons" options={{ title: t('coupons.title') }} />
         <Stack.Screen name="notifications" options={{ title: t('notifications.title') }} />
-        <Stack.Screen name="support/index" options={{ title: t('support.title') }} />
-        <Stack.Screen name="support/[id]" options={{ title: t('support.title') }} />
+        <Stack.Screen name="support/index" options={{ title: t('inbox.title') }} />
+        <Stack.Screen name="support/[id]" options={{ title: '' }} />
+        <Stack.Screen name="about" options={{ title: t('about.title') }} />
         <Stack.Screen name="cake" options={{ title: t('cake.title') }} />
         <Stack.Screen name="settings" options={{ title: t('account.settings') }} />
         <Stack.Screen name="me/profile" options={{ title: t('account.editProfile') }} />
@@ -70,7 +71,9 @@ function Navigator() {
         <Stack.Screen name="order/review/[id]" options={{ title: t('review.title') }} />
         <Stack.Screen name="auth-callback" options={{ headerShown: false }} />
         <Stack.Screen name="store-admin/index" options={{ title: t('role.storeAdmin') }} />
-        <Stack.Screen name="driver/index" options={{ title: t('role.driver') }} />
+        <Stack.Screen name="driver/index" options={{ title: t('driver.spaceTitle') }} />
+        <Stack.Screen name="driver/offers" options={{ title: t('driver.availableRuns') }} />
+        <Stack.Screen name="driver/history" options={{ title: t('driver.history') }} />
         <Stack.Screen name="driver/mission/[id]" options={{ title: t('driver.mission') }} />
         <Stack.Screen name="driver/earnings" options={{ title: t('driver.earnings') }} />
         <Stack.Screen name="driver/card" options={{ title: t('driver.card') }} />

@@ -50,8 +50,9 @@ export function useNotificationNavigation() {
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as { order_id?: string; kind?: string } | undefined;
-      if (data?.kind === 'delivery_offer') router.push('/driver');
+      const data = response.notification.request.content.data as { order_id?: string; ticket_id?: string; kind?: string } | undefined;
+      if (data?.kind === 'delivery_offer') router.push('/driver/offers');
+      else if (data?.ticket_id) router.push(`/support/${data.ticket_id}`);
       else if (data?.order_id) router.push(`/order/${data.order_id}`);
     });
     return () => sub.remove();

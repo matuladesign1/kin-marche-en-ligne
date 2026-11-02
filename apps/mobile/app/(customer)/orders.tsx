@@ -2,7 +2,8 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Card, Chip, EmptyState, ErrorState, Input, Loading, Notice, Row, Screen, T } from '@/components/ui';
+import { ProductFeedList } from '@/components/ProductFeedList';
+import { Button, Card, Chip, EmptyState, ErrorState, Input, Loading, Notice, Row, T } from '@/components/ui';
 import { qk, useOrders } from '@/hooks/data';
 import { errorMessage } from '@/lib/errors';
 import { formatDate } from '@/lib/format';
@@ -76,9 +77,6 @@ export default function Orders() {
     return c;
   }, [orders.data, reviewSet]);
 
-  if (!session) return <EmptyState icon="person-circle-outline" message={t('auth.required')} action={t('auth.signIn')} onAction={() => router.push('/(auth)/sign-in')} />;
-  if (orders.isLoading) return <Loading />;
-  if (orders.error) return <ErrorState message={errorMessage(orders.error, t)} onRetry={orders.refetch} />;
 
   const runLookup = async () => {
     setLookupError(null);
@@ -92,8 +90,16 @@ export default function Orders() {
 
   const list = (orders.data ?? []).filter((o) => inTab(o, tab, reviewSet));
 
-  return (
-    <Screen>
+  let content;
+  if (!session) {
+    content = <EmptyState icon="person-circle-outline" message={t('auth.required')} action={t('auth.signIn')} onAction={() => router.push('/(auth)/sign-in')} />;
+  } else if (orders.isLoading) {
+    content = <Loading />;
+  } else if (orders.error) {
+    content = <ErrorState message={errorMessage(orders.error, t)} onRetry={orders.refetch} />;
+  } else {
+    content = (
+      <View style={{ gap: spacing.lg }}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
         {TABS.map((tb) => (
           <Chip key={tb} active={tab === tb} onPress={() => setTab(tb)}
@@ -135,6 +141,17 @@ export default function Orders() {
             </Card>
           );
         })}
-    </Screen>
+      </View>
+    );
+  }
+
+  return (
+    <ProductFeedList
+      feed={{ kind: 'recent' }}
+      header={<View style={{ padding: spacing.lg, paddingBottom: 0 }}>{content}</View>}
+      title={t('orders.recentProducts')}
+      refreshing={orders.isRefetching}
+      onRefresh={() => { orders.refetch(); toReview.refetch(); proofs.refetch(); }}
+    />
   );
 }

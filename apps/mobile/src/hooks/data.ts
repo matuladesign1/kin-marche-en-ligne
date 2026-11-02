@@ -69,14 +69,17 @@ export function useCatalogItem(inventoryId: string) {
       const item = unwrap(await supabase.from('catalog_items').select('*').eq('inventory_id', inventoryId).maybeSingle()) as CatalogItem | null;
       if (!item) return null;
       const [product, images, others, reviews] = await Promise.all([
-        supabase.from('products').select('description, description_i18n, specs, nutrition, allergens, storage_conditions').eq('id', item.product_id).maybeSingle(),
+        supabase.from('products').select('description, description_i18n, specs, nutrition, allergens, storage_conditions, recommend_count').eq('id', item.product_id).maybeSingle(),
         supabase.from('product_images').select('url, alt').eq('product_id', item.product_id).order('sort_order'),
         supabase.from('catalog_items').select('inventory_id, store_id, store_name, effective_price_usd, in_stock').eq('product_id', item.product_id),
-        supabase.from('reviews').select('id, rating, comment, created_at').eq('product_id', item.product_id).eq('status', 'approved').order('created_at', { ascending: false }).limit(10),
+        supabase.from('reviews').select('id, rating, comment, created_at').eq('product_id', item.product_id).eq('target_type', 'product').eq('status', 'approved').order('created_at', { ascending: false }).limit(30),
       ]);
       return {
         item,
-        details: product.data as { description: string | null; allergens: string[] | null; storage_conditions: string | null } | null,
+        details: product.data as {
+          description: string | null; description_i18n: Partial<Record<string, string>> | null; specs: Record<string, unknown> | null;
+          nutrition: Record<string, unknown> | null; allergens: string[] | null; storage_conditions: string | null; recommend_count: number;
+        } | null,
         images: (images.data ?? []) as { url: string; alt: string | null }[],
         otherStores: (others.data ?? []) as Pick<CatalogItem, 'inventory_id' | 'store_id' | 'store_name' | 'effective_price_usd' | 'in_stock'>[],
         reviews: (reviews.data ?? []) as { id: string; rating: number; comment: string | null; created_at: string }[],

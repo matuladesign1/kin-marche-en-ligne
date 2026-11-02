@@ -4,7 +4,8 @@ export function homeForRole(role: AppRole | null | undefined): '/(customer)' | '
   switch (role) {
     case 'store_admin': return '/store-admin';
     case 'driver': return '/driver';
-    case 'super_admin': return '/admin';
+    case 'super_admin':
+    case 'agent': return '/admin';
     default: return '/(customer)';
   }
 }

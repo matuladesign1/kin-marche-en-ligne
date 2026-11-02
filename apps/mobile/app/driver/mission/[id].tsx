@@ -1,12 +1,14 @@
+import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Linking, Modal, Platform, StyleSheet, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MapBlock } from '@/components/Map';
+import { MapBlock, mapsAvailable, RouteSketch } from '@/components/Map';
 import { Button, Card, Chip, Divider, Input, Loading, Notice, Row, Screen, SectionHeader, T } from '@/components/ui';
 import { errorMessage } from '@/lib/errors';
-import { formatQty } from '@/lib/format';
+import { formatDate, formatQty } from '@/lib/format';
+import { decodePolyline } from '@/lib/polyline';
 import { supabase, unwrap } from '@/lib/supabase';
 import type { OrderItem, OrderStatus } from '@/lib/types';
 import { useAuth } from '@/providers/AuthProvider';
@@ -18,9 +20,19 @@ function mapsUrl(lat: number, lng: number) {
   return Platform.OS === 'ios' ? `maps://?daddr=${lat},${lng}` : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 }
 
+/** Navigation guidée (Google Maps) vers l'étape suivante ; repli sur le lien web. */
+async function startNavigation(lat: number, lng: number, waypoint?: { lat: number; lng: number } | null) {
+  const web = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}${waypoint ? `&waypoints=${waypoint.lat},${waypoint.lng}` : ''}&travelmode=driving`;
+  const native = Platform.OS === 'android' && !waypoint ? `google.navigation:q=${lat},${lng}&mode=d` : Platform.OS === 'ios' ? `comgooglemaps://?daddr=${lat},${lng}&directionsmode=driving` : null;
+  try {
+    if (native) { await Linking.openURL(native); return; }
+  } catch { /* application Google Maps absente */ }
+  await Linking.openURL(web);
+}
+
 export default function Mission() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t, money, colors } = useSettings();
+  const { t, money, colors, language } = useSettings();
   const { session } = useAuth();
   const qc = useQueryClient();
   const [packageCode, setPackageCode] = useState('');
@@ -40,14 +52,32 @@ export default function Mission() {
         .select('id, order_number, status, delivery_address, delivery_instructions, delivery_fee_usd, store_id, stores(name, phone, latitude, longitude, avenue, commune)')
         .eq('id', id).maybeSingle()) as any;
       const items = (await supabase.from('order_items').select('*').eq('order_id', id)).data as OrderItem[] | null;
-      const assignment = (await supabase.from('delivery_assignments').select('id, status').eq('order_id', id).eq('driver_id', session!.user.id).in('status', ['accepted', 'completed']).maybeSingle()).data as { id: string; status: string } | null;
-      return { order, items: items ?? [], assignment };
+      const assignment = (await supabase.from('delivery_assignments')
+        .select('id, status, route_polyline, eta_minutes, route_distance_km, eta_target, eta_updated_at')
+        .eq('order_id', id).eq('driver_id', session!.user.id).in('status', ['accepted', 'completed']).maybeSingle()).data as {
+          id: string; status: string; route_polyline: string | null; eta_minutes: number | null; route_distance_km: number | null;
+          eta_target: 'store' | 'customer' | null; eta_updated_at: string | null;
+        } | null;
+      const me = (await supabase.from('drivers').select('current_latitude, current_longitude').eq('id', session!.user.id).maybeSingle()).data as
+        { current_latitude: number | null; current_longitude: number | null } | null;
+      return { order, items: items ?? [], assignment, me };
     },
   });
 
+  // Itinéraire réel : calculé à l'ouverture puis toutes les minutes (Google Routes, côté serveur).
+  const accepted = q.data?.assignment?.status === 'accepted';
+  useEffect(() => {
+    if (!accepted) return;
+    const refresh = () => supabase.functions.invoke('delivery-eta', { body: { order_id: id, force: true } })
+      .then(() => qc.invalidateQueries({ queryKey: ['mission', id] }));
+    refresh();
+    const timer = setInterval(refresh, 60_000);
+    return () => clearInterval(timer);
+  }, [accepted, id, qc]);
+
   if (q.isLoading) return <Loading />;
   if (!q.data?.order) return <Screen><Notice tone="danger" text={t('err.FORBIDDEN')} /></Screen>;
-  const { order, items, assignment } = q.data;
+  const { order, items, assignment, me } = q.data;
   const status = order.status as OrderStatus;
   const addr = order.delivery_address as Record<string, string | number | null>;
   const store = order.stores as { name: string; phone: string | null; latitude: number | null; longitude: number | null; avenue: string | null; commune: string | null } | null;
@@ -103,15 +133,54 @@ export default function Mission() {
         <T size="sm">{t('driver.fee', { amount: money(order.delivery_fee_usd) })}</T>
       </Card>
       {msg ? <Notice tone={msg.tone} text={msg.text} /> : null}
-      {!done ? (
-        <MapBlock
-          points={[
-            ...(store?.latitude != null ? [{ id: 'store', latitude: store.latitude, longitude: store.longitude!, title: store.name, color: colors.accent2 }] : []),
-            ...(addr.latitude != null && !['driver_assigned', 'driver_to_store'].includes(status)
-              ? [{ id: 'home', latitude: Number(addr.latitude), longitude: Number(addr.longitude), title: String(addr.recipient_name ?? t('driver.dropoff')), color: colors.primary }] : []),
-          ]}
-        />
-      ) : null}
+      {!done && assignment?.status === 'accepted' ? (() => {
+        const route = decodePolyline(assignment.route_polyline);
+        const toStore = ['driver_assigned', 'driver_to_store'].includes(status);
+        const storePt = store?.latitude != null ? { latitude: store.latitude, longitude: store.longitude! } : null;
+        const homePt = addr.latitude != null ? { latitude: Number(addr.latitude), longitude: Number(addr.longitude) } : null;
+        const mePt = me?.current_latitude != null ? { latitude: me.current_latitude, longitude: me.current_longitude! } : null;
+        const next = toStore ? storePt : homePt;
+        return (
+          <View style={{ gap: 8 }}>
+            {mapsAvailable() ? (
+              <MapBlock
+                height={300}
+                route={route}
+                points={[
+                  ...(storePt ? [{ id: 'store', ...storePt, title: store!.name, description: t('driver.pickup'), color: colors.accent2 }] : []),
+                  ...(homePt ? [{ id: 'home', ...homePt, title: String(addr.recipient_name ?? t('driver.dropoff')), description: t('driver.dropoff'), color: colors.primary }] : []),
+                ]}
+              />
+            ) : route.length > 1 ? (
+              <RouteSketch
+                route={route}
+                marks={[
+                  ...(mePt ? [{ id: 'me', ...mePt, color: colors.accent, label: t('driver.you') }] : []),
+                  ...(storePt ? [{ id: 'store', ...storePt, color: colors.accent2, label: t('driver.pickup') }] : []),
+                  ...(homePt ? [{ id: 'home', ...homePt, color: colors.primary, label: t('driver.client') }] : []),
+                ]}
+              />
+            ) : null}
+            <Card>
+              <Row style={{ justifyContent: 'space-between' }}>
+                <View style={{ flex: 1 }}>
+                  <T size="xs" muted>{toStore ? t('driver.nextStore') : t('driver.nextClient')}</T>
+                  <T size="lg" weight="800">
+                    {assignment.eta_minutes ? t('orders.eta', { min: assignment.eta_minutes }) : t('driver.routePending')}
+                  </T>
+                  {assignment.route_distance_km ? <T size="sm" muted>{t('stores.km', { km: assignment.route_distance_km })}</T> : null}
+                </View>
+                <Ionicons name={toStore ? 'storefront' : 'home'} size={28} color={toStore ? colors.accent2 : colors.primary} />
+              </Row>
+              {assignment.eta_updated_at ? <T size="xs" muted>{t('orders.etaSource', { time: formatDate(assignment.eta_updated_at, language) })}</T> : null}
+              {next ? (
+                <Button title={t('driver.startNavigation')} icon="navigate"
+                  onPress={() => startNavigation(next.latitude, next.longitude)} />
+              ) : null}
+            </Card>
+          </View>
+        );
+      })() : null}
       {done ? <Notice tone="success" text={t('driver.delivered')} /> : null}
 
       <Card>

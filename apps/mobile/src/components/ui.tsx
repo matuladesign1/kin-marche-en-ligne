@@ -188,6 +188,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1,
     borderRadius: radius.pill, paddingHorizontal: spacing.md, minHeight: 36,
   },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.lg },
+  center: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.lg },
   notice: { flexDirection: 'row', gap: spacing.sm, borderWidth: 1, borderLeftWidth: 4, borderRadius: radius.md, padding: spacing.md, alignItems: 'flex-start' },
 });

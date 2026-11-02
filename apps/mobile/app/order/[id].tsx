@@ -10,6 +10,7 @@ import { Button, Card, Divider, ErrorState, Loading, Notice, Row, Screen, Sectio
 import { qk, useOrder } from '@/hooks/data';
 import { errorMessage } from '@/lib/errors';
 import { formatDate, formatQty } from '@/lib/format';
+import { decodePolyline } from '@/lib/polyline';
 import { supabase, unwrap } from '@/lib/supabase';
 import { useSettings } from '@/providers/SettingsProvider';
 
@@ -111,6 +112,7 @@ export default function OrderScreen() {
       {delivering ? (
         <MapBlock
           height={260}
+          route={decodePolyline(tracking?.assignment?.route_polyline)}
           points={[
             ...(tracking?.store.latitude != null ? [{ id: 'store', latitude: tracking.store.latitude, longitude: tracking.store.longitude!, title: tracking.store.name, color: colors.accent2 }] : []),
             ...(addr.latitude != null ? [{ id: 'home', latitude: Number(addr.latitude), longitude: Number(addr.longitude), title: t('checkout.address'), color: colors.primary }] : []),
