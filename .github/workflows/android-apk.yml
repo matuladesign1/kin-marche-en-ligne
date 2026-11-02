@@ -22,6 +22,12 @@ jobs:
       EXPO_PUBLIC_SUPABASE_URL: https://trobgcehelmxkvqjtdbo.supabase.co
       EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_rli_t0Z108wF-V5yMc3f_w_9HDXp9_X
       NODE_ENV: production
+      # Secrets GitHub facultatifs (Settings → Secrets and variables → Actions) :
+      #   GOOGLE_MAPS_ANDROID_KEY      clé Google Maps restreinte à l'application Android
+      #   EAS_PROJECT_ID               identifiant du projet expo.dev (notifications push)
+      #   GOOGLE_SERVICES_JSON_BASE64  fichier google-services.json de Firebase, encodé en base64
+      GOOGLE_MAPS_ANDROID_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_KEY }}
+      EAS_PROJECT_ID: ${{ secrets.EAS_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,6 +41,19 @@ jobs:
         run: |
           set -o pipefail
           (npm install --no-audit --no-fund && npx expo install --fix) 2>&1 | tee -a /tmp/build.log
+      - name: Fichier Firebase (notifications push Android)
+        env:
+          GSJ: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$GSJ" ]; then
+            echo "$GSJ" | base64 -d > google-services.json
+            echo "GOOGLE_SERVICES_JSON_PATH=$PWD/google-services.json" >> "$GITHUB_ENV"
+            echo "::notice::google-services.json intégré"
+          else
+            echo "::warning::GOOGLE_SERVICES_JSON_BASE64 absent : pas de notifications push Android dans cet APK"
+          fi
+          [ -n "$GOOGLE_MAPS_ANDROID_KEY" ] && echo "::notice::Clé Google Maps intégrée" || echo "::warning::GOOGLE_MAPS_ANDROID_KEY absent : cartes masquées sur Android"
+          [ -n "$EAS_PROJECT_ID" ] && echo "::notice::Projet EAS configuré" || echo "::warning::EAS_PROJECT_ID absent : pas de jeton push"
       - name: Diagnostic des versions Expo
         run: |
           {

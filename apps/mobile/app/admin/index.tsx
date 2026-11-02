@@ -18,7 +18,7 @@ export default function Space() {
         <T size="lg" weight="700">{t('role.superAdmin')}</T>
         <T muted>{profile.full_name ?? profile.email}</T>
       </Card>
-      <Notice text={t('role.comingNext')} />
+      <Notice text={t('role.useWeb')} />
       <Button title={t('auth.signOut')} variant="ghost" icon="log-out-outline" onPress={() => signOut().then(() => router.replace('/'))} />
     </Screen>
   );

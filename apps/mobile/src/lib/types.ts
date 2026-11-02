@@ -190,7 +190,7 @@ export interface Tracking {
   status: OrderStatus;
   payment_status: PaymentStatus;
   store: { name: string; phone: string | null; latitude: number | null; longitude: number | null };
-  assignment: { id: string; status: string; accepted_at: string | null; picked_up_at: string | null; delivered_at: string | null; eta_minutes: number | null } | null;
+  assignment: { id: string; status: string; accepted_at: string | null; picked_up_at: string | null; delivered_at: string | null; eta_minutes: number | null; route_distance_km: number | null; eta_updated_at: string | null; eta_target: 'store' | 'customer' | null } | null;
   driver: { name: string | null; avatar_url: string | null; driver_code: string; phone: string | null; transport: string | null; rating: number; location_shared: boolean } | null;
   position: { latitude: number; longitude: number; recorded_at: string; straight_line_km_to_customer: number | null } | null;
   history: { status: OrderStatus; at: string; note: string | null }[];

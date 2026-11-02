@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { Alert, Linking, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
+import { MapBlock } from '@/components/Map';
 import { StatusTimeline } from '@/components/StatusTimeline';
 import { Button, Card, Divider, ErrorState, Loading, Notice, Row, Screen, SectionHeader, T } from '@/components/ui';
 import { qk, useOrder } from '@/hooks/data';
@@ -28,7 +29,8 @@ export default function OrderScreen() {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` }, refresh)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'delivery_tracking' }, refresh)
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    const timer = setInterval(refresh, 30_000);
+    return () => { supabase.removeChannel(ch); clearInterval(timer); };
   }, [id, qc]);
 
   if (q.isLoading) return <Loading />;
@@ -93,8 +95,26 @@ export default function OrderScreen() {
           {tracking.position?.straight_line_km_to_customer != null ? (
             <T size="sm">{t('orders.position', { km: tracking.position.straight_line_km_to_customer })} · {formatDate(tracking.position.recorded_at, language)}</T>
           ) : null}
-          {tracking.assignment?.eta_minutes != null ? <T size="sm">{t('orders.eta', { min: tracking.assignment.eta_minutes })}</T> : null}
+          {tracking.assignment?.eta_minutes != null ? (
+            <T size="sm" weight="600">
+              {t('orders.eta', { min: tracking.assignment.eta_minutes })}
+              {tracking.assignment.route_distance_km != null ? ` · ${t('stores.km', { km: tracking.assignment.route_distance_km })}` : ''}
+              {tracking.assignment.eta_target === 'store' ? ` (${t('driver.pickup')})` : ''}
+            </T>
+          ) : null}
+          {tracking.assignment?.eta_updated_at ? <T size="xs" muted>{t('orders.etaSource', { time: formatDate(tracking.assignment.eta_updated_at, language) })}</T> : null}
         </Card>
+      ) : null}
+
+      {delivering ? (
+        <MapBlock
+          height={260}
+          points={[
+            ...(tracking?.store.latitude != null ? [{ id: 'store', latitude: tracking.store.latitude, longitude: tracking.store.longitude!, title: tracking.store.name, color: colors.accent2 }] : []),
+            ...(addr.latitude != null ? [{ id: 'home', latitude: Number(addr.latitude), longitude: Number(addr.longitude), title: t('checkout.address'), color: colors.primary }] : []),
+            ...(tracking?.position ? [{ id: 'driver', latitude: tracking.position.latitude, longitude: tracking.position.longitude, title: tracking.driver?.name ?? t('orders.driver'), color: colors.success }] : []),
+          ]}
+        />
       ) : null}
 
       <Card>

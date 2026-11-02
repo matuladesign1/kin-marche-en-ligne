@@ -5,11 +5,12 @@ import { useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { SettingsProvider, useSettings } from '@/providers/SettingsProvider';
-import { usePushRegistration } from '@/hooks/usePushRegistration';
+import { useNotificationNavigation, usePushRegistration } from '@/hooks/usePushRegistration';
 
 function Navigator() {
   const { colors, isDark, t } = useSettings();
   usePushRegistration();
+  useNotificationNavigation();
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />

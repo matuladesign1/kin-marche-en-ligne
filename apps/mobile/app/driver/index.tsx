@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { Redirect, router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Switch } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Card, Loading, Notice, Row, Screen, SectionHeader, T } from '@/components/ui';
@@ -53,6 +53,9 @@ export default function DriverHome() {
     return () => { supabase.removeChannel(ch); clearInterval(tick); };
   }, [session, qc]);
 
+  const activeOrderIds = useRef<string[]>([]);
+  activeOrderIds.current = (active.data ?? []).map((a) => a.order_id);
+
   // Partage de position (premier plan) tant que le livreur est disponible ou en mission.
   const sharing = !!driver.data?.is_available || (active.data?.length ?? 0) > 0;
   useEffect(() => {
@@ -64,7 +67,13 @@ export default function DriverHome() {
       setLocError(false);
       sub = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.High, timeInterval: 20_000, distanceInterval: 30 },
-        (pos) => { supabase.rpc('update_driver_location', { p_lat: pos.coords.latitude, p_lng: pos.coords.longitude, p_share: true }).then(() => undefined); },
+        async (pos) => {
+          await supabase.rpc('update_driver_location', { p_lat: pos.coords.latitude, p_lng: pos.coords.longitude, p_share: true });
+          // Temps de trajet réel (Google Routes) recalculé côté serveur, au plus une fois par minute.
+          for (const orderId of activeOrderIds.current) {
+            supabase.functions.invoke('delivery-eta', { body: { order_id: orderId } }).then(() => undefined);
+          }
+        },
       );
     })();
     return () => { sub?.remove(); };

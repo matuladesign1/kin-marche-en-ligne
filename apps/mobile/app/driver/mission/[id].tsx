@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Alert, Linking, Modal, Platform, StyleSheet, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { MapBlock } from '@/components/Map';
 import { Button, Card, Chip, Divider, Input, Loading, Notice, Row, Screen, SectionHeader, T } from '@/components/ui';
 import { errorMessage } from '@/lib/errors';
 import { formatQty } from '@/lib/format';
@@ -102,6 +103,15 @@ export default function Mission() {
         <T size="sm">{t('driver.fee', { amount: money(order.delivery_fee_usd) })}</T>
       </Card>
       {msg ? <Notice tone={msg.tone} text={msg.text} /> : null}
+      {!done ? (
+        <MapBlock
+          points={[
+            ...(store?.latitude != null ? [{ id: 'store', latitude: store.latitude, longitude: store.longitude!, title: store.name, color: colors.accent2 }] : []),
+            ...(addr.latitude != null && !['driver_assigned', 'driver_to_store'].includes(status)
+              ? [{ id: 'home', latitude: Number(addr.latitude), longitude: Number(addr.longitude), title: String(addr.recipient_name ?? t('driver.dropoff')), color: colors.primary }] : []),
+          ]}
+        />
+      ) : null}
       {done ? <Notice tone="success" text={t('driver.delivered')} /> : null}
 
       <Card>
