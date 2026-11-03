@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
+import { LoyaltyWelcome } from '@/components/LoyaltyWelcome';
 import { useCart } from '@/hooks/data';
 import { homeForRole } from '@/lib/roles';
 import { useAuth } from '@/providers/AuthProvider';
@@ -15,6 +16,8 @@ export default function CustomerTabs() {
 
   const count = cart.data?.lines.length ?? 0;
   return (
+    <>
+    <LoyaltyWelcome />
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
@@ -30,5 +33,6 @@ export default function CustomerTabs() {
       <Tabs.Screen name="orders" options={{ title: t('tab.orders'), tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" color={color} size={size} /> }} />
       <Tabs.Screen name="account" options={{ title: t('tab.account'), tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" color={color} size={size} /> }} />
     </Tabs>
+    </>
   );
 }

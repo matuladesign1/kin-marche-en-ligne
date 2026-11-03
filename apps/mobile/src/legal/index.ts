@@ -37,12 +37,12 @@ export const LEGAL_FR: Record<LegalDoc, LegalText> = {
   },
   privacy: {
     title: 'Politique de confidentialité',
-    updated: 'Version 1.0 — 2 novembre 2026',
+    updated: 'Version 1.1 — 3 novembre 2026',
     sections: [
       { title: '1. Responsable', body: `${COMPANY}. Contact pour vos données : messagerie de l’application ou ${CONTACT}.` },
       { title: '2. Données collectées', body: 'Identité et contact (nom, e-mail, téléphone, photo de profil si vous l’ajoutez), adresses de livraison et position GPS si vous l’autorisez, commandes et paiements (sans numéro de carte ni code PIN), messages échangés avec l’assistance, avis, jeton de notification de votre téléphone.' },
-      { title: '3. Utilisation', body: 'Exécuter vos commandes et livraisons, vérifier les paiements, vous informer de l’avancement, gérer la fidélité et les coupons, répondre à vos demandes, prévenir la fraude, établir les comptes et statistiques internes. Aucune donnée n’est vendue.' },
-      { title: '4. Partage', body: 'Le supermarché qui prépare votre commande et le livreur assigné voient uniquement ce qui est nécessaire (nom, téléphone, adresse de livraison) pendant la commande. Le livreur ne voit jamais votre code de livraison. Les prestataires techniques (hébergement Supabase, cartes Google, notifications Expo, prestataires de paiement) traitent les données pour notre compte.' },
+      { title: '3. Utilisation', body: 'Exécuter vos commandes et livraisons, vérifier les paiements, vous informer de l’avancement, gérer la carte Kin Marché Fidélité (dont le numéro est votre numéro de téléphone) et les coupons, répondre à vos demandes, prévenir la fraude, établir les comptes et statistiques internes. Aucune donnée n’est vendue.' },
+      { title: '4. Partage', body: 'Le supermarché qui prépare votre commande et le livreur assigné voient uniquement ce qui est nécessaire (nom, téléphone, adresse de livraison) pendant la commande. Le livreur ne voit jamais votre code de livraison. Votre carte Kin Marché Fidélité (numéro, nom, niveau, points) est partagée avec le programme de fidélité des magasins Kin Marché, et les administrateurs de Kin Marché et des supermarchés peuvent la consulter et la gérer. Les prestataires techniques (hébergement Supabase, cartes Google, notifications Expo, prestataires de paiement) traitent les données pour notre compte.' },
       { title: '5. Position', body: 'Votre position n’est utilisée que lorsque vous l’autorisez, pour trouver le supermarché qui peut vous livrer et enregistrer une adresse précise.' },
       { title: '6. Conservation', body: 'Les données de compte sont conservées tant que le compte est actif. À la suppression du compte, vos données personnelles sont effacées ; les commandes et écritures financières sont conservées sous forme anonyme pendant la durée légale.' },
       { title: '7. Sécurité', body: 'Les accès sont chiffrés et cloisonnés : chaque client ne voit que ses propres données, chaque supermarché uniquement les siennes. Les documents sensibles sont stockés dans des espaces privés.' },
@@ -86,12 +86,12 @@ export const LEGAL_EN: Record<LegalDoc, LegalText> = {
     ],
   },
   privacy: {
-    title: 'Privacy policy', updated: 'Version 1.0 — 2 November 2026',
+    title: 'Privacy policy', updated: 'Version 1.1 — 3 November 2026',
     sections: [
       { title: '1. Controller', body: `${COMPANY}. Contact: in-app messaging or ${CONTACT}.` },
       { title: '2. Data collected', body: 'Identity and contact details, profile photo if you add one, delivery addresses and GPS position if you allow it, orders and payments (no card numbers or PINs), support messages, reviews, your phone’s notification token.' },
-      { title: '3. Use', body: 'Fulfilling orders and deliveries, verifying payments, status updates, loyalty and coupons, support, fraud prevention, internal accounting and statistics. No data is sold.' },
-      { title: '4. Sharing', body: 'The preparing supermarket and the assigned driver see only what they need during the order. The driver never sees your delivery code. Technical providers (Supabase hosting, Google maps, Expo notifications, payment providers) process data on our behalf.' },
+      { title: '3. Use', body: 'Fulfilling orders and deliveries, verifying payments, status updates, the Kin Marché Fidélité card (its number is your phone number) and coupons, support, fraud prevention, internal accounting and statistics. No data is sold.' },
+      { title: '4. Sharing', body: 'The preparing supermarket and the assigned driver see only what they need during the order. The driver never sees your delivery code. Your Kin Marché Fidélité card (number, name, level, points) is shared with the Kin Marché stores’ loyalty programme, and Kin Marché and supermarket administrators can view and manage it. Technical providers (Supabase hosting, Google maps, Expo notifications, payment providers) process data on our behalf.' },
       { title: '5. Location', body: 'Your location is used only when you allow it, to find a store that can deliver to you and save a precise address.' },
       { title: '6. Retention', body: 'Account data is kept while the account is active. When you delete it, personal data is erased; orders and accounting records are kept anonymously for the legal period.' },
       { title: '7. Security', body: 'Access is encrypted and partitioned: each customer sees only their own data, each store only its own.' },

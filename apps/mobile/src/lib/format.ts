@@ -21,6 +21,24 @@ export function formatMoney(usd: number | null | undefined, currency: Currency, 
   }
 }
 
+/** Montant déjà exprimé en francs congolais (ex. seuil d'adhésion de la carte fidélité : 16 000 FC). */
+export function formatCdf(cdf: number, language: Language): string {
+  try {
+    return new Intl.NumberFormat(LOCALE[language], { style: 'currency', currency: 'CDF', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(cdf);
+  } catch {
+    return `${Math.round(cdf)} FC`;
+  }
+}
+
+/** Nombre de points avec séparateur de milliers. */
+export function formatPoints(points: number, language: Language): string {
+  try {
+    return new Intl.NumberFormat(LOCALE[language]).format(points);
+  } catch {
+    return String(points);
+  }
+}
+
 export function formatQty(qty: number, unit: SaleUnit, t: TFunction): string {
   const n = Number.isInteger(qty) ? String(qty) : qty.toFixed(2).replace(/\.?0+$/, '');
   return `${n} ${t(`unit.${unit}` as 'unit.unit')}`;

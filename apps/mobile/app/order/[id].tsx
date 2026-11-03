@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { Alert, Linking, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
+import { CERTIFIED_BLUE, CertifiedBadge } from '@/components/CertifiedBadge';
 import { MapBlock } from '@/components/Map';
 import { StatusTimeline } from '@/components/StatusTimeline';
 import { Button, Card, Divider, ErrorState, Loading, Notice, Row, Screen, SectionHeader, T } from '@/components/ui';
@@ -88,7 +89,11 @@ export default function OrderScreen() {
               <Image source={{ uri: tracking.driver.avatar_url }} style={{ width: 56, height: 56, borderRadius: 28 }} />
             ) : <Ionicons name="person-circle-outline" size={56} color={colors.textMuted} />}
             <View style={{ flex: 1 }}>
-              <T weight="700">{tracking.driver.name}</T>
+              <Row gap={6}>
+                <T weight="700" numberOfLines={1} style={{ flexShrink: 1 }}>{tracking.driver.name}</T>
+                {tracking.driver.verified ? <CertifiedBadge size={18} label={t('driver.status.verified')} /> : null}
+              </Row>
+              {tracking.driver.verified ? <T size="xs" weight="700" color={CERTIFIED_BLUE}>{t('driver.certifiedBy')}</T> : null}
               <T size="sm" muted>{tracking.driver.driver_code}{tracking.driver.transport ? ` · ${tracking.driver.transport}` : ''}</T>
             </View>
             {tracking.driver.phone ? (

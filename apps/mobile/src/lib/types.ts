@@ -191,7 +191,10 @@ export interface Tracking {
   payment_status: PaymentStatus;
   store: { name: string; phone: string | null; latitude: number | null; longitude: number | null };
   assignment: { id: string; status: string; accepted_at: string | null; picked_up_at: string | null; delivered_at: string | null; eta_minutes: number | null; route_distance_km: number | null; eta_updated_at: string | null; eta_target: 'store' | 'customer' | null; route_polyline?: string | null } | null;
-  driver: { name: string | null; avatar_url: string | null; driver_code: string; phone: string | null; transport: string | null; rating: number; location_shared: boolean } | null;
+  driver: {
+    name: string | null; avatar_url: string | null; driver_code: string; phone: string | null; transport: string | null;
+    rating: number; location_shared: boolean; verified?: boolean; verified_at?: string | null;
+  } | null;
   position: { latitude: number; longitude: number; recorded_at: string; straight_line_km_to_customer: number | null } | null;
   history: { status: OrderStatus; at: string; note: string | null }[];
 }
@@ -204,4 +207,45 @@ export interface AppNotification {
   data: Record<string, unknown>;
   read_at: string | null;
   created_at: string;
+}
+
+/** Carte Kin Marché Fidélité (numéro = téléphone du compte, 243 + 9 chiffres). */
+export type LoyaltyTier = 'silver' | 'gold' | 'platinum';
+export interface LoyaltyCardInfo {
+  card_number: string | null;
+  card_status: 'none' | 'active' | 'suspended';
+  tier: LoyaltyTier | 'none';
+  points_balance: number;
+  /** Points importés du programme en magasin, bloqués jusqu'à la vérification par Kin Marché. */
+  locked_points: number;
+  redeemable_points: number;
+  lifetime_points: number;
+  card_issued_at: string | null;
+  tier_changed_at: string | null;
+  enrollment_source: 'purchase' | 'program' | 'admin' | null;
+  full_name: string | null;
+  phone: string | null;
+  /** Numéro de carte que donnerait le téléphone du compte (null si le téléphone manque ou n'est pas valide). */
+  phone_card_number: string | null;
+  phone_card_taken: boolean;
+  linked: boolean;
+  link_verified: boolean;
+  enroll_eligible: boolean;
+  enroll_min_cdf: number;
+  enroll_min_usd: number | null;
+  earn_per_usd: number;
+  point_value_usd: number;
+  tier_bonus: Partial<Record<LoyaltyTier, number>>;
+  program: { name: string; url: string; phone?: string; website?: string };
+  /** Vrai quand la base n'a pas encore la carte fidélité (ancienne version du serveur). */
+  legacy?: boolean;
+}
+
+export interface LoyaltyTransaction {
+  id: string;
+  type: 'earn' | 'redeem' | 'expire' | 'adjust' | 'refund_reversal';
+  points: number;
+  note: string | null;
+  created_at: string;
+  expires_at: string | null;
 }

@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Application from 'expo-application';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Linking, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { AppFooter } from '@/components/AppFooter';
 import { BrandLogo } from '@/components/BrandHeader';
@@ -22,6 +24,15 @@ const FEATURES: { icon: IconName; title: TranslationKey; text: TranslationKey }[
   { icon: 'chatbubbles-outline', title: 'about.f.assistant', text: 'about.f.assistantText' },
 ];
 
+// Photos officielles Kin Marché (magasin, chambre froide, entrepôt, centre logistique, rayons).
+const HERO = require('../assets/images/about/magasin.jpg');
+const PHOTOS: { src: number; title: TranslationKey; text: TranslationKey; ratio: number }[] = [
+  { src: require('../assets/images/about/chambre-froide.jpg'), title: 'about.photo.cold', text: 'about.photo.coldText', ratio: 600 / 322 },
+  { src: require('../assets/images/about/rayons.jpg'), title: 'about.photo.aisles', text: 'about.photo.aislesText', ratio: 600 / 322 },
+  { src: require('../assets/images/about/entrepot.jpg'), title: 'about.photo.warehouse', text: 'about.photo.warehouseText', ratio: 600 / 322 },
+  { src: require('../assets/images/about/centre-logistique.jpg'), title: 'about.photo.logistics', text: 'about.photo.logisticsText', ratio: 600 / 322 },
+];
+
 const PROMISES: { icon: IconName; text: TranslationKey }[] = [
   { icon: 'pricetags-outline', text: 'about.p.prices' },
   { icon: 'lock-closed-outline', text: 'about.p.noCash' },
@@ -32,6 +43,7 @@ const PROMISES: { icon: IconName; text: TranslationKey }[] = [
 
 export default function About() {
   const { t, colors } = useSettings();
+  const [zoom, setZoom] = useState<{ src: number; title: TranslationKey; ratio: number } | null>(null);
   const stats = useQuery({
     queryKey: ['about-stats'],
     queryFn: async () => {
@@ -47,6 +59,18 @@ export default function About() {
 
   return (
     <Screen>
+      {/* Bandeau photo : la façade d'un supermarché Kin Marché */}
+      <Pressable onPress={() => setZoom({ src: HERO, title: 'about.photo.stores', ratio: 1440 / 753 })} accessibilityRole="imagebutton" accessibilityLabel={t('about.photo.stores')}>
+        <View style={[styles.cover, { borderColor: colors.border }]}>
+          <Image source={HERO} style={{ width: '100%', aspectRatio: 1440 / 753 }} contentFit="cover" transition={250} />
+          <View style={styles.coverShade}>
+            <T size="xs" weight="800" color="#FFFFFF" style={{ letterSpacing: 1.5 }}>{t('about.photo.storesKicker')}</T>
+            <T size="lg" weight="800" color="#FFFFFF">{t('about.photo.stores')}</T>
+            <T size="sm" color="#F2F3F5">{t('about.photo.storesText')}</T>
+          </View>
+        </View>
+      </Pressable>
+
       <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <BrandLogo height={52} />
         <T size="lg" weight="800" color={colors.primary} style={{ textAlign: 'center' }}>{t('app.tagline')}</T>
@@ -66,6 +90,23 @@ export default function About() {
           </View>
         ))}
       </Row>
+
+      {/* Galerie : l'envers du décor, de la chambre froide au rayon */}
+      <SectionHeader title={t('about.galleryTitle')} />
+      <T size="sm" muted style={{ marginTop: -6 }}>{t('about.gallerySubtitle')}</T>
+      <View style={styles.grid}>
+        {PHOTOS.map((p) => (
+          <Pressable key={p.title} style={styles.tile} onPress={() => setZoom(p)} accessibilityRole="imagebutton" accessibilityLabel={t(p.title)}>
+            <View style={[styles.tileCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Image source={p.src} style={{ width: '100%', aspectRatio: p.ratio }} contentFit="cover" transition={250} />
+              <View style={{ padding: spacing.sm, gap: 2 }}>
+                <T size="sm" weight="800" numberOfLines={1}>{t(p.title)}</T>
+                <T size="xs" muted numberOfLines={3} style={{ lineHeight: 16 }}>{t(p.text)}</T>
+              </View>
+            </View>
+          </Pressable>
+        ))}
+      </View>
 
       <SectionHeader title={t('about.whatTitle')} />
       <Card style={{ gap: spacing.md }}>
@@ -121,11 +162,31 @@ export default function About() {
       </Card>
 
       <AppFooter />
+
+      {/* Plein écran : toucher pour fermer */}
+      <Modal visible={!!zoom} transparent animationType="fade" onRequestClose={() => setZoom(null)} statusBarTranslucent>
+        <Pressable style={styles.lightbox} onPress={() => setZoom(null)} accessibilityRole="button" accessibilityLabel={t('common.close')}>
+          {zoom ? (
+            <View style={{ width: '100%', gap: spacing.md }}>
+              <Image source={zoom.src} style={{ width: '100%', aspectRatio: zoom.ratio }} contentFit="contain" />
+              <T weight="700" color="#FFFFFF" style={{ textAlign: 'center' }}>{t(zoom.title)}</T>
+            </View>
+          ) : null}
+          <View style={styles.close}><Ionicons name="close" size={26} color="#FFFFFF" /></View>
+        </Pressable>
+      </Modal>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  cover: { borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1 },
+  coverShade: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: 'rgba(0,0,0,0.45)', gap: 2 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing.md },
+  tile: { width: '48.5%' },
+  tileCard: { borderWidth: 1, borderRadius: radius.lg, overflow: 'hidden', flex: 1 },
+  lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  close: { position: 'absolute', top: 48, right: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   hero: { borderWidth: 1, borderRadius: radius.lg, padding: spacing.xl, gap: spacing.md, alignItems: 'center' },
   stat: { flex: 1, borderWidth: 1, borderRadius: radius.lg, paddingVertical: spacing.md, alignItems: 'center', gap: 2 },
   icon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },

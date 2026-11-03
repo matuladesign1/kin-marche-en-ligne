@@ -31,7 +31,8 @@ const base = {
     "package": "cd.kinmarche.enligne",
     "adaptiveIcon": {
       "foregroundImage": "./assets/images/adaptive-icon.png",
-      "backgroundColor": "#FFFFFF"
+      "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
+      "backgroundColor": "#000000"
     },
     "permissions": [
       "CAMERA",

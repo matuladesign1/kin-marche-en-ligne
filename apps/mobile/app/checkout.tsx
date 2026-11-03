@@ -4,12 +4,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button, Card, Chip, Divider, Input, Loading, Notice, Row, Screen, SectionHeader, T } from '@/components/ui';
 import { qk, useAddresses, useLoyalty, useQuote } from '@/hooks/data';
 import { errorMessage, translateIssue } from '@/lib/errors';
-import { formatQty } from '@/lib/format';
+import { formatCdf, formatPoints, formatQty } from '@/lib/format';
 import { supabase, unwrap } from '@/lib/supabase';
 import { useSettings } from '@/providers/SettingsProvider';
 
 export default function Checkout() {
-  const { t, money, currency, rates, colors } = useSettings();
+  const { t, money, currency, rates, colors, language } = useSettings();
   const qc = useQueryClient();
   const addresses = useAddresses();
   const loyalty = useLoyalty();
@@ -25,12 +25,24 @@ export default function Checkout() {
     if (!addressId && addresses.data?.length) setAddressId(addresses.data[0].id);
   }, [addresses.data, addressId]);
 
-  const points = usePoints ? loyalty.data?.account.points_balance ?? 0 : 0;
+  // Seuls les points d'une carte active (hors points en attente de vérification) sont utilisables.
+  const usable = loyalty.data?.card.redeemable_points ?? 0;
+  const points = usePoints ? usable : 0;
   const quote = useQuote({ addressId, coupon, points }, !!addressId);
 
   if (addresses.isLoading) return <Loading />;
 
   const issues = quote.data?.issues ?? [];
+  // Pas encore de carte : cette commande donne-t-elle la carte Argent (16 000 FC payés) ?
+  const card = loyalty.data?.card;
+  const cdfRate = rates.CDF?.rate;
+  let loyaltyHint: string | null = null;
+  if (card && !card.legacy && card.card_status === 'none' && cdfRate && quote.data?.total_usd != null) {
+    const totalCdf = Math.round(quote.data.total_usd * cdfRate);
+    loyaltyHint = totalCdf >= card.enroll_min_cdf
+      ? t('checkout.loyaltyEnroll')
+      : t('checkout.loyaltyMissing', { amount: formatCdf(card.enroll_min_cdf - totalCdf, language), min: formatCdf(card.enroll_min_cdf, language) });
+  }
   // On commande dans la devise affichée seulement si son taux existe.
   const orderCurrency = currency === 'USD' || rates[currency] ? currency : 'USD';
 
@@ -74,12 +86,12 @@ export default function Checkout() {
         <Input label={t('checkout.coupon')} value={couponInput} onChangeText={setCouponInput} autoCapitalize="characters" style={{ flex: 1 }} />
         <Button title={t('checkout.applyCoupon')} variant="secondary" onPress={() => setCoupon(couponInput.trim() || null)} />
       </Row>
-      {(loyalty.data?.account.points_balance ?? 0) > 0 ? (
+      {usable > 0 ? (
         <Row>
           <Chip
             icon="star"
             active={usePoints}
-            label={t('checkout.usePoints', { points: loyalty.data!.account.points_balance })}
+            label={t('checkout.usePoints', { points: formatPoints(usable, language) })}
             onPress={() => setUsePoints((v) => !v)}
           />
         </Row>
@@ -111,6 +123,7 @@ export default function Checkout() {
         </Card>
       ) : null}
 
+      {loyaltyHint ? <Notice tone="success" text={loyaltyHint} /> : null}
       {issues.map((i) => <Notice key={i} tone="warning" text={translateIssue(i, t)} />)}
       {error ? <Notice tone="danger" text={error} /> : null}
       <Notice text={t('checkout.noCash')} />

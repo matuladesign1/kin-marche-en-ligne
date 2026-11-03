@@ -5,10 +5,9 @@ import { BrandLogo } from '@/components/BrandHeader';
 import { SocialLogin } from '@/components/SocialLogin';
 import { Button, Input, Notice, Screen, T } from '@/components/ui';
 import { errorMessage } from '@/lib/errors';
+import { normalizePhone } from '@/lib/loyalty';
 import { supabase } from '@/lib/supabase';
 import { useSettings } from '@/providers/SettingsProvider';
-
-const PHONE_RE = /^\+?243\d{9}$/;
 
 export default function SignUp() {
   const { t, language } = useSettings();
@@ -20,9 +19,11 @@ export default function SignUp() {
 
   const submit = async () => {
     setError(null);
-    const phone = form.phone.replace(/[\s-]/g, '');
+    // Le téléphone devient le numéro de la carte Kin Marché Fidélité (0812345678 ou +243 81 234 5678).
+    const raw = form.phone.trim();
+    const phone = raw ? normalizePhone(raw) : null;
     if (!form.fullName.trim() || !form.email.trim()) return setError(t('common.required'));
-    if (phone && !PHONE_RE.test(phone)) return setError(t('auth.phone'));
+    if (raw && !phone) return setError(t('auth.phoneInvalid'));
     if (form.password.length < 8) return setError(t('auth.passwordRule'));
     setLoading(true);
     // Le rôle n'est jamais envoyé : tout nouveau compte est « client » côté serveur.
@@ -45,7 +46,8 @@ export default function SignUp() {
         {error ? <Notice tone="danger" text={error} /> : null}
         {done ? <Notice tone="success" text={t('auth.checkEmail')} /> : null}
         <Input label={t('auth.fullName')} value={form.fullName} onChangeText={set('fullName')} autoComplete="name" />
-        <Input label={t('auth.phone')} value={form.phone} onChangeText={set('phone')} keyboardType="phone-pad" placeholder="+243 8x xxx xxxx" />
+        <Input label={t('auth.phone')} value={form.phone} onChangeText={set('phone')} keyboardType="phone-pad" placeholder="+243 8x xxx xxxx" autoComplete="tel" />
+        <T size="xs" muted style={{ marginTop: -6 }}>{t('auth.phoneHint')}</T>
         <Input label={t('auth.email')} value={form.email} onChangeText={set('email')} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
         <Input label={`${t('auth.password')} — ${t('auth.passwordRule')}`} value={form.password} onChangeText={set('password')} secureTextEntry autoComplete="new-password" />
         <Button title={t('auth.signUp')} onPress={submit} loading={loading} />

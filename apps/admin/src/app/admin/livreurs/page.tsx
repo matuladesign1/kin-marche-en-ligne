@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache';
 import { requirePermission } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { CertifiedDriver } from '@/components/icons';
 import { Flash } from '@/components/Shell';
 import { dateTime } from '@/lib/format';
 import { supabaseServer } from '@/lib/supabase-server';
@@ -80,7 +81,10 @@ export default async function Livreurs({ searchParams }: { searchParams: Promise
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {d.profiles?.avatar_url ? <img src={d.profiles.avatar_url} alt="" style={{ width: 64, height: 64, borderRadius: 32, objectFit: 'cover' }} /> : null}
               <div>
-                <b>{d.profiles?.full_name}</b> <span className={`badge ${STATUS[d.status].cls}`}>{STATUS[d.status].label}</span>
+                <b>{d.profiles?.full_name}</b>{' '}
+                {d.status === 'verified'
+                  ? <span className="certified-driver"><CertifiedDriver size={18} /> Livreur certifié</span>
+                  : <span className={`badge ${STATUS[d.status].cls}`}>{STATUS[d.status].label}</span>}
                 <div className="muted">{d.driver_code} · {d.profiles?.email} · {d.profiles?.phone}</div>
               </div>
             </div>

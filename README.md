@@ -42,12 +42,28 @@ Points clés de sécurité :
 - **Paiement confirmé uniquement par le serveur** (`confirm_payment`, exécutable par le rôle service seulement, appelé par le webhook vérifié du prestataire). Pas de paiement à la livraison.
 - **Stock réservé** à la commande, libéré si annulation ou délai de paiement dépassé (`expire_unpaid_orders`).
 - **OTP de livraison** visible uniquement par le client ; le livreur le saisit (5 essais max). **Code colis** scanné au magasin avant le départ.
-- **Fidélité** créditée seulement après livraison confirmée ; points restitués en cas d'annulation.
+- **Carte Kin Marché Fidélité** : numéro de carte = téléphone du compte (243 + 9 chiffres), QR code et code-barres identiques à la carte du programme en magasin. Carte Argent émise au premier achat payé d'au moins 16 000 FC ; Gold (+10 %) et Platinum (+25 %) attribués uniquement par l'administrateur général ou un administrateur de supermarché. Points crédités dès la confirmation du paiement, retirés si la commande est annulée ou remboursée.
 - Journal d'audit, journal financier, historique horodaté des 16 étapes de livraison, notifications en temps réel.
 
 Fonctions RPC principales : `search_catalog`, `recommend_stores` (recommande le magasin qui **peut** servir la commande), `add_to_cart`, `set_cart_quantity`, `quote_order`, `place_order`, `cancel_order`, `get_order_tracking`, `advance_order_status`, `assign_next_driver`, `respond_to_offer`, `confirm_pickup`, `verify_delivery_otp`, `update_driver_location`.
 
 Le parcours complet (devis → paiement serveur → préparation → affectation automatique du livreur → scan du colis → OTP → fidélité et portefeuille livreur) a été testé de bout en bout dans une transaction annulée.
+
+### ⚠️ À faire une fois : installer la carte Kin Marché Fidélité
+
+La migration `supabase/migrations/20261103000100_loyalty_cards.sql` (cartes, points au paiement, liaison avec Kin Marché Fidélité,
+badge livreur certifié dans le suivi) doit être appliquée sur la base : Supabase → projet **Kin Marché en ligne** → **SQL Editor** →
+coller le fichier → **Run**. Elle est rejouable sans risque. Tant qu'elle n'est pas appliquée, l'application affiche l'ancien solde
+de points et les pages « Cartes fidélité » de l'administration l'indiquent.
+
+**Liaison avec l'espace Kin Marché Fidélité (loyalty.kinmarche.com).** Le programme en magasin n'offre pas d'accès API public.
+En attendant un accès (URL + clé, à enregistrer comme secrets Supabase, jamais dans le dépôt) :
+
+- *Programme → application* : l'administrateur général importe l'export CSV des membres (Administration → Cartes fidélité → Importer les membres).
+  Chaque membre est relié automatiquement au compte de l'application qui porte le même téléphone ; ses points restent bloqués
+  jusqu'à la vérification de la carte par un administrateur (le téléphone saisi à l'inscription n'est pas vérifié par SMS).
+- *Application → programme* : les nouvelles cartes, points, niveaux et suspensions sont listés dans « Opérations à reporter »
+  (export CSV), à saisir dans l'espace Kin Marché Fidélité puis à marquer comme saisis (ils ne sont alors pas recomptés au prochain import).
 
 ### ⚠️ À faire une fois : 2 fonctions à installer à la main
 

@@ -39,6 +39,9 @@ const PATHS: Record<string, string> = {
   external: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
   lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   globe: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/>',
+  card: '<rect x="2" y="5" width="20" height="14" rx="2.5"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="11" y2="15"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
 };
 
 export type IconName = keyof typeof PATHS;
@@ -65,6 +68,28 @@ export function Verified({ size = 15 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 24 24" aria-label="Certifié" style={{ verticalAlign: '-2px', flexShrink: 0 }}>
       <polygon points={pts.join(' ')} fill="var(--primary)" stroke="var(--primary)" strokeWidth={1.2} strokeLinejoin="round" />
       <path d="M7.4 12.4 L10.6 15.4 L16.8 9" stroke="#fff" strokeWidth={2.4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Badge « livreur certifié » : sceau festonné (comme le badge bleu de Facebook), dégradé vert -> bleu. */
+export function CertifiedDriver({ size = 18 }: { size?: number }) {
+  const pts: string[] = [];
+  for (let i = 0; i <= 120; i++) {
+    const a = (2 * Math.PI * i) / 120 - Math.PI / 2;
+    const r = 10.6 + 1.15 * Math.cos(10 * a);
+    pts.push(`${(12 + r * Math.cos(a)).toFixed(2)},${(12 + r * Math.sin(a)).toFixed(2)}`);
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-label="Livreur certifié" role="img" style={{ verticalAlign: '-3px', flexShrink: 0 }}>
+      <defs>
+        <linearGradient id="km-cert-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#16C47F" />
+          <stop offset="1" stopColor="#1877F2" />
+        </linearGradient>
+      </defs>
+      <polygon points={pts.join(' ')} fill="url(#km-cert-grad)" />
+      <path d="M7.3 12.3 L10.5 15.4 L16.9 9" stroke="#fff" strokeWidth={2.4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

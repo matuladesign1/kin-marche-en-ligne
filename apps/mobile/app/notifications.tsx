@@ -34,7 +34,9 @@ export default function Notifications() {
       {q.data.map((n) => {
         const orderId = typeof n.data?.order_id === 'string' ? n.data.order_id : null;
         const ticketId = typeof n.data?.ticket_id === 'string' ? n.data.ticket_id : null;
-        const open = ticketId ? () => router.push(`/support/${ticketId}`) : orderId ? () => router.push(`/order/${orderId}`) : undefined;
+        const loyalty = n.kind === 'loyalty' || n.data?.screen === 'loyalty';
+        const open = loyalty ? () => router.push('/loyalty')
+          : ticketId ? () => router.push(`/support/${ticketId}`) : orderId ? () => router.push(`/order/${orderId}`) : undefined;
         return (
           <Card key={n.id} onPress={open}
             style={!n.read_at ? { borderLeftWidth: 4, borderLeftColor: colors.primary } : undefined}>

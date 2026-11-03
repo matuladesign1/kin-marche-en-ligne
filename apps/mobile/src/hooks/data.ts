@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, unwrap } from '@/lib/supabase';
+import { cardNumberFromPhone } from '@/lib/loyalty';
 import type {
-  Address, AppNotification, CatalogItem, Category, Order, OrderItem, Quote, RecommendedStore, Store, Tracking,
+  Address, AppNotification, CatalogItem, Category, LoyaltyCardInfo, LoyaltyTransaction, Order, OrderItem, Quote,
+  RecommendedStore, Store, Tracking,
 } from '@/lib/types';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -228,21 +230,50 @@ export function useToggleFavorite() {
   });
 }
 
+/** Carte Kin Marché Fidélité de l'utilisateur et historique des points. */
 export function useLoyalty() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   return useQuery({
     queryKey: qk.loyalty,
     enabled: !!session,
     queryFn: async () => {
-      const [acc, tx] = await Promise.all([
-        supabase.from('loyalty_accounts').select('points_balance, lifetime_points, tier').maybeSingle(),
-        supabase.from('loyalty_transactions').select('id, type, points, note, created_at, expires_at').order('created_at', { ascending: false }).limit(50),
+      const [card, tx] = await Promise.all([
+        supabase.rpc('get_my_loyalty_card'),
+        supabase.from('loyalty_transactions').select('id, type, points, note, created_at, expires_at')
+          .neq('points', 0).order('created_at', { ascending: false }).limit(50),
       ]);
-      return {
-        account: (acc.data ?? { points_balance: 0, lifetime_points: 0, tier: 'bronze' }) as { points_balance: number; lifetime_points: number; tier: string },
-        history: (tx.data ?? []) as { id: string; type: string; points: number; note: string | null; created_at: string; expires_at: string | null }[],
-      };
+      let info: LoyaltyCardInfo;
+      if (card.error) {
+        // Serveur pas encore à jour : l'ancien solde reste visible, sans carte.
+        if (card.error.code !== 'PGRST202' && !/get_my_loyalty_card/.test(card.error.message ?? '')) throw card.error;
+        const acc = await supabase.from('loyalty_accounts').select('points_balance, lifetime_points').maybeSingle();
+        info = legacyCard(acc.data, profile?.full_name ?? null, profile?.phone ?? null);
+      } else {
+        info = card.data as LoyaltyCardInfo;
+      }
+      return { card: info, history: (tx.data ?? []) as LoyaltyTransaction[] };
     },
+  });
+}
+
+function legacyCard(acc: { points_balance: number; lifetime_points: number } | null, name: string | null, phone: string | null): LoyaltyCardInfo {
+  return {
+    card_number: null, card_status: 'none', tier: 'none',
+    points_balance: acc?.points_balance ?? 0, locked_points: 0, redeemable_points: acc?.points_balance ?? 0,
+    lifetime_points: acc?.lifetime_points ?? 0, card_issued_at: null, tier_changed_at: null, enrollment_source: null,
+    full_name: name, phone, phone_card_number: cardNumberFromPhone(phone), phone_card_taken: false,
+    linked: false, link_verified: false, enroll_eligible: false, enroll_min_cdf: 16000, enroll_min_usd: null,
+    earn_per_usd: 1, point_value_usd: 0.01, tier_bonus: { silver: 0, gold: 0.1, platinum: 0.25 },
+    program: { name: 'Kin Marché Fidélité', url: 'https://loyalty.kinmarche.com/login' }, legacy: true,
+  };
+}
+
+/** « Je suis déjà membre » : relance la recherche de la carte avec le téléphone du compte. */
+export function useLinkLoyaltyCard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => unwrap(await supabase.rpc('link_my_loyalty_card')) as LoyaltyCardInfo & { found: boolean },
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.loyalty }),
   });
 }
 

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { PAY_FR, STATUS_FR, UNIT_FR } from './format';
+import { TIER_FR } from './loyalty';
 
 export interface ReportFilters {
   from: string;
@@ -156,9 +157,9 @@ export async function buildExport(sb: SupabaseClient, type: string, f: ReportFil
         .eq('role', 'customer').order('created_at', { ascending: false }).limit(50000);
       return {
         name: `clients_${new Date().toISOString().slice(0, 10)}`,
-        csv: toCsv(['Nom', 'E-mail', 'Téléphone', 'Langue', 'Devise', 'Inscrit le', 'Actif', 'Points', 'Points cumulés', 'Niveau'],
+        csv: toCsv(['Nom', 'E-mail', 'Téléphone', 'Langue', 'Devise', 'Inscrit le', 'Actif', 'Points', 'Points cumulés', 'Carte fidélité'],
           (data ?? []).map((c: any) => [c.full_name, c.email, c.phone, c.language, c.currency, d(c.created_at), c.is_active ? 'oui' : 'non',
-            c.loyalty_accounts?.points_balance, c.loyalty_accounts?.lifetime_points, c.loyalty_accounts?.tier])),
+            c.loyalty_accounts?.points_balance, c.loyalty_accounts?.lifetime_points, TIER_FR[c.loyalty_accounts?.tier] ?? c.loyalty_accounts?.tier])),
       };
     }
     case 'livreurs': {

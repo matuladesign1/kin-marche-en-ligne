@@ -7,7 +7,10 @@ import { Alert, Dimensions, FlatList, Linking, Pressable, View } from 'react-nat
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { AppFooter } from '@/components/AppFooter';
 import { BasketLoader } from '@/components/BasketLoader';
+import { LoyaltyCardMini } from '@/components/LoyaltyCard';
 import { Button, Card, Divider, Row, SectionHeader, T, type IconName } from '@/components/ui';
+import { useLoyalty } from '@/hooks/data';
+import { isTier } from '@/lib/loyalty';
 import { supabase } from '@/lib/supabase';
 import { spacing } from '@/lib/theme';
 import { maskPhone } from '@/lib/format';
@@ -31,6 +34,27 @@ function usePartners() {
       .range(pageParam, pageParam + PARTNER_PAGE - 1)).data ?? []) as Partner[],
     getNextPageParam: (last, all) => (last.length < PARTNER_PAGE ? undefined : all.length * PARTNER_PAGE),
   });
+}
+
+/** Aperçu de la carte Kin Marché Fidélité (touchez pour l'afficher en grand). */
+function AccountLoyaltyCard() {
+  const { t } = useSettings();
+  const q = useLoyalty();
+  if (!q.data) return null;
+  const { card } = q.data;
+  const has = card.card_status !== 'none' && !!card.card_number && isTier(card.tier);
+  return (
+    <Pressable onPress={() => router.push('/loyalty')} accessibilityRole="button" accessibilityHint={t('loyalty.open')}>
+      <LoyaltyCardMini
+        number={has ? card.card_number : card.phone_card_number}
+        name={card.full_name}
+        tier={has && isTier(card.tier) ? card.tier : 'silver'}
+        points={has ? card.points_balance : undefined}
+        suspended={card.card_status === 'suspended'}
+        pending={!has}
+      />
+    </Pressable>
+  );
 }
 
 export default function Account() {
@@ -128,6 +152,8 @@ export default function Account() {
       ) : (
         <Button title={t('auth.signIn')} onPress={() => router.push('/(auth)/sign-in')} />
       )}
+
+      {session ? <AccountLoyaltyCard /> : null}
 
       {sections.map((sec) => {
         const links = sec.links.filter((l) => !l.auth || session);

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { AppFooter } from '@/components/AppFooter';
+import { CERTIFIED_BLUE, CertifiedBadge } from '@/components/CertifiedBadge';
 import { Button, Loading, Notice, Row, Screen, T, type IconName } from '@/components/ui';
 import { useDriver, useDriverActive, useDriverOffers, useDriverToday } from '@/hooks/driver';
 import { errorMessage } from '@/lib/errors';
@@ -102,6 +103,12 @@ export default function DriverHome() {
       <View style={[styles.status, { backgroundColor: colors.surface, borderColor: online ? colors.success : colors.border }]}>
         <View style={[styles.statusDot, { backgroundColor: online ? colors.success : colors.textMuted }]} />
         <View style={{ flex: 1 }}>
+          {verified ? (
+            <Row gap={6}>
+              <CertifiedBadge size={18} label={t('driver.status.verified')} />
+              <T size="xs" weight="800" color={CERTIFIED_BLUE}>{t('driver.status.verified').toUpperCase()}</T>
+            </Row>
+          ) : null}
           <T size="xl" weight="800" color={online ? colors.success : colors.text}>{online ? t('driver.online') : t('driver.offline')}</T>
           <T size="sm" muted>{verified ? (online ? t('driver.onlineHint') : t('driver.offlineHint')) : t(`driver.status.${(d?.status ?? 'pending_review') as 'verified'}` as TranslationKey)}</T>
         </View>

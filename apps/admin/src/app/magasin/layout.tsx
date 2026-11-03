@@ -17,6 +17,9 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       { href: '/magasin/produits/nouveau', label: 'Nouveau produit', icon: 'plus' },
       { href: '/magasin/messagerie', label: 'Messagerie', icon: 'chat' },
     ] },
+    { title: 'Clients', links: [
+      { href: '/magasin/fidelite', label: 'Cartes fidélité', icon: 'card' },
+    ] },
   ];
   return (
     <Shell user={user} groups={groups} roleLabel={stores[0]?.title ? `${stores[0].title} de supermarché` : 'Supermarché'} subtitle={stores.map((s) => s.name).join(' · ')}>

@@ -8,10 +8,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const can = (p: keyof typeof PERMISSION_LABELS) => user.permissions.includes(p);
   const sb = await supabaseServer();
   const count = async (table: string, f: (q: any) => any) => (await f(sb.from(table).select('*', { count: 'exact', head: true }))).count ?? 0;
-  const [pendingDrivers, pendingProofs, openTickets] = await Promise.all([
+  const [pendingDrivers, pendingProofs, openTickets, loyaltyToVerify] = await Promise.all([
     can('drivers') ? count('drivers', (q) => q.eq('status', 'pending_review')) : 0,
     can('finance') ? count('payment_proofs', (q) => q.eq('status', 'pending')) : 0,
     can('support') ? count('support_tickets', (q) => q.eq('status', 'open')) : 0,
+    // Cartes en magasin reliées automatiquement, en attente de vérification.
+    user.isSuper ? count('loyalty_accounts', (q) => q.not('external_member_id', 'is', null).is('link_verified_at', null)) : 0,
   ]);
 
   const groups: NavGroup[] = [
@@ -31,6 +33,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       ] : []),
     ] },
     { title: 'Marketing', links: [
+      ...(user.isSuper ? [{ href: '/admin/fidelite', label: 'Cartes fidélité', icon: 'card', badge: loyaltyToVerify }] : []),
       ...(can('marketing') ? [{ href: '/admin/marketing', label: 'Coupons, bannières, partenaires', icon: 'tag' }] : []),
     ] },
     { title: 'Administration', links: [
