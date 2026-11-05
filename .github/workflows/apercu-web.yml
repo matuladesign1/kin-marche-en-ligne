@@ -44,14 +44,16 @@ jobs:
           module.exports = config;
           JS
       - name: Export web
-        run: npx expo export --platform web --output-dir dist 2>&1 | tail -40
+        run: |
+          npx expo export --platform web --output-dir dist > /tmp/export.log 2>&1 || echo "EXPORT ÉCHOUÉ" >> /tmp/export.log
+          tail -60 /tmp/export.log
       - name: Captures
         run: |
           npm install --no-save playwright@1.56.1 serve@14.2.4
           npx playwright install --with-deps chromium
           npx serve -s dist -l 8081 > /tmp/serve.log 2>&1 &
           sleep 3
-          cat > /tmp/shots.mjs <<'JS'
+          cat > shots.mjs <<'JS'
           import { chromium } from 'playwright';
           const out = process.argv[2];
           const routes = [
@@ -85,13 +87,15 @@ jobs:
           console.log(errors.slice(0, 20).join('\n') || 'Aucune erreur JavaScript');
           JS
           mkdir -p /tmp/apercu
-          node /tmp/shots.mjs /tmp/apercu | tee /tmp/apercu/erreurs.txt
+          { echo "== export =="; tail -60 /tmp/export.log; echo "== serveur =="; tail -5 /tmp/serve.log; echo "== navigateur =="; } > /tmp/apercu/erreurs.txt
+          node shots.mjs /tmp/apercu >> /tmp/apercu/erreurs.txt 2>&1 || echo "CAPTURES ÉCHOUÉES" >> /tmp/apercu/erreurs.txt
+          tail -30 /tmp/apercu/erreurs.txt
       - name: Publier les captures
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cd /tmp/apercu && zip -q captures.zip *.png erreurs.txt && cd -
+          cd /tmp/apercu && (zip -q captures.zip *.png erreurs.txt || zip -q captures.zip erreurs.txt) && cd -
           gh release create "apercu-${{ github.run_number }}" /tmp/apercu/captures.zip \
             --target "${{ github.sha }}" --prerelease --title "Aperçu des écrans n°${{ github.run_number }}" \
             --notes "Captures temporaires de la version web (vérification de la mise en page)."
