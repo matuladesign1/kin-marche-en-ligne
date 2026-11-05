@@ -1,0 +1,91 @@
+name: Aperçu des écrans (temporaire)
+
+# Captures d'écran de la version web de l'application pour vérifier la mise en page avant fusion.
+on:
+  push:
+    branches: [version-2]
+    paths: ['apps/mobile/**', '.github/workflows/apercu-web.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apercu:
+    name: Captures d'écran
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/mobile
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: https://trobgcehelmxkvqjtdbo.supabase.co
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_rli_t0Z108wF-V5yMc3f_w_9HDXp9_X
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Dépendances
+        run: |
+          npm install --no-audit --no-fund
+          npx expo install --fix || true
+          npx expo install @expo/metro-runtime || true
+      - name: Carte native ignorée sur le web (aperçu seulement)
+        run: |
+          cat > metro.config.js <<'JS'
+          const { getDefaultConfig } = require('expo/metro-config');
+          const config = getDefaultConfig(__dirname);
+          const base = config.resolver.resolveRequest;
+          config.resolver.resolveRequest = (ctx, name, platform) => {
+            if (platform === 'web' && name === 'react-native-maps') return { type: 'empty' };
+            return (base ?? ctx.resolveRequest)(ctx, name, platform);
+          };
+          module.exports = config;
+          JS
+      - name: Export web
+        run: |
+          npx expo export --platform web --output-dir dist > /tmp/export.log 2>&1 || echo "EXPORT ÉCHOUÉ" >> /tmp/export.log
+          tail -60 /tmp/export.log
+      - name: Captures
+        run: |
+          npm install --no-save playwright@1.56.1 serve@14.2.4
+          npx playwright install --with-deps chromium
+          npx serve -s dist -l 8081 > /tmp/serve.log 2>&1 &
+          sleep 3
+          cat > shots.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const out = process.argv[2];
+          const routes = [
+            ['accueil', '/'], ['compte', '/account'], ['connexion', '/sign-in'], ['inscription', '/sign-up'],
+            ['a-propos', '/about'], ['assistance', '/support'], ['roue', '/wheel'], ['parametres', '/settings'], ['messages', '/messages'],
+          ];
+          const browser = await chromium.launch();
+          const errors = [];
+          for (const tall of [false, true]) {
+            const ctx = await browser.newContext({ viewport: { width: 390, height: tall ? 2200 : 844 }, deviceScaleFactor: 2, locale: 'fr-FR' });
+            const page = await ctx.newPage();
+            page.on('pageerror', (e) => errors.push(`${page.url()} : ${e.message}`));
+            for (const [name, path] of routes) {
+              await page.goto(`http://localhost:8081${path}`, { waitUntil: 'networkidle' }).catch(() => undefined);
+              await page.waitForTimeout(4500);
+              await page.screenshot({ path: `${out}/${name}${tall ? '-long' : ''}.png` });
+            }
+            await ctx.close();
+          }
+          await browser.close();
+          console.log(errors.slice(0, 20).join('\n') || 'Aucune erreur JavaScript');
+          JS
+          mkdir -p /tmp/apercu
+          { echo "== export =="; tail -60 /tmp/export.log; echo "== serveur =="; tail -5 /tmp/serve.log; echo "== navigateur =="; } > /tmp/apercu/erreurs.txt
+          node shots.mjs /tmp/apercu >> /tmp/apercu/erreurs.txt 2>&1 || echo "CAPTURES ÉCHOUÉES" >> /tmp/apercu/erreurs.txt
+          tail -30 /tmp/apercu/erreurs.txt
+      - name: Publier les captures
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd /tmp/apercu && (zip -q captures.zip *.png erreurs.txt || zip -q captures.zip erreurs.txt) && cd -
+          gh release create "apercu-${{ github.run_number }}" /tmp/apercu/captures.zip \
+            --target "${{ github.sha }}" --prerelease --title "Aperçu des écrans n°${{ github.run_number }}" \
+            --notes "Captures temporaires de la version web (vérification de la mise en page)."
