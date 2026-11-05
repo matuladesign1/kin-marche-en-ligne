@@ -70,6 +70,15 @@ const base = {
     ],
     "expo-localization",
     [
+      "expo-splash-screen",
+      {
+        "image": "./assets/images/splash-logo.png",
+        "imageWidth": 220,
+        "resizeMode": "contain",
+        "backgroundColor": "#CE0000"
+      }
+    ],
+    [
       "expo-speech-recognition",
       {
         "microphonePermission": "Le micro sert à rechercher un produit à la voix.",
