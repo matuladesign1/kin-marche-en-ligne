@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Application from 'expo-application';
+import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -32,7 +33,7 @@ export default function Settings() {
   const qc = useQueryClient();
   const [sheet, setSheet] = useState<Sheet>(null);
 
-  const version = Application.nativeApplicationVersion ?? '1.0.0';
+  const version = Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? '';
   const buildRaw = Application.nativeBuildVersion;
   const build = buildRaw && /^\d+$/.test(buildRaw) ? Number(buildRaw) : null;
   const update = useAppUpdate(build);

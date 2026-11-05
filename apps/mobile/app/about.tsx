@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Application from 'expo-application';
+import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -133,7 +134,7 @@ export default function About() {
 
       <SectionHeader title={t('about.appTitle')} />
       <Card>
-        <Row style={{ justifyContent: 'space-between' }}><T muted>{t('about.version')}</T><T weight="700">{Application.nativeApplicationVersion ?? '0.1.0'}</T></Row>
+        <Row style={{ justifyContent: 'space-between' }}><T muted>{t('about.version')}</T><T weight="700">{Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? ''}</T></Row>
         <Row style={{ justifyContent: 'space-between' }}><T muted>{t('settings.language')}</T><T weight="700" style={{ flex: 1, textAlign: 'right' }}>{LANGUAGES.map((l) => l.label).join(' · ')}</T></Row>
         <Row style={{ justifyContent: 'space-between' }}><T muted>{t('settings.currency')}</T><T weight="700">USD · CDF · EUR</T></Row>
       </Card>
