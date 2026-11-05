@@ -36,9 +36,9 @@ export default function CustomerTabs() {
         screenOptions={{
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.text,
+          // Chaque onglet a déjà 5 px de marge interne : icône (28) + libellé (14) + marges = 52 px.
           tabBarLabelStyle: { fontSize: 11, lineHeight: 14, fontWeight: '600' },
-          tabBarItemStyle: { paddingVertical: 3, paddingHorizontal: 0 },
-          tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, height: 58 + bottom, paddingTop: 4, paddingBottom: bottom },
+          tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, height: 60 + bottom, paddingTop: 4, paddingBottom: bottom },
           tabBarBadgeStyle: { backgroundColor: colors.primary, fontSize: 10, fontWeight: '800' },
           headerStyle: { backgroundColor: colors.surface },
           headerTintColor: colors.text,

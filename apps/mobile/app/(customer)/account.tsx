@@ -74,9 +74,12 @@ function QuickCard({ label, image, icon, count, onPress }: { label: string; imag
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={count ? `${label} (${count})` : label}
       style={({ pressed }) => [styles.quick, { backgroundColor: colors.surface, opacity: pressed ? 0.88 : 1 }]}>
-      <T size="sm" weight="700" numberOfLines={2}>{label}</T>
+      <View style={styles.quickTop}>
+        <T size="sm" weight="700" numberOfLines={2} style={{ flexShrink: 1 }}>{label}</T>
+        <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+      </View>
       <View style={styles.quickBottom}>
-        {count ? <T size="lg" weight="800" color={colors.primary}>{count > 99 ? '99+' : count}</T> : <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />}
+        {count ? <T size="lg" weight="800" color={colors.primary}>{count > 99 ? '99+' : count}</T> : <View />}
         <View style={[styles.quickThumb, { backgroundColor: colors.surfaceAlt }]}>
           {image ? <Image source={{ uri: image }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <Ionicons name={icon} size={20} color={colors.textMuted} />}
         </View>
@@ -202,7 +205,7 @@ export default function Account() {
 
         <Panel>
           <PanelHeader title={t('orders.mine')} action={t('common.seeAll')} onAction={need('/orders')} />
-          <Row gap={0} style={{ alignItems: 'flex-start' }}>
+          <Row gap={0} style={styles.tiles}>
             {orderTiles.map((o) => (
               <IconTile key={o.tab} icon={o.icon} label={t(`account.orders.${o.tab}`)} count={session ? counts[o.tab] : 0}
                 onPress={need(`/orders?tab=${o.tab}`)} />
@@ -213,7 +216,7 @@ export default function Account() {
         <Panel>
           <PanelHeader title={t('account.section.rewards')} action={t('account.seeCard')} onAction={need('/loyalty')} />
           {session ? <AccountLoyaltyCard /> : null}
-          <Row gap={0} style={{ alignItems: 'flex-start' }}>
+          <Row gap={0} style={styles.tiles}>
             <IconTile width="25%" icon="card-outline" label={t('account.loyaltyCard')} onPress={need('/loyalty')} />
             {wheelOn ? <IconTile width="25%" custom={<WheelIcon size={28} />} label={t('wheel.title')} count={spins} onPress={need('/wheel')} /> : null}
             {wheelOn ? <IconTile width="25%" icon="trophy-outline" label={t('wheel.myRewards')} onPress={need('/wheel?section=rewards')} /> : null}
@@ -224,7 +227,7 @@ export default function Account() {
         <Panel>
           <PanelHeader title={t('account.moreFeatures')} action={allFeatures ? t('account.lessFeatures') : t('common.seeAll')}
             onAction={() => setAllFeatures((v) => !v)} size="md" />
-          <Row gap={0} style={{ flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <Row gap={0} style={[styles.tiles, { flexWrap: 'wrap' }]}>
             {(allFeatures ? features : features.slice(0, 4)).map(({ key, ...f }) => <IconTile key={key} width="25%" {...f} />)}
           </Row>
         </Panel>
@@ -284,7 +287,10 @@ const styles = StyleSheet.create({
   headerIcon: { width: 34, alignItems: 'center' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   quick: { flex: 1, minHeight: 92, borderRadius: radius.md, padding: 10, gap: 6, justifyContent: 'space-between' },
+  quickTop: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   quickBottom: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
+  // Les tuiles débordent un peu dans la marge du bloc : plus de largeur pour les libellés.
+  tiles: { alignItems: 'flex-start', marginHorizontal: -spacing.sm },
   quickThumb: { width: 40, height: 40, borderRadius: 8, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   banner: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: radius.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   promo: { flex: 1, minHeight: 88, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md },

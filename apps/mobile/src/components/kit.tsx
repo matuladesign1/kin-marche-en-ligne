@@ -105,7 +105,9 @@ export function IconTile({ icon, label, count, onPress, color, width = '20%', cu
         {custom ?? <Ionicons name={icon ?? 'ellipse-outline'} size={28} color={color ?? colors.text} />}
         <CountBadge count={count ?? 0} style={styles.tileBadge} />
       </View>
-      <T size="xs" style={{ textAlign: 'center', lineHeight: 16 }} numberOfLines={2}>{label}</T>
+      {/* Césure propre (trait d'union) si un mot ne tient pas sur la largeur de la tuile. */}
+      <Text numberOfLines={2} android_hyphenationFrequency="normal"
+        style={{ fontSize: font.xs, lineHeight: 16, textAlign: 'center', color: colors.text }}>{label}</Text>
     </Pressable>
   );
 }

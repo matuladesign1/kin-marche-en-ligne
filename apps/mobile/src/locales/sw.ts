@@ -828,8 +828,8 @@ const sw: Record<TranslationKey, string> = {
   'account.quick.coupons': 'Kuponi',
   'account.orders.toPay': 'Malipo',
   'account.orders.toShip': 'Kutumwa',
-  'account.orders.toReceive': 'Kupokelewa',
-  'account.orders.refund': 'Marejesho',
+  'account.orders.toReceive': 'Kupokea',
+  'account.orders.refund': 'Mareje\u00ADsho',
   'account.orders.toReview': 'Tathmini',
 };
 export default sw;

@@ -861,7 +861,7 @@ const fr = {
   'account.orders.toPay': 'À payer',
   'account.orders.toShip': 'À expédier',
   'account.orders.toReceive': 'À recevoir',
-  'account.orders.refund': 'Remboursés',
+  'account.orders.refund': 'Rembour\u00ADsés',
   'account.orders.toReview': 'À évaluer',
 } as const;
 

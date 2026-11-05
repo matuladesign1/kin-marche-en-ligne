@@ -829,7 +829,7 @@ const ln: Record<TranslationKey, string> = {
   'account.orders.toPay': 'Kofuta',
   'account.orders.toShip': 'Kotinda',
   'account.orders.toReceive': 'Kozwa',
-  'account.orders.refund': 'Kozongisa',
+  'account.orders.refund': 'Kozo\u00ADngisa',
   'account.orders.toReview': 'Likanisi',
 };
 export default ln;
