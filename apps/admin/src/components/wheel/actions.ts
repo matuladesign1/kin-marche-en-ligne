@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { wheelError } from '@/lib/wheel';
+import { kinLocalToIso, wheelError } from '@/lib/wheel';
 import { supabaseServer } from '@/lib/supabase-server';
 
 // Actions de la page « Roue de la chance » (administrateur général) et des commandes des supermarchés.
@@ -28,6 +28,9 @@ export async function saveWheelSettingsAction(fd: FormData) {
       spins_per_order: num(fd, 'spins_per_order'),
       spin_validity_days: num(fd, 'spin_validity_days'),
       coupon_validity_days: num(fd, 'coupon_validity_days'),
+      // Heure de Kinshasa ; vide = sans limite.
+      starts_at: kinLocalToIso(str(fd, 'starts_at')),
+      ends_at: kinLocalToIso(str(fd, 'ends_at')),
     },
   });
   finish('/admin/roue', res, 'Réglages de la roue enregistrés');

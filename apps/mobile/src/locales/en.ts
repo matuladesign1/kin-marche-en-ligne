@@ -595,5 +595,12 @@ const en: Record<TranslationKey, string> = {
   'account.orders.toReceive': 'To receive',
   'account.orders.refund': 'Refunded',
   'account.orders.toReview': 'To review',
+  'wheel.until': 'Until {date}',
+  'wheel.upcoming': 'The Lucky Wheel starts on {date}. Come back and try your luck!',
+  'wheel.ended': 'The Lucky Wheel ended on {date}. Thank you for playing!',
+  'wheel.rule.dates': 'Offer valid from {start} to {end}: spins not played by the end are lost.',
+  'wheel.rule.until': 'Offer valid until {end}: spins not played by then are lost.',
+  'err.WHEEL_NOT_STARTED': 'The Lucky Wheel hasn\'t started yet.',
+  'err.WHEEL_ENDED': 'The Lucky Wheel has ended.',
 };
 export default en;

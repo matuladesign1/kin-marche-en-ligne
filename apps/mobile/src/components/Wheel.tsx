@@ -5,7 +5,7 @@ import { localized } from '@/lib/i18n';
 import type { WheelPrize } from '@/lib/types';
 import { useSettings } from '@/providers/SettingsProvider';
 
-const LOGO = require('../../assets/images/logo-square.png');
+const LOGO = require('../../assets/images/logo-round.png');
 
 /** Point sur le cercle : angle en degrés, 0 = en haut, sens des aiguilles d'une montre. */
 function polar(c: number, r: number, deg: number): [number, number] {
@@ -96,7 +96,7 @@ export function Wheel({ prizes, size, rotation }: { prizes: WheelPrize[]; size: 
         <Circle cx={C} cy={C} r={34} fill="#FFFFFF" stroke={colors.primaryDark} strokeWidth={5} />
         <Polygon points={`${C - 15},6 ${C + 15},6 ${C},40`} fill="#16181D" stroke="#FFFFFF" strokeWidth={3} strokeLinejoin="round" />
       </Svg>
-      <View pointerEvents="none" style={{ position: 'absolute', left: size / 2 - size * 0.075, top: size / 2 - size * 0.075, width: size * 0.15, height: size * 0.15 }}>
+      <View pointerEvents="none" style={{ position: 'absolute', left: size / 2 - size * 0.085, top: size / 2 - size * 0.085, width: size * 0.17, height: size * 0.17, borderRadius: size * 0.085, overflow: 'hidden' }}>
         <Image source={LOGO} style={{ width: '100%', height: '100%' }} contentFit="contain" accessibilityIgnoresInvertColors />
       </View>
     </View>

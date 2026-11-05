@@ -1,6 +1,7 @@
-import type { ReactElement } from 'react';
-import { Dimensions, FlatList, RefreshControl, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useCallback, type ReactElement } from 'react';
+import { Dimensions, FlatList, Platform, RefreshControl, View, type ListRenderItem, type StyleProp, type ViewStyle } from 'react-native';
 import { useProductFeed, type Feed } from '@/hooks/feed';
+import type { CatalogItem } from '@/lib/types';
 import { spacing } from '@/lib/theme';
 import { useSettings } from '@/providers/SettingsProvider';
 import { AppFooter } from './AppFooter';
@@ -32,6 +33,12 @@ export function ProductFeedList({ feed, header, title, subtitle, onRefresh, refr
   const q = useProductFeed(feed, enabled);
   const items = q.data?.pages.flat() ?? [];
   const loadingMore = q.isFetchingNextPage || (q.isLoading && enabled);
+  // Rendu stable : les cartes déjà affichées ne sont pas recalculées pendant le défilement.
+  const renderItem = useCallback<ListRenderItem<CatalogItem>>(({ item }) => (
+    <View style={{ width: CELL }}>
+      <ProductCard item={item} />
+    </View>
+  ), []);
 
   return (
     <FlatList
@@ -53,11 +60,12 @@ export function ProductFeedList({ feed, header, title, subtitle, onRefresh, refr
           ) : null}
         </View>
       }
-      renderItem={({ item }) => (
-        <View style={{ width: CELL }}>
-          <ProductCard item={item} />
-        </View>
-      )}
+      renderItem={renderItem}
+      // Téléphones modestes : peu de cartes rendues à la fois, celles hors écran sont libérées.
+      initialNumToRender={6}
+      maxToRenderPerBatch={6}
+      windowSize={7}
+      removeClippedSubviews={Platform.OS === 'android'}
       onEndReached={() => { if (q.hasNextPage && !q.isFetchingNextPage) q.fetchNextPage(); }}
       onEndReachedThreshold={0.5}
       refreshControl={onRefresh ? (

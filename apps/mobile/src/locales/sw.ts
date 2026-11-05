@@ -831,5 +831,12 @@ const sw: Record<TranslationKey, string> = {
   'account.orders.toReceive': 'Kupokea',
   'account.orders.refund': 'Mareje\u00ADsho',
   'account.orders.toReview': 'Tathmini',
+  'wheel.until': 'Hadi {date}',
+  'wheel.upcoming': 'Gurudumu la Bahati litaanza tarehe {date}. Rudi ujaribu bahati yako!',
+  'wheel.ended': 'Gurudumu la Bahati liliisha tarehe {date}. Asante kwa kucheza!',
+  'wheel.rule.dates': 'Ofa inatumika kuanzia {start} hadi {end}: mizunguko isiyochezwa kufikia mwisho itapotea.',
+  'wheel.rule.until': 'Ofa inatumika hadi {end}: mizunguko isiyochezwa kufikia tarehe hiyo itapotea.',
+  'err.WHEEL_NOT_STARTED': 'Gurudumu la Bahati bado halijaanza.',
+  'err.WHEEL_ENDED': 'Gurudumu la Bahati limekwisha.',
 };
 export default sw;

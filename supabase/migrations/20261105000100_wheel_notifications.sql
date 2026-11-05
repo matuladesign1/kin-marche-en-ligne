@@ -8,7 +8,8 @@
 -- 5. Codes promo personnels (réservés à un client)
 -- 6. Roue de la chance : lots, tours offerts dès 50 $ payés, tirage côté serveur,
 --    gains (points, codes promo, cadeaux, tours supplémentaires), annulation si
---    la commande est annulée ou remboursée, cadeaux joints à la commande suivante
+--    la commande est annulée ou remboursée, cadeaux joints à la commande suivante,
+--    période facultative (date de début et date de fin : la roue s'ouvre et se ferme seule)
 -- 7. Fonctions d'administration (administrateur général) et des supermarchés
 --
 -- Ré-exécutable sans risque : rien n'est supprimé, les réglages déjà saisis sont conservés.
@@ -318,14 +319,35 @@ end $$;
 -- 6. Roue de la chance
 -- ---------------------------------------------------------------------
 
+-- Période facultative : starts_at / ends_at (null = sans limite). Hors période, la roue est fermée.
 insert into public.app_settings (key, value) values
-  ('wheel', '{"enabled": true, "min_order_usd": 50, "spins_per_order": 1, "spin_validity_days": 30, "coupon_validity_days": 30}')
+  ('wheel', '{"enabled": true, "min_order_usd": 50, "spins_per_order": 1, "spin_validity_days": 30, "coupon_validity_days": 30, "starts_at": null, "ends_at": null}')
 on conflict (key) do nothing;
 
 create or replace function public._wheel_settings()
 returns jsonb language sql stable security definer set search_path = '' as $$
-  select '{"enabled": true, "min_order_usd": 50, "spins_per_order": 1, "spin_validity_days": 30, "coupon_validity_days": 30}'::jsonb
+  select '{"enabled": true, "min_order_usd": 50, "spins_per_order": 1, "spin_validity_days": 30, "coupon_validity_days": 30, "starts_at": null, "ends_at": null}'::jsonb
          || coalesce(public.setting('wheel'), '{}'::jsonb)
+$$;
+
+-- Date d'un réglage (texte ISO) ; null si vide ou illisible.
+create or replace function public._wheel_ts(p text)
+returns timestamptz language plpgsql stable set search_path = '' as $$
+begin
+  return nullif(trim(coalesce(p, '')), '')::timestamptz;
+exception when others then
+  return null;
+end $$;
+
+-- État de la roue : active, off (désactivée), upcoming (pas encore commencée), ended (terminée).
+create or replace function public._wheel_state(p_settings jsonb default null)
+returns text language sql stable security definer set search_path = '' as $$
+  select case
+    when s -> 'enabled' = 'false'::jsonb then 'off'
+    when public._wheel_ts(s->>'starts_at') is not null and now() < public._wheel_ts(s->>'starts_at') then 'upcoming'
+    when public._wheel_ts(s->>'ends_at') is not null and now() >= public._wheel_ts(s->>'ends_at') then 'ended'
+    else 'active' end
+  from (select coalesce(p_settings, public._wheel_settings()) as s) x
 $$;
 
 create table if not exists public.wheel_prizes (
@@ -470,7 +492,8 @@ begin
       jsonb_build_object('screen', 'wheel', 'order_id', v_order.id));
   end loop;
 
-  if v_s -> 'enabled' = 'false'::jsonb then return; end if;
+  -- Tours offerts seulement pendant la période de la roue (activée, commencée, pas terminée).
+  if public._wheel_state(v_s) <> 'active' then return; end if;
   if v_order.total_usd < coalesce((v_s->>'min_order_usd')::numeric, 50) then return; end if;
   if exists (select 1 from public.wheel_spins where order_id = p_order_id and source = 'order') then return; end if;
   v_n := public._wheel_grant(v_order.customer_id, greatest(coalesce((v_s->>'spins_per_order')::integer, 1), 1), 'order', p_order_id);
@@ -602,10 +625,14 @@ returns jsonb language sql stable security definer set search_path = '' as $$
 $$;
 
 -- Visiteur : règles et lots (sans données personnelles).
+-- « enabled » = la roue est jouable maintenant (activée et dans sa période).
 create or replace function public.get_wheel_public()
 returns jsonb language sql stable security definer set search_path = '' as $$
   select jsonb_build_object(
-    'enabled', coalesce((s->>'enabled')::boolean, true),
+    'enabled', public._wheel_state(s) = 'active',
+    'state', public._wheel_state(s),
+    'starts_at', public._wheel_ts(s->>'starts_at'),
+    'ends_at', public._wheel_ts(s->>'ends_at'),
     'min_order_usd', coalesce((s->>'min_order_usd')::numeric, 50),
     'spins_per_order', coalesce((s->>'spins_per_order')::integer, 1),
     'spin_validity_days', coalesce((s->>'spin_validity_days')::integer, 30),
@@ -623,7 +650,8 @@ begin
   return public.get_wheel_public() || jsonb_build_object(
     'spins_available', (select count(*) from public.wheel_spins
                         where user_id = v_uid and status = 'available' and (expires_at is null or expires_at > now())),
-    'next_expiry', (select min(expires_at) from public.wheel_spins
+    -- Les tours se jouent au plus tard à la fin de la roue.
+    'next_expiry', (select min(least(expires_at, public._wheel_ts(public._wheel_settings()->>'ends_at'))) from public.wheel_spins
                     where user_id = v_uid and status = 'available' and expires_at > now()),
     'rewards', (select coalesce(jsonb_agg(x.j order by x.created_at desc), '[]'::jsonb) from (
         select rw.created_at, jsonb_build_object(
@@ -666,7 +694,12 @@ declare
   v_rules jsonb := coalesce(public.setting('loyalty'), '{}'::jsonb);
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED' using errcode = '42501'; end if;
-  if v_s -> 'enabled' = 'false'::jsonb then raise exception 'WHEEL_DISABLED'; end if;
+  case public._wheel_state(v_s)
+    when 'off' then raise exception 'WHEEL_DISABLED';
+    when 'upcoming' then raise exception 'WHEEL_NOT_STARTED';
+    when 'ended' then raise exception 'WHEEL_ENDED';
+    else null;
+  end case;
 
   update public.wheel_spins set status = 'expired'
    where user_id = v_uid and status = 'available' and expires_at is not null and expires_at <= now();
@@ -778,6 +811,7 @@ begin
   if not public.is_super_admin() then raise exception 'FORBIDDEN' using errcode = '42501'; end if;
   return jsonb_build_object(
     'settings', public._wheel_settings(),
+    'state', public._wheel_state(),
     'prizes', (select coalesce(jsonb_agg(jsonb_build_object(
         'id', wp.id, 'label', wp.label, 'label_i18n', wp.label_i18n, 'kind', wp.kind, 'value', wp.value,
         'product_id', wp.product_id, 'product_name', pr.name, 'quantity', wp.quantity, 'min_order_usd', wp.min_order_usd,
@@ -791,7 +825,8 @@ begin
     'stats', jsonb_build_object(
       'spins_granted', (select count(*) from public.wheel_spins),
       'spins_used', (select count(*) from public.wheel_spins where status = 'used'),
-      'spins_available', (select count(*) from public.wheel_spins where status = 'available' and (expires_at is null or expires_at > now())),
+      'spins_available', (select count(*) from public.wheel_spins where status = 'available' and (expires_at is null or expires_at > now())
+                            and coalesce(public._wheel_ts(public._wheel_settings()->>'ends_at') > now(), true)),
       'spins_expired', (select count(*) from public.wheel_spins where status = 'expired' or (status = 'available' and expires_at <= now())),
       'spins_revoked', (select count(*) from public.wheel_spins where status = 'revoked'),
       'spins_30d', (select count(*) from public.wheel_spins where status = 'used' and used_at > now() - interval '30 days'),
@@ -807,11 +842,14 @@ end $$;
 create or replace function public.admin_update_wheel_settings(p_settings jsonb)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
+  v_cur jsonb := public._wheel_settings();
   v_new jsonb;
   v_min numeric;
   v_spins integer;
   v_days integer;
   v_cdays integer;
+  v_start timestamptz := public._wheel_ts(v_cur->>'starts_at');
+  v_end timestamptz := public._wheel_ts(v_cur->>'ends_at');
 begin
   if not public.is_super_admin() then raise exception 'FORBIDDEN' using errcode = '42501'; end if;
   begin
@@ -826,10 +864,21 @@ begin
      or v_days is null or v_days not between 1 and 365 or v_cdays is null or v_cdays not between 1 and 365 then
     raise exception 'INVALID_SETTINGS';
   end if;
-  v_new := public._wheel_settings() || jsonb_build_object(
+  -- Période : champ absent = inchangé, champ vide = pas de limite.
+  begin
+    if p_settings ? 'starts_at' then v_start := nullif(trim(coalesce(p_settings->>'starts_at', '')), '')::timestamptz; end if;
+    if p_settings ? 'ends_at' then v_end := nullif(trim(coalesce(p_settings->>'ends_at', '')), '')::timestamptz; end if;
+  exception when others then
+    raise exception 'INVALID_WHEEL_DATES';
+  end;
+  if v_start is not null and v_end is not null and v_end <= v_start then
+    raise exception 'INVALID_WHEEL_DATES';
+  end if;
+  v_new := v_cur || jsonb_build_object(
     'enabled', coalesce((p_settings->>'enabled')::boolean, true),
     'min_order_usd', trim_scale(round(v_min, 2)), 'spins_per_order', v_spins,
-    'spin_validity_days', v_days, 'coupon_validity_days', v_cdays);
+    'spin_validity_days', v_days, 'coupon_validity_days', v_cdays,
+    'starts_at', v_start, 'ends_at', v_end);
   insert into public.app_settings (key, value, updated_at, updated_by) values ('wheel', v_new, now(), auth.uid())
   on conflict (key) do update set value = excluded.value, updated_at = now(), updated_by = auth.uid();
   perform public.write_audit('wheel_settings', 'app_settings', 'wheel', v_new);
@@ -1044,6 +1093,8 @@ revoke execute on function public.tg_notification_push() from public, anon, auth
 revoke execute on function public.tg_order_status_log() from public, anon, authenticated;
 revoke execute on function public.tg_profile_welcome() from public, anon, authenticated;
 revoke execute on function public._wheel_settings() from public, anon, authenticated;
+revoke execute on function public._wheel_ts(text) from public, anon, authenticated;
+revoke execute on function public._wheel_state(jsonb) from public, anon, authenticated;
 revoke execute on function public._wheel_drawable(public.wheel_prizes) from public, anon, authenticated;
 revoke execute on function public._wheel_grant(uuid, integer, text, uuid, uuid, text) from public, anon, authenticated;
 revoke execute on function public._wheel_order_paid(uuid) from public, anon, authenticated;

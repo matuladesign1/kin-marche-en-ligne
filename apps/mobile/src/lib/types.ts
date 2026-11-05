@@ -283,8 +283,14 @@ export interface WheelReward {
   image_url: string | null;
 }
 
+/** active = jouable maintenant ; off = désactivée ; upcoming = pas encore commencée ; ended = terminée. */
+export type WheelState = 'active' | 'off' | 'upcoming' | 'ended';
+
 export interface WheelInfo {
   enabled: boolean;
+  state?: WheelState;
+  starts_at?: string | null;
+  ends_at?: string | null;
   min_order_usd: number;
   spins_per_order: number;
   spin_validity_days: number;

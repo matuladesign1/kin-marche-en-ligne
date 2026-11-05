@@ -831,5 +831,12 @@ const ln: Record<TranslationKey, string> = {
   'account.orders.toReceive': 'Kozwa',
   'account.orders.refund': 'Kozo\u00ADngisa',
   'account.orders.toReview': 'Likanisi',
+  'wheel.until': 'Tii {date}',
+  'wheel.upcoming': 'Roue de la chance ekobanda na {date}. Zonga komeka libaku na yo !',
+  'wheel.ended': 'Roue de la chance esilaki na {date}. Matondi mpo osakanaki !',
+  'wheel.rule.dates': 'Libaku oyo ezali kaka banda {start} tii {end} : ba tour oyo osakani te ekobunga.',
+  'wheel.rule.until': 'Libaku oyo ezali kaka tii {end} : ba tour oyo osakani te ekobunga.',
+  'err.WHEEL_NOT_STARTED': 'Roue de la chance ebandi naino te.',
+  'err.WHEEL_ENDED': 'Roue de la chance esili.',
 };
 export default ln;

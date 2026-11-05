@@ -40,7 +40,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
   position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; padding: 18px 14px; gap: 14px;
 }
 .brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
-.brand img { border-radius: 10px; background: #fff; }
+.brand img { border-radius: 10px; }
 .brand-name { color: #fff; font-weight: 800; font-size: 17px; line-height: 1.1; }
 .brand-sub { color: var(--side-muted); font-size: 12px; }
 .profile { text-align: center; padding: 14px 8px 10px; border-top: 1px solid rgba(255,255,255,.06); border-bottom: 1px solid rgba(255,255,255,.06); }
@@ -192,7 +192,7 @@ button.danger, .btn.danger { background: var(--danger); }
 .auth { display: grid; grid-template-columns: minmax(320px, 44%) 1fr; min-height: 100vh; }
 .auth-brand { background: radial-gradient(circle at 20% 15%, rgba(222,53,48,.35), transparent 45%), linear-gradient(160deg, var(--side) 0%, #0D141B 100%);
   color: #fff; padding: 56px 48px; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
-.auth-brand img { border-radius: 22px; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.auth-brand img { border-radius: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
 .auth-brand h2 { font-size: 30px; margin: 10px 0 0; letter-spacing: -.02em; }
 .auth-brand p { color: var(--side-text); max-width: 420px; margin: 0; }
 .auth-brand ul { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; color: var(--side-text); }

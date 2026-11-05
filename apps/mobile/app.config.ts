@@ -7,15 +7,15 @@ const base = {
   "name": "Kin Marché en ligne",
   "slug": "kin-marche-en-ligne",
   "scheme": "kinmarche",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "orientation": "portrait",
   "icon": "./assets/images/icon.png",
   "userInterfaceStyle": "automatic",
   "description": "Supermarché en ligne en RDC — Au prix du Grand Marché",
   "splash": {
-    "image": "./assets/images/logo-wide.png",
+    "image": "./assets/images/splash-logo.png",
     "resizeMode": "contain",
-    "backgroundColor": "#FFFFFF"
+    "backgroundColor": "#CE0000"
   },
   "ios": {
     "supportsTablet": true,
@@ -31,8 +31,9 @@ const base = {
     "package": "cd.kinmarche.enligne",
     "adaptiveIcon": {
       "foregroundImage": "./assets/images/adaptive-icon.png",
+      "backgroundImage": "./assets/images/adaptive-icon-background.png",
       "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
-      "backgroundColor": "#000000"
+      "backgroundColor": "#CE0000"
     },
     "permissions": [
       "CAMERA",
@@ -60,7 +61,13 @@ const base = {
         "locationWhenInUsePermission": "Votre position sert à trouver le supermarché Kin Marché qui peut vous livrer."
       }
     ],
-    "expo-notifications",
+    [
+      "expo-notifications",
+      {
+        "icon": "./assets/images/notification-icon.png",
+        "color": "#CE0000"
+      }
+    ],
     "expo-localization",
     [
       "expo-speech-recognition",

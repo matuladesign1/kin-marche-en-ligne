@@ -5,7 +5,9 @@ import { Flash } from '@/components/Shell';
 import { requireSuper } from '@/lib/auth';
 import { dateTime } from '@/lib/format';
 import { supabaseServer } from '@/lib/supabase-server';
-import { KIND_FR, KIND_ORDER, prizeValue, REWARD_STATUS_FR, REWARD_STATUS_TONE, wheelError } from '@/lib/wheel';
+import {
+  isoToKinLocal, KIND_FR, KIND_ORDER, prizeValue, REWARD_STATUS_FR, REWARD_STATUS_TONE, wheelError, wheelStateText, type WheelState,
+} from '@/lib/wheel';
 
 interface Prize {
   id: string; label: string; label_i18n: Record<string, string>; kind: string; value: number; product_id: string | null;
@@ -13,7 +15,11 @@ interface Prize {
   color: string; is_active: boolean; sort_order: number; drawable: boolean; chance: number | null;
 }
 interface Overview {
-  settings: { enabled: boolean; min_order_usd: number; spins_per_order: number; spin_validity_days: number; coupon_validity_days: number };
+  settings: {
+    enabled: boolean; min_order_usd: number; spins_per_order: number; spin_validity_days: number; coupon_validity_days: number;
+    starts_at?: string | null; ends_at?: string | null;
+  };
+  state?: WheelState;
   prizes: Prize[];
   stats: Record<string, number>;
 }
@@ -120,6 +126,7 @@ export default async function RoueAdmin({ searchParams }: { searchParams: Promis
   }
   const o = data as Overview;
   const s = o.stats;
+  const status = wheelStateText(o.state ?? (o.settings.enabled ? 'active' : 'off'), o.settings.starts_at, o.settings.ends_at);
   const giftsToHandle = (s.gifts_pending ?? 0) + (s.gifts_attached ?? 0);
 
   const tabs = [
@@ -147,6 +154,17 @@ export default async function RoueAdmin({ searchParams }: { searchParams: Promis
           <form action={saveWheelSettingsAction} className="card stack">
             <h2 style={{ margin: 0 }}>Réglages</h2>
             <label className="check"><input type="checkbox" name="enabled" defaultChecked={st.enabled} /> Roue de la chance activée dans l’application</label>
+            <div className="cols">
+              <label>Date de début (facultatif)
+                <input type="datetime-local" name="starts_at" defaultValue={isoToKinLocal(st.starts_at)} /></label>
+              <label>Date de fin (facultatif)
+                <input type="datetime-local" name="ends_at" defaultValue={isoToKinLocal(st.ends_at)} /></label>
+            </div>
+            <p className="muted" style={{ margin: '-4px 0 0', fontSize: 13 }}>
+              Heure de Kinshasa. Laissez vide pour une roue sans limite. Avant le début et après la fin, la roue disparaît
+              de l’application, les achats ne donnent plus de tours et les tours non joués ne peuvent plus être utilisés.
+              Les cadeaux déjà gagnés restent dus.
+            </p>
             <div className="cols">
               <label>Achat payé minimum pour gagner un tour ($)
                 <input name="min_order_usd" inputMode="decimal" required defaultValue={st.min_order_usd} /></label>
@@ -336,7 +354,9 @@ export default async function RoueAdmin({ searchParams }: { searchParams: Promis
       <h1>Roue de la chance</h1>
       <p className="muted" style={{ marginTop: -6 }}>
         Un tour est offert pour chaque commande payée d’au moins {o.settings.min_order_usd} $.
-        {o.settings.enabled ? '' : ' La roue est actuellement désactivée dans l’application.'}
+      </p>
+      <p style={{ marginTop: -4 }}>
+        <span className={`badge ${status.tone}`}>{status.text}</span>
       </p>
       <Flash ok={sp.ok} err={sp.err} />
       <div className="tabs">

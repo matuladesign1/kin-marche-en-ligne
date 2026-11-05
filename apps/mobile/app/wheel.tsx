@@ -16,7 +16,7 @@ import { formatDate, formatPoints } from '@/lib/format';
 import { localized } from '@/lib/i18n';
 import { NEXT_COUPON_KEY } from '@/lib/orders';
 import { radius, spacing } from '@/lib/theme';
-import type { SpinResult, WheelPrize, WheelReward } from '@/lib/types';
+import type { SpinResult, WheelPrize, WheelReward, WheelState } from '@/lib/types';
 import { useAuth } from '@/providers/AuthProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 
@@ -165,8 +165,40 @@ export default function WheelScreen() {
   const shown = frozen ?? data?.prizes ?? [];
 
   if (wheel.isLoading) return <Loading />;
-  if (!data || !data.enabled || shown.length === 0) {
-    return <EmptyState icon="gift-outline" message={t('wheel.unavailable')} />;
+  const state: WheelState = data?.state ?? (data?.enabled ? 'active' : 'off');
+  if (!data || state !== 'active' || shown.length === 0) {
+    const message = state === 'upcoming' && data?.starts_at ? t('wheel.upcoming', { date: formatDate(data.starts_at, language) })
+      : state === 'ended' && data?.ends_at ? t('wheel.ended', { date: formatDate(data.ends_at, language) })
+        : t('wheel.unavailable');
+    const rewards = session ? data?.rewards ?? [] : [];
+    const teaser = state === 'upcoming' ? shown : [];
+    if (!rewards.length && !teaser.length) {
+      return <EmptyState icon={state === 'upcoming' ? 'time-outline' : 'gift-outline'} message={message} />;
+    }
+    // Roue fermée : les gains déjà obtenus restent consultables (et les lots, si elle n'a pas encore commencé).
+    return (
+      <ScrollView style={{ flex: 1, backgroundColor: colors.background }}
+        contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xxl * 2 }}>
+        <Notice tone="info" text={message} />
+        {rewards.length ? (
+          <Panel>
+            <PanelHeader title={t('wheel.myRewards')} />
+            {rewards.map((r) => <RewardItem key={r.id} r={r} />)}
+          </Panel>
+        ) : null}
+        {teaser.length ? (
+          <Panel>
+            <PanelHeader title={t('wheel.prizes')} />
+            {teaser.map((p) => (
+              <Row key={p.id} gap={spacing.md}>
+                <View style={[styles.swatch, { backgroundColor: p.color }]} />
+                <T style={{ flex: 1 }}>{localized(p.label_i18n, language, p.label)}</T>
+              </Row>
+            ))}
+          </Panel>
+        ) : null}
+      </ScrollView>
+    );
   }
 
   const spins = data.spins_available ?? 0;
@@ -193,7 +225,14 @@ export default function WheelScreen() {
     }
   };
 
+  // Période de l'offre (date de fin fixée par l'administration).
+  const period = data.ends_at
+    ? data.starts_at
+      ? t('wheel.rule.dates', { start: formatDate(data.starts_at, language, false), end: formatDate(data.ends_at, language) })
+      : t('wheel.rule.until', { end: formatDate(data.ends_at, language) })
+    : null;
   const rules = [
+    ...(period ? [period] : []),
     t('wheel.rule.earn', { amount: money(data.min_order_usd), n: data.spins_per_order }),
     t('wheel.rule.validity', { days: data.spin_validity_days }),
     t('wheel.rule.coupons'),
@@ -214,6 +253,12 @@ export default function WheelScreen() {
             <View style={styles.spinsPill}>
               <WheelIcon size={20} />
               <T weight="800">{spins === 0 ? t('wheel.spinsNone') : spins === 1 ? t('wheel.spinsOne') : t('wheel.spinsMany', { n: spins })}</T>
+            </View>
+          ) : null}
+          {data.ends_at ? (
+            <View style={styles.untilPill}>
+              <Ionicons name="time-outline" size={15} color="#FFFFFF" />
+              <T size="sm" weight="700" color="#FFFFFF">{t('wheel.until', { date: formatDate(data.ends_at, language) })}</T>
             </View>
           ) : null}
           {session && spins > 0 && data.next_expiry ? (
@@ -292,6 +337,7 @@ export default function WheelScreen() {
 const styles = StyleSheet.create({
   hero: { alignItems: 'center', gap: spacing.sm, paddingTop: spacing.xl, paddingBottom: spacing.xl, paddingHorizontal: spacing.lg, overflow: 'hidden' },
   spinsPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFFFFF', borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 6, marginTop: spacing.sm },
+  untilPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.22)', borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 4 },
   reward: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.md, gap: spacing.sm },
   rewardIcon: { width: 44, height: 44, borderRadius: 10, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   code: { borderWidth: 1.5, borderStyle: 'dashed', borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, gap: 2 },

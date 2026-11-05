@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
+import { memo } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useAddToCart } from '@/hooks/data';
 import { errorMessage } from '@/lib/errors';
@@ -66,7 +67,7 @@ export function discountPercent(item: CatalogItem): number {
  * Carte produit : grande photo carrée, badges (PROMO, Produit local), nom, prix avec remise,
  * quantité minimale et ventes, supermarché vérifié. Le bouton panier est sur la photo.
  */
-export function ProductCard({ item, width }: { item: CatalogItem; width?: number }) {
+export const ProductCard = memo(function ProductCard({ item, width }: { item: CatalogItem; width?: number }) {
   const { colors, t, language, money } = useSettings();
   const { run, pending } = useAddToCartFlow();
   const name = localized(item.name_i18n, language, item.name);
@@ -79,7 +80,8 @@ export function ProductCard({ item, width }: { item: CatalogItem; width?: number
     >
       <View style={[styles.imageWrap, { backgroundColor: colors.surfaceAlt }]}>
         {item.image_url ? (
-          <Image source={{ uri: item.image_url }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} accessibilityIgnoresInvertColors />
+          <Image source={{ uri: item.image_url }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150}
+            cachePolicy="memory-disk" recyclingKey={item.inventory_id} accessibilityIgnoresInvertColors />
         ) : (
           <Ionicons name="image-outline" size={40} color={colors.textMuted} />
         )}
@@ -141,7 +143,7 @@ export function ProductCard({ item, width }: { item: CatalogItem; width?: number
       </View>
     </Pressable>
   );
-}
+});
 
 export function ProductRail({ title, items, onSeeAll }: { title: string; items: CatalogItem[] | undefined; onSeeAll?: () => void }) {
   const { t } = useSettings();

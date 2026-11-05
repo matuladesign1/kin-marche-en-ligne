@@ -863,6 +863,13 @@ const fr = {
   'account.orders.toReceive': 'À recevoir',
   'account.orders.refund': 'Rembour\u00ADsés',
   'account.orders.toReview': 'À évaluer',
+  'wheel.until': 'Jusqu\'au {date}',
+  'wheel.upcoming': 'La Roue de la chance commence le {date}. Revenez tenter votre chance !',
+  'wheel.ended': 'La Roue de la chance est terminée depuis le {date}. Merci d\'avoir joué !',
+  'wheel.rule.dates': 'Offre valable du {start} au {end} : les tours non joués à la fin sont perdus.',
+  'wheel.rule.until': 'Offre valable jusqu\'au {end} : les tours non joués à cette date sont perdus.',
+  'err.WHEEL_NOT_STARTED': 'La Roue de la chance n\'a pas encore commencé.',
+  'err.WHEEL_ENDED': 'La Roue de la chance est terminée.',
 } as const;
 
 export type TranslationKey = keyof typeof fr;

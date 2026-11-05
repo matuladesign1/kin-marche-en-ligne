@@ -95,7 +95,8 @@ function Navigator() {
 
 export default function RootLayout() {
   const [queryClient] = useState(
-    () => new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } }),
+    // Données gardées 10 min en mémoire : retour instantané sur un écran déjà vu, moins de données mobiles consommées.
+    () => new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, gcTime: 10 * 60_000, retry: 1 } } }),
   );
   return (
     <SafeAreaProvider>
