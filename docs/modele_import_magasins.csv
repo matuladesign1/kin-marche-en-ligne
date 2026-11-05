@@ -1,0 +1,2 @@
+code,nom,province,ville,commune,quartier,avenue,numero,reference,latitude,longitude,telephone,directeur,assistant,horaires,rayon_livraison_km,frais_livraison_usd,frais_par_km_usd,commande_min_usd,temps_preparation_min,communes_desservies,adresse_verifiee
+KM-XXX,Kin Marché (nom officiel),Kinshasa,Kinshasa,,,,,,,,+243,,,"lun-dim 08:00-21:00",5,0,0,0,30,"Limete;Matete",non
