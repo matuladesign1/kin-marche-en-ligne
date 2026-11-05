@@ -188,9 +188,11 @@ Format conseillé : **1200 × 600 px (2:1)** ; toutes les bannières sont affich
 - **Textes juridiques** (`apps/mobile/src/legal`) : à faire valider par le juriste de Kin Marché / Groupe BNB. Le français fait foi.
 - **Traductions lingala et swahili** : complètes, à faire relire par un locuteur natif avant publication.
 
-## ⚠️ À faire une fois : installer la Roue de la chance et les notifications
+## ✅ Roue de la chance et notifications : installées
 
-Supabase → **SQL Editor** → coller le contenu de `supabase/migrations/20261105000100_wheel_notifications.sql` → **Run** (ré-exécutable sans risque). Avant cela, l'application reste utilisable : la roue est simplement masquée et les notifications gardent leurs anciens textes.
+`supabase/migrations/20261105000100_wheel_notifications.sql` est installée en production depuis le 6 novembre 2026 (en deux blocs : notifications, puis roue). La roue tourne sans date de fin ; dates de début et de fin réglables dans l'administration → Roue de la chance. Le fichier reste ré-exécutable sans risque (par exemple sur une nouvelle base).
+
+Le logo distant (Paramètres → Logo) a été remis à zéro : l'application et l'administration affichent le logo officiel intégré. Un nouveau logo téléversé dans les Paramètres le remplace à nouveau dans l'application.
 
 ## Pas encore inclus (prochaines étapes)
 
