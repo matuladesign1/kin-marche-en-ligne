@@ -7,6 +7,7 @@ import { BasketLoader } from '@/components/BasketLoader';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SettingsProvider, useSettings } from '@/providers/SettingsProvider';
+import { useLiveNotifications } from '@/hooks/useLiveNotifications';
 import { useNotificationNavigation, usePushRegistration } from '@/hooks/usePushRegistration';
 
 // Écran d'ouverture animé : affiché au démarrage le temps de charger la session (au moins 2,4 s).
@@ -27,6 +28,7 @@ function Navigator() {
   const { colors, isDark, t } = useSettings();
   usePushRegistration();
   useNotificationNavigation();
+  useLiveNotifications();
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -59,8 +61,14 @@ function Navigator() {
         <Stack.Screen name="support/[id]" options={{ title: '' }} />
         <Stack.Screen name="about" options={{ title: t('about.title') }} />
         <Stack.Screen name="cake" options={{ title: t('cake.title') }} />
-        <Stack.Screen name="settings" options={{ title: t('account.settings') }} />
-        <Stack.Screen name="me/profile" options={{ title: t('account.editProfile') }} />
+        <Stack.Screen name="settings" options={{ title: t('settings.title') }} />
+        <Stack.Screen name="orders" options={{ title: t('orders.mine') }} />
+        <Stack.Screen name="wheel" options={{ title: t('wheel.title') }} />
+        <Stack.Screen name="recent" options={{ title: t('account.history') }} />
+        <Stack.Screen name="collection/[kind]" options={{ title: '' }} />
+        <Stack.Screen name="legal/index" options={{ title: t('settings.legal') }} />
+        <Stack.Screen name="me/notifications" options={{ title: t('account.notifications') }} />
+        <Stack.Screen name="me/profile" options={{ title: t('profile.title') }} />
         <Stack.Screen name="me/password" options={{ title: t('account.changePassword') }} />
         <Stack.Screen name="me/email" options={{ title: t('account.changeEmail') }} />
         <Stack.Screen name="me/delete" options={{ title: t('account.deleteAccount') }} />

@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -5,6 +6,7 @@ import { Button, Card, Chip, Divider, Input, Loading, Notice, Row, Screen, Secti
 import { qk, useAddresses, useLoyalty, useQuote } from '@/hooks/data';
 import { errorMessage, translateIssue } from '@/lib/errors';
 import { formatCdf, formatPoints, formatQty } from '@/lib/format';
+import { NEXT_COUPON_KEY } from '@/lib/orders';
 import { supabase, unwrap } from '@/lib/supabase';
 import { useSettings } from '@/providers/SettingsProvider';
 
@@ -24,6 +26,16 @@ export default function Checkout() {
   useEffect(() => {
     if (!addressId && addresses.data?.length) setAddressId(addresses.data[0].id);
   }, [addresses.data, addressId]);
+
+  // Code gagné à la Roue de la chance (« Utiliser ce code ») : appliqué automatiquement.
+  useEffect(() => {
+    AsyncStorage.getItem(NEXT_COUPON_KEY).then((code) => {
+      if (!code) return;
+      setCouponInput(code);
+      setCoupon(code);
+      AsyncStorage.removeItem(NEXT_COUPON_KEY).catch(() => undefined);
+    }).catch(() => undefined);
+  }, []);
 
   // Seuls les points d'une carte active (hors points en attente de vérification) sont utilisables.
   const usable = loyalty.data?.card.redeemable_points ?? 0;

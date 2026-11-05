@@ -4,12 +4,14 @@ import { router } from 'expo-router';
 import { Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useAddToCart } from '@/hooks/data';
 import { errorMessage } from '@/lib/errors';
+import { formatQty } from '@/lib/format';
 import { localized } from '@/lib/i18n';
 import { radius, spacing } from '@/lib/theme';
 import type { CatalogItem } from '@/lib/types';
 import { useAuth } from '@/providers/AuthProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 import { EmptyState, Row, SectionHeader, T } from './ui';
+import { VerifiedBadge } from './VerifiedBadge';
 
 export function useAddToCartFlow() {
   const { session } = useAuth();
@@ -54,49 +56,88 @@ export function PriceTag({ item, large }: { item: CatalogItem; large?: boolean }
   );
 }
 
+/** Pourcentage de remise affiché (« -11 % »), 0 sans promotion. */
+export function discountPercent(item: CatalogItem): number {
+  if (!item.on_promo || !item.price_usd || item.effective_price_usd >= item.price_usd) return 0;
+  return Math.round((1 - item.effective_price_usd / item.price_usd) * 100);
+}
+
+/**
+ * Carte produit : grande photo carrée, badges (PROMO, Produit local), nom, prix avec remise,
+ * quantité minimale et ventes, supermarché vérifié. Le bouton panier est sur la photo.
+ */
 export function ProductCard({ item, width }: { item: CatalogItem; width?: number }) {
-  const { colors, t, language } = useSettings();
+  const { colors, t, language, money } = useSettings();
   const { run, pending } = useAddToCartFlow();
   const name = localized(item.name_i18n, language, item.name);
+  const off = discountPercent(item);
   return (
     <Pressable
       onPress={() => router.push(`/product/${item.inventory_id}`)}
-      accessibilityLabel={name}
-      style={({ pressed }) => [styles.card, { width: width ?? '100%', backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.9 : 1 }]}
+      accessibilityLabel={`${name}, ${money(item.effective_price_usd)}`}
+      style={({ pressed }) => [styles.card, { width: width ?? '100%', backgroundColor: colors.surface, opacity: pressed ? 0.92 : 1 }]}
     >
       <View style={[styles.imageWrap, { backgroundColor: colors.surfaceAlt }]}>
         {item.image_url ? (
           <Image source={{ uri: item.image_url }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} accessibilityIgnoresInvertColors />
         ) : (
-          <Ionicons name="image-outline" size={36} color={colors.textMuted} />
+          <Ionicons name="image-outline" size={40} color={colors.textMuted} />
         )}
-        {item.on_promo ? (
-          <View style={[styles.badge, { backgroundColor: colors.primary }]}>
-            <T size="xs" weight="700" color={colors.onPrimary}>{t('product.promo')}</T>
+        {!item.in_stock ? (
+          <View style={styles.soldOut}>
+            <T size="sm" weight="700" color="#FFFFFF">{t('product.outOfStock')}</T>
           </View>
-        ) : null}
-      </View>
-      <View style={{ padding: spacing.sm, gap: 4, flex: 1 }}>
-        <T size="sm" weight="600" numberOfLines={2}>{name}</T>
-        <T size="xs" muted numberOfLines={1}>{item.store_name}</T>
-        <PriceTag item={item} />
-        <View style={{ flex: 1 }} />
-        {item.in_stock ? (
+        ) : (
           <Pressable
             onPress={() => run(item)}
             disabled={pending}
+            hitSlop={6}
             accessibilityRole="button"
             accessibilityLabel={t('product.addToCart')}
-            style={[styles.add, { backgroundColor: colors.primary, opacity: pending ? 0.6 : 1 }]}
+            style={[styles.cartBtn, { backgroundColor: colors.surface, opacity: pending ? 0.6 : 1 }]}
           >
-            <Ionicons name="add" size={18} color={colors.onPrimary} />
-            <T size="sm" weight="600" color={colors.onPrimary}>{t('product.addToCart')}</T>
+            <Ionicons name="cart-outline" size={19} color={colors.primary} />
+            <Ionicons name="add" size={12} color={colors.primary} style={styles.cartPlus} />
           </Pressable>
-        ) : (
-          <View style={[styles.add, { backgroundColor: colors.surfaceAlt }]}>
-            <T size="sm" muted>{t('product.outOfStock')}</T>
-          </View>
         )}
+      </View>
+      <View style={styles.body}>
+        {item.on_promo || item.is_local ? (
+          <Row gap={4} style={{ flexWrap: 'wrap' }}>
+            {item.on_promo ? (
+              <View style={[styles.tag, { backgroundColor: colors.primary }]}>
+                <T size="xs" weight="800" color={colors.onPrimary}>{t('product.promo').toUpperCase()}</T>
+              </View>
+            ) : null}
+            {item.is_local ? (
+              <View style={[styles.tag, styles.tagOutline, { borderColor: colors.success }]}>
+                <Ionicons name="leaf" size={10} color={colors.success} />
+                <T size="xs" weight="700" color={colors.success}>{t('product.localBadge')}</T>
+              </View>
+            ) : null}
+          </Row>
+        ) : null}
+        <T size="sm" numberOfLines={2} style={{ minHeight: 36 }}>{name}</T>
+        <Row gap={6} style={{ flexWrap: 'wrap' }}>
+          <T size="lg" weight="800">{money(item.effective_price_usd)}</T>
+          {off > 0 ? (
+            <Row gap={1}>
+              <Ionicons name="arrow-down" size={12} color={colors.danger} />
+              <T size="xs" weight="700" color={colors.danger}>-{off} %</T>
+            </Row>
+          ) : null}
+        </Row>
+        <T size="xs" muted numberOfLines={1}>
+          {off > 0 ? <T size="xs" muted style={{ textDecorationLine: 'line-through' }}>{money(item.price_usd)}  </T> : null}
+          {t('product.minShort', { qty: formatQty(Number(item.min_quantity), item.unit, t) })}
+          {item.sold_count > 0 ? ` · ${t('product.soldCount', { n: item.sold_count })}` : ''}
+        </T>
+        <Row gap={4}>
+          <VerifiedBadge size={13} color={colors.accent} />
+          <T size="xs" weight="700" color={colors.accent} numberOfLines={1} style={{ flexShrink: 1 }}>
+            {item.store_name}{item.store_commune ? <T size="xs" muted> · {item.store_commune}</T> : null}
+          </T>
+        </Row>
       </View>
     </Pressable>
   );
@@ -162,10 +203,17 @@ export function QuantityStepper({ value, step, min, max, onChange, disabled }: {
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderRadius: radius.lg, overflow: 'hidden', minHeight: 270 },
-  imageWrap: { height: 120, alignItems: 'center', justifyContent: 'center' },
-  badge: { position: 'absolute', top: 8, left: 8, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2 },
-  add: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, borderRadius: radius.md, minHeight: 36 },
+  card: { borderRadius: radius.md, overflow: 'hidden', flexGrow: 1 },
+  imageWrap: { aspectRatio: 1, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  body: { paddingHorizontal: spacing.sm, paddingTop: spacing.sm, paddingBottom: spacing.md, gap: 4 },
+  tag: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
+  tagOutline: { borderWidth: 1, backgroundColor: 'transparent' },
+  soldOut: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingVertical: 6, alignItems: 'center', backgroundColor: 'rgba(22,24,29,0.72)' },
+  cartBtn: {
+    position: 'absolute', right: 8, bottom: 8, width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 3,
+  },
+  cartPlus: { position: 'absolute', top: 6, right: 6 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -spacing.xs },
   gridCell: { width: '50%', padding: spacing.xs },
   stepper: { borderWidth: 1, borderRadius: radius.pill },

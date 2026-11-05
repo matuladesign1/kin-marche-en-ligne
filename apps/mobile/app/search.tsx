@@ -21,7 +21,7 @@ import { useSettings } from '@/providers/SettingsProvider';
 const SPEECH_LANG: Record<Language, string> = { fr: 'fr-FR', en: 'en-US', sw: 'sw-KE', ln: 'ln-CD' };
 
 export default function Search() {
-  const params = useLocalSearchParams<{ promo?: string; q?: string }>();
+  const params = useLocalSearchParams<{ promo?: string; q?: string; mode?: string }>();
   const { t, selectedStoreId, language } = useSettings();
   const [text, setText] = useState(params.q ?? '');
   const [query, setQuery] = useState(params.q ?? '');
@@ -137,6 +137,17 @@ export default function Search() {
     setScanning(true);
   };
 
+  // Ouverture directe depuis la barre de recherche de l'accueil (photo, voix, code-barres).
+  const autoMode = useRef(false);
+  useEffect(() => {
+    if (autoMode.current || !params.mode) return;
+    autoMode.current = true;
+    if (params.mode === 'photo') searchByPhoto(true);
+    else if (params.mode === 'voice') startVoice();
+    else if (params.mode === 'scan') openScanner();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.mode]);
+
   const onScanned = (r: BarcodeScanningResult) => {
     if (scannedRef.current) return;
     scannedRef.current = true;
@@ -147,7 +158,7 @@ export default function Search() {
 
   return (
     <Screen>
-      <Input value={text} onChangeText={setText} placeholder={t('home.searchPlaceholder')} autoFocus={!promoOnly} returnKeyType="search" clearButtonMode="while-editing" />
+      <Input value={text} onChangeText={setText} placeholder={t('home.searchPlaceholder')} autoFocus={!promoOnly && !params.mode} returnKeyType="search" clearButtonMode="while-editing" />
       <Row style={{ flexWrap: 'wrap' }}>
         <Chip label={t('search.scan')} icon="barcode-outline" onPress={openScanner} />
         <Chip label={listening ? t('search.listening') : t('search.voice')} icon={listening ? 'stop-circle-outline' : 'mic-outline'} active={listening} onPress={startVoice} />

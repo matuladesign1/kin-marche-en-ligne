@@ -119,11 +119,15 @@ npx expo start
 
 Rôles : après connexion, chaque compte est redirigé vers son espace (`/store-admin`, `/driver`, `/admin`). L'espace livreur est complet (tableau de bord, courses disponibles, mission avec carte et itinéraire calculé par Google, historique, revenus) ; les directeurs, agents et l'administrateur général gèrent leur activité sur l'administration web.
 
-Langues : français et anglais complets ; **swahili et lingala partiels, à faire valider par des locuteurs natifs** (les textes manquants s'affichent en français).
+Langues : français, anglais, lingala et swahili complets (823 textes chacun) ; **lingala et swahili à faire relire par des locuteurs natifs**.
 
 Logo : `assets/images/logo-wide.png` (thème) et `assets/images/icon.png` (icône), non modifiés. L'administrateur peut remplacer le logo et les couleurs via `app_settings.branding` sans toucher au code.
 
-Notifications push : exécuter `eas init` pour obtenir le `projectId`, puis l'envoi serveur sera ajouté avec l'espace admin. Les notifications internes fonctionnent déjà en temps réel.
+**Version 1.0.0** — navigation professionnelle : onglets Accueil, Catégories, **Messages** (assistance + notifications), Panier, Compte. Accueil avec onglets Produits / Promotions / Supermarchés / Made in RDC, recherche photo et voix, raccourcis, vignettes « Vus récemment » et « Explorez… », filtres et grille de produits. Compte avec Favoris / Historique / Coupons, « Mes commandes » par étape (compteurs), fidélité et Roue de la chance ; Profil ; Paramètres (devise, langue, thème, notifications, sécurité, version et mise à jour, politiques légales, cache, changer de compte). Le numéro de build de chaque APK est celui du workflow GitHub : un nouvel APK s'installe par-dessus l'ancien.
+
+**Roue de la chance** : un tour offert pour chaque commande payée d'au moins 50 $ (réglable). Lots gérés par l'administrateur général (points fidélité, codes promo personnels, cadeaux produits, tours supplémentaires, « pas de chance ») avec poids, stock et couleurs ; tirage fait par le serveur, chances affichées aux clients. Les cadeaux sont joints gratuitement à la commande payée suivante (le supermarché les voit dans la commande) ou remis en magasin ; tours et gains sont retirés si la commande est annulée ou remboursée.
+
+**Notifications** : un message à chaque étape de la commande (remerciement, félicitations au paiement, préparation, livreur, livraison…) dans la langue du client, bienvenue à l'inscription et à la connexion, tours et gains de la roue. Affichées sur le téléphone dès que l'application est ouverte ou en arrière-plan ; **application fermée**, il faut le push Android (voir « Actions à faire »). Le client choisit ses catégories dans Paramètres → Notifications.
 
 ## Administration web (`apps/admin`)
 
@@ -176,9 +180,17 @@ Format conseillé : **1200 × 600 px (2:1)** ; toutes les bannières sont affich
 - **Connexion Google / Facebook** : Supabase → Authentication → Providers → activer Google et Facebook (identifiants OAuth créés dans Google Cloud et Meta for Developers), puis Authentication → URL Configuration → ajouter `kinmarche://auth-callback` aux Redirect URLs.
 - **Recherche par photo** : activer l'API Cloud Vision sur le projet Google (déjà prévu dans la fonction `image-search`).
 - **Carte Google dans l'application (espace livreur, suivi de commande)** : Google Cloud → APIs & Services → activer **Maps SDK for Android** → Credentials → *Create API key* → *API restrictions* : cocher uniquement « Maps SDK for Android ». Puis GitHub → dépôt → Settings → Secrets and variables → Actions → *New repository secret* : nom `GOOGLE_MAPS_ANDROID_KEY`, valeur = la clé. Le prochain APK affiche la carte ; en attendant, l'itinéraire est dessiné en schéma et le bouton « Naviguer » ouvre Google Maps. (Ne jamais réutiliser la clé serveur des calculs de trajet.)
-- **Notifications push dans l'APK** : secrets GitHub `EAS_PROJECT_ID`, `GOOGLE_SERVICES_JSON_BASE64`.
+- **Notifications push (application fermée)** — environ 10 minutes, une seule fois :
+  1. **Firebase** (console.firebase.google.com) : créer un projet « Kin Marché », ajouter une application **Android** avec le nom de package `cd.kinmarche.enligne`, télécharger `google-services.json`.
+  2. **Expo** (expo.dev, compte gratuit) : créer le projet `kin-marche-en-ligne` et noter son **Project ID**. Dans Project settings → Credentials → Android → `cd.kinmarche.enligne` → **FCM V1 service account key** : envoyer la clé JSON créée dans Firebase → Paramètres du projet → Comptes de service → « Générer une nouvelle clé privée ».
+  3. **GitHub** → Settings → Secrets and variables → Actions : `EAS_PROJECT_ID` = le Project ID, `GOOGLE_SERVICES_JSON_BASE64` = le contenu de `google-services.json` encodé en base64.
+  Le prochain APK enregistre le jeton du téléphone ; le serveur (fonction `push-send`, déjà en place) envoie alors chaque notification même application fermée.
 - **Textes juridiques** (`apps/mobile/src/legal`) : à faire valider par le juriste de Kin Marché / Groupe BNB. Le français fait foi.
 - **Traductions lingala et swahili** : complètes, à faire relire par un locuteur natif avant publication.
+
+## ⚠️ À faire une fois : installer la Roue de la chance et les notifications
+
+Supabase → **SQL Editor** → coller le contenu de `supabase/migrations/20261105000100_wheel_notifications.sql` → **Run** (ré-exécutable sans risque). Avant cela, l'application reste utilisable : la roue est simplement masquée et les notifications gardent leurs anciens textes.
 
 ## Pas encore inclus (prochaines étapes)
 

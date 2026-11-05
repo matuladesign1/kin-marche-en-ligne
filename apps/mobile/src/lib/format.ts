@@ -63,3 +63,18 @@ export function maskPhone(phone: string | null | undefined): string {
   if (p.length < 6) return p;
   return `${p.slice(0, 6)}${'•'.repeat(Math.max(p.length - 8, 2))}${p.slice(-2)}`;
 }
+
+/** « À l'instant », « il y a 5 min », « il y a 3 h », « Hier », puis la date. */
+export function timeAgo(iso: string, language: Language, t: TFunction): string {
+  const d = new Date(iso);
+  const diff = Date.now() - d.getTime();
+  const min = Math.floor(diff / 60_000);
+  if (min < 1) return t('time.now');
+  if (min < 60) return t('time.minutes', { n: min });
+  const hours = Math.floor(min / 60);
+  const today = new Date();
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  if (hours < 24 && d.getDate() === today.getDate()) return t('time.hours', { n: hours });
+  if (d >= yesterday && d.getDate() === yesterday.getDate()) return t('time.yesterday');
+  return formatDate(iso, language, false);
+}

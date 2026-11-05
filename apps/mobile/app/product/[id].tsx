@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dimensions, FlatList, Pressable, Share, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PriceTag, QuantityStepper, useAddToCartFlow } from '@/components/product';
@@ -12,6 +12,7 @@ import { useCatalogItem, useFavorites, useToggleFavorite } from '@/hooks/data';
 import { useRecommendation, useReviewableOrder } from '@/hooks/social';
 import { formatDate, formatQty } from '@/lib/format';
 import { localized } from '@/lib/i18n';
+import { pushRecent } from '@/lib/recent';
 import { radius, spacing } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -33,6 +34,8 @@ export default function ProductScreen() {
   const { t, language, colors, money } = useSettings();
   const { session } = useAuth();
   const q = useCatalogItem(id);
+  // Historique « Vus récemment » (sur le téléphone).
+  useEffect(() => { if (id) pushRecent(id); }, [id]);
   const favs = useFavorites();
   const toggleFav = useToggleFavorite();
   const { run, pending } = useAddToCartFlow();

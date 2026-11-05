@@ -27,7 +27,11 @@ export interface Profile {
   language: Language;
   currency: Currency;
   is_active: boolean;
+  /** Catégories de notifications désactivées par le client (absent = activé). */
+  notification_prefs?: Partial<Record<NotificationCategory, boolean>> | null;
 }
+
+export type NotificationCategory = 'orders' | 'rewards' | 'messages' | 'promos';
 
 export interface CatalogItem {
   inventory_id: string;
@@ -239,6 +243,68 @@ export interface LoyaltyCardInfo {
   program: { name: string; url: string; phone?: string; website?: string };
   /** Vrai quand la base n'a pas encore la carte fidélité (ancienne version du serveur). */
   legacy?: boolean;
+}
+
+/** Roue de la chance. */
+export type WheelPrizeKind = 'points' | 'coupon_percent' | 'coupon_fixed' | 'product' | 'extra_spin' | 'nothing';
+
+export interface WheelPrize {
+  id: string;
+  label: string;
+  label_i18n: Partial<Record<Language, string>>;
+  kind: WheelPrizeKind;
+  value: number;
+  color: string;
+  min_order_usd: number;
+  quantity: number;
+  /** Chance de gain en pourcentage (affichée en toute transparence). */
+  chance: number | null;
+  product_name: string | null;
+  image_url: string | null;
+}
+
+export interface WheelReward {
+  id: string;
+  kind: WheelPrizeKind;
+  label: string;
+  points: number | null;
+  status: 'pending' | 'attached' | 'delivered' | 'credited' | 'issued' | 'cancelled';
+  quantity: number;
+  claim_code: string;
+  created_at: string;
+  note: string | null;
+  coupon_code: string | null;
+  coupon_ends_at: string | null;
+  coupon_min_order_usd: number | null;
+  coupon_used: boolean;
+  coupon_active: boolean;
+  product_name: string | null;
+  order_number: string | null;
+  image_url: string | null;
+}
+
+export interface WheelInfo {
+  enabled: boolean;
+  min_order_usd: number;
+  spins_per_order: number;
+  spin_validity_days: number;
+  prizes: WheelPrize[];
+  spins_available?: number;
+  next_expiry?: string | null;
+  rewards?: WheelReward[];
+  history?: { used_at: string; label: string; kind: WheelPrizeKind }[];
+}
+
+export interface SpinResult {
+  prize_id: string;
+  kind: WheelPrizeKind;
+  label: string;
+  value: number;
+  reward_id: string | null;
+  coupon_code: string | null;
+  coupon_ends_at: string | null;
+  min_order_usd: number;
+  spins_left: number;
 }
 
 export interface LoyaltyTransaction {

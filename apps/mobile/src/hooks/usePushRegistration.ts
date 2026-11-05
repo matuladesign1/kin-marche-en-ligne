@@ -1,9 +1,9 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
+import { ensureChannels, ensurePermission, openNotification, setPushActive } from '@/lib/notify';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -16,45 +16,44 @@ Notifications.setNotificationHandler({
   }),
 });
 
-/** Enregistre le jeton Expo Push du téléphone dans push_tokens (envoi côté serveur). */
+/**
+ * Enregistre le jeton push du téléphone dans push_tokens : le serveur peut alors joindre
+ * le téléphone même application fermée. Nécessite le projet Expo (EAS_PROJECT_ID) et, sur Android,
+ * le fichier Firebase (google-services.json) fournis au build — sinon les notifications passent
+ * par l'application ouverte (voir useLiveNotifications).
+ */
 export function usePushRegistration() {
   const { session } = useAuth();
   useEffect(() => {
-    if (!session || Platform.OS === 'web' || !Device.isDevice) return;
+    if (!session || Platform.OS === 'web') return;
+    let cancelled = false;
     (async () => {
+      await ensureChannels();
+      const granted = await ensurePermission(true);
+      if (!granted || !Device.isDevice) return;
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
+      if (!projectId) return; // EAS_PROJECT_ID fourni au build (voir README)
       try {
-        const { status: existing } = await Notifications.getPermissionsAsync();
-        const status = existing === 'granted' ? existing : (await Notifications.requestPermissionsAsync()).status;
-        if (status !== 'granted') return;
-        if (Platform.OS === 'android') {
-          await Notifications.setNotificationChannelAsync('orders', {
-            name: 'Commandes', importance: Notifications.AndroidImportance.HIGH,
-          });
-          await Notifications.setNotificationChannelAsync('missions', {
-            name: 'Missions de livraison', importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 400, 200, 400],
-          });
-        }
-        const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
-        if (!projectId) return; // EAS_PROJECT_ID fourni au build (voir README)
         const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-        await supabase.from('push_tokens').upsert({ token, user_id: session.user.id, platform: Platform.OS });
+        const { error } = await supabase.from('push_tokens').upsert({ token, user_id: session.user.id, platform: Platform.OS });
+        if (!cancelled && !error) setPushActive(true);
       } catch {
-        // Les notifications restent visibles dans l'application même sans push.
+        // Firebase absent du build : les notifications restent affichées par l'application ouverte.
+        setPushActive(false);
       }
     })();
+    return () => { cancelled = true; setPushActive(false); };
   }, [session]);
 }
 
-/** Ouvre l'écran concerné quand l'utilisateur touche une notification. */
+/** Ouvre l'écran concerné quand l'utilisateur touche une notification (push ou locale). */
 export function useNotificationNavigation() {
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as { order_id?: string; ticket_id?: string; kind?: string; screen?: string } | undefined;
-      if (data?.kind === 'delivery_offer') router.push('/driver/offers');
-      else if (data?.kind === 'loyalty' || data?.screen === 'loyalty') router.push('/loyalty');
-      else if (data?.ticket_id) router.push(`/support/${data.ticket_id}`);
-      else if (data?.order_id) router.push(`/order/${data.order_id}`);
+      const data = (response.notification.request.content.data ?? {}) as Record<string, unknown>;
+      const kind = typeof data.kind === 'string' ? data.kind : '';
+      openNotification({ kind, data });
     });
     return () => sub.remove();
   }, []);

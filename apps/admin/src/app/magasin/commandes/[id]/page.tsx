@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { Flash } from '@/components/Shell';
+import { deferGiftAction } from '@/components/wheel/actions';
 import { dateTime, PAY_FR, STATUS_FR, STORE_NEXT, UNIT_FR, usd } from '@/lib/format';
 import { supabaseServer } from '@/lib/supabase-server';
 
@@ -38,11 +39,13 @@ export default async function Commande({ params, searchParams }: { params: Promi
   const { id } = await params;
   const sp = await searchParams;
   const sb = await supabaseServer();
-  const [{ data: o }, { data: items }, { data: track }, { data: incidents }] = await Promise.all([
+  const [{ data: o }, { data: items }, { data: track }, { data: incidents }, { data: gifts }] = await Promise.all([
     sb.from('orders').select('*').eq('id', id).maybeSingle(),
     sb.from('order_items').select('*').eq('order_id', id),
     sb.rpc('get_order_tracking', { p_order_id: id }),
     sb.from('delivery_incidents').select('type, description, created_at, resolved').eq('order_id', id),
+    // Cadeaux gagnés à la Roue de la chance, joints gratuitement à cette commande.
+    sb.from('wheel_rewards').select('id, label, quantity, claim_code, products(name)').eq('order_id', id).eq('status', 'attached'),
   ]);
   if (!o) return <h1>Commande introuvable</h1>;
   const a = o.delivery_address ?? {};
@@ -92,6 +95,27 @@ export default async function Commande({ params, searchParams }: { params: Promi
           </tbody>
         </table>
       </div>
+
+      {gifts?.length ? (
+        <>
+          <h2>Cadeaux Roue de la chance à joindre</h2>
+          <div className="card stack">
+            <p className="muted" style={{ margin: 0 }}>Gagnés par le client : à ajouter gratuitement au colis (aucun montant à encaisser).</p>
+            {gifts.map((g: any) => (
+              <div key={g.id} className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <div><b>{g.quantity} × {g.products?.name ?? g.label}</b> <span className="muted">· {g.label} · code cadeau {g.claim_code}</span></div>
+                {['sent_to_store', 'preparing', 'verified', 'packed'].includes(o.status) ? (
+                  <form action={deferGiftAction} className="row">
+                    <input type="hidden" name="id" value={g.id} />
+                    <input type="hidden" name="order_id" value={o.id} />
+                    <button className="secondary">Indisponible : reporter à la commande suivante</button>
+                  </form>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </>
+      ) : null}
 
       <h2>Livraison</h2>
       <div className="card">

@@ -1,13 +1,22 @@
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, unwrap } from '@/lib/supabase';
 import { cardNumberFromPhone } from '@/lib/loyalty';
+import { countOrderTabs } from '@/lib/orders';
+import { readRecent } from '@/lib/recent';
 import type {
   Address, AppNotification, CatalogItem, Category, LoyaltyCardInfo, LoyaltyTransaction, Order, OrderItem, Quote,
-  RecommendedStore, Store, Tracking,
+  RecommendedStore, SpinResult, Store, Tracking, WheelInfo,
 } from '@/lib/types';
 import { useAuth } from '@/providers/AuthProvider';
 
 export const qk = {
+  unread: ['unread'] as const,
+  wheel: ['wheel'] as const,
+  wheelPublic: ['wheel-public'] as const,
+  myCoupons: ['my-coupons'] as const,
+  ordersToReview: ['orders-to-review'] as const,
   categories: ['categories'] as const,
   catalog: (args: object) => ['catalog', args] as const,
   item: (inventoryId: string) => ['catalog-item', inventoryId] as const,
@@ -283,5 +292,187 @@ export function useNotifications() {
     queryKey: qk.notifications,
     enabled: !!session,
     queryFn: async () => unwrap(await supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(100)) as AppNotification[],
+  });
+}
+
+/** Non lus : notifications + messages de l'assistance (pastille de l'onglet « Messages »). */
+export function useUnreadCount() {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: qk.unread,
+    enabled: !!session,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const [notes, messages] = await Promise.all([
+        supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null),
+        supabase.from('messages').select('id', { count: 'exact', head: true }).is('read_at', null).neq('sender_id', session!.user.id),
+      ]);
+      return { notifications: notes.count ?? 0, messages: messages.count ?? 0, total: (notes.count ?? 0) + (messages.count ?? 0) };
+    },
+  });
+}
+
+/** Marque des notifications comme lues (toutes si ids est omis). */
+export function useMarkNotificationsRead() {
+  const qc = useQueryClient();
+  const { session } = useAuth();
+  return useMutation({
+    mutationFn: async (ids?: string[]) => {
+      let q = supabase.from('notifications').update({ read_at: new Date().toISOString() }).is('read_at', null).eq('user_id', session!.user.id);
+      if (ids?.length) q = q.in('id', ids);
+      unwrap(await q);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.notifications });
+      qc.invalidateQueries({ queryKey: qk.unread });
+    },
+  });
+}
+
+/** Roue de la chance : règles et lots (visiteur) ou données complètes (client connecté). */
+export function useWheel() {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: session ? qk.wheel : qk.wheelPublic,
+    queryFn: async () => {
+      const res = session ? await supabase.rpc('get_my_wheel') : await supabase.rpc('get_wheel_public');
+      if (res.error) {
+        // Serveur pas encore à jour : la roue est simplement masquée.
+        if (res.error.code === 'PGRST202' || /get_(my_)?wheel/.test(res.error.message ?? '')) return null;
+        throw res.error;
+      }
+      return res.data as WheelInfo;
+    },
+  });
+}
+
+export function useSpinWheel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => unwrap(await supabase.rpc('spin_wheel')) as SpinResult,
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.wheel });
+      qc.invalidateQueries({ queryKey: qk.loyalty });
+      qc.invalidateQueries({ queryKey: qk.myCoupons });
+      qc.invalidateQueries({ queryKey: qk.notifications });
+      qc.invalidateQueries({ queryKey: qk.unread });
+    },
+  });
+}
+
+export interface CouponRow {
+  id: string; code: string; description: string | null; discount_type: 'percent' | 'fixed'; discount_value: number;
+  min_order_usd: number; ends_at: string | null; is_public: boolean; used_count: number; usage_limit: number | null;
+}
+
+/** Codes promo : publics en cours + codes personnels (Roue de la chance) encore utilisables. */
+export function useMyCoupons() {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: [...qk.myCoupons, session?.user.id ?? 'guest'],
+    queryFn: async () => {
+      // La RLS ne renvoie que les codes publics et ceux réservés à ce client.
+      const rows = unwrap(await supabase.from('coupons')
+        .select('id, code, description, discount_type, discount_value, min_order_usd, ends_at, is_public, used_count, usage_limit')
+        .eq('is_active', true)
+        .order('ends_at', { ascending: true, nullsFirst: false })) as CouponRow[];
+      const now = Date.now();
+      return rows.filter((c) => (c.ends_at == null || Date.parse(c.ends_at) > now)
+        && (c.usage_limit == null || c.used_count < c.usage_limit));
+    },
+  });
+}
+
+/** Articles vus récemment (relu à chaque affichage de l'écran). */
+export function useRecentItems(limit = 20) {
+  const [ids, setIds] = useState<string[] | null>(null);
+  useFocusEffect(useCallback(() => { readRecent().then(setIds); }, []));
+  const q = useQuery({
+    queryKey: ['recent-items', ids?.slice(0, limit)],
+    enabled: !!ids && ids.length > 0,
+    queryFn: async () => {
+      const wanted = ids!.slice(0, limit);
+      const items = unwrap(await supabase.from('catalog_items').select('*').in('inventory_id', wanted)) as CatalogItem[];
+      return wanted.map((id) => items.find((i) => i.inventory_id === id)).filter((i): i is CatalogItem => !!i);
+    },
+  });
+  return { items: ids && ids.length === 0 ? [] : q.data, isLoading: ids === null || q.isLoading, refresh: () => readRecent().then(setIds) };
+}
+
+export interface CategoryTeaser { categoryId: string; image: string | null; fromPrice: number; count: number }
+
+/** Vignettes « Explorez … » : la meilleure vente de chaque rayon et son prix de départ. */
+export function useCategoryTeasers(storeId: string | null) {
+  const cats = useCategories();
+  return useQuery({
+    queryKey: ['category-teasers', storeId, cats.data?.length ?? 0],
+    enabled: !!cats.data,
+    queryFn: async () => {
+      let q = supabase.from('catalog_items').select('category_id, image_url, effective_price_usd, sold_count')
+        .eq('in_stock', true).not('category_id', 'is', null).order('sold_count', { ascending: false }).limit(400);
+      if (storeId) q = q.eq('store_id', storeId);
+      const rows = unwrap(await q) as { category_id: string; image_url: string | null; effective_price_usd: number }[];
+      const parent = new Map<string, string>((cats.data ?? []).map((c): [string, string] => [c.id, c.parent_id ?? c.id]));
+      const byCat = new Map<string, CategoryTeaser>();
+      for (const r of rows) {
+        const top = parent.get(r.category_id) ?? r.category_id;
+        const cur = byCat.get(top);
+        if (!cur) byCat.set(top, { categoryId: top, image: r.image_url, fromPrice: Number(r.effective_price_usd), count: 1 });
+        else {
+          cur.count += 1;
+          cur.fromPrice = Math.min(cur.fromPrice, Number(r.effective_price_usd));
+          if (!cur.image && r.image_url) cur.image = r.image_url;
+        }
+      }
+      return [...byCat.values()].sort((a, b) => b.count - a.count).slice(0, 10);
+    },
+  });
+}
+
+/** Compteurs des rubriques « Mes commandes » (paiement en attente, envoi, réception, remboursement, avis). */
+export function useOrderCounts() {
+  const { session } = useAuth();
+  const orders = useOrders();
+  const toReview = useQuery({
+    queryKey: qk.ordersToReview,
+    enabled: !!session,
+    queryFn: async () => new Set(((await supabase.rpc('orders_awaiting_review')).data ?? []) as string[]),
+  });
+  return { counts: countOrderTabs(orders.data ?? [], toReview.data ?? new Set<string>()), isLoading: orders.isLoading };
+}
+
+/** Image du dernier favori (carte « Favoris » du compte). */
+export function useFavoritePreview() {
+  const favorites = useFavorites();
+  const first = favorites.data?.[0] ?? null;
+  const img = useQuery({
+    queryKey: ['favorite-preview', first],
+    enabled: !!first,
+    queryFn: async () => ((await supabase.from('catalog_items').select('image_url').eq('product_id', first!).not('image_url', 'is', null).limit(1)).data?.[0]?.image_url ?? null) as string | null,
+  });
+  return { count: favorites.data?.length ?? 0, image: img.data ?? null };
+}
+
+/** Dernière version publiée de l'application (APK de test sur GitHub). */
+export function useAppUpdate(currentBuild: number | null) {
+  return useQuery({
+    queryKey: ['app-update', currentBuild],
+    staleTime: 6 * 60 * 60_000,
+    retry: 0,
+    queryFn: async () => {
+      const res = await fetch('https://api.github.com/repos/matuladesign1/kin-marche-en-ligne/releases?per_page=10', {
+        headers: { Accept: 'application/vnd.github+json' },
+      });
+      if (!res.ok) return null;
+      const list = (await res.json()) as { tag_name: string; html_url: string; assets?: { name: string; browser_download_url: string }[] }[];
+      const builds = list
+        .map((r) => ({ build: Number(/^apk-(\d+)$/.exec(r.tag_name)?.[1]), r }))
+        .filter((x) => Number.isFinite(x.build))
+        .sort((a, b) => b.build - a.build);
+      const latest = builds[0];
+      if (!latest) return null;
+      const apk = latest.r.assets?.find((a) => a.name.endsWith('.apk'));
+      return { build: latest.build, url: apk?.browser_download_url ?? latest.r.html_url, newer: currentBuild != null && latest.build > currentBuild };
+    },
   });
 }

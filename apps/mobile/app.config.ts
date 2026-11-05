@@ -7,7 +7,7 @@ const base = {
   "name": "Kin Marché en ligne",
   "slug": "kin-marche-en-ligne",
   "scheme": "kinmarche",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "orientation": "portrait",
   "icon": "./assets/images/icon.png",
   "userInterfaceStyle": "automatic",
@@ -81,6 +81,8 @@ const base = {
   }
 } as ExpoConfig;
 
+// Numéro de build : celui du workflow GitHub (APK n°…), toujours croissant → mise à jour par-dessus l'ancienne version.
+const buildNumber = Number(process.env.GITHUB_RUN_NUMBER ?? process.env.BUILD_NUMBER ?? '') || undefined;
 const mapsKey = process.env.GOOGLE_MAPS_ANDROID_KEY;
 const googleServices = process.env.GOOGLE_SERVICES_JSON_PATH;
 const easProjectId = process.env.EAS_PROJECT_ID;
@@ -89,11 +91,13 @@ const config: ExpoConfig = {
   ...base,
   android: {
     ...base.android,
+    ...(buildNumber ? { versionCode: buildNumber } : {}),
     ...(googleServices && fs.existsSync(googleServices) ? { googleServicesFile: googleServices } : {}),
     config: { ...(base.android?.config ?? {}), ...(mapsKey ? { googleMaps: { apiKey: mapsKey } } : {}) },
   },
   extra: {
     ...base.extra,
+    buildNumber: buildNumber ?? null,
     // Sur Android, la carte n'est affichée que si la clé Google Maps a été fournie au build.
     mapsEnabled: { android: !!mapsKey, ios: true, web: false },
     ...(easProjectId ? { eas: { projectId: easProjectId } } : {}),

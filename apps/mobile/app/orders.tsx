@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -7,37 +7,21 @@ import { Button, Card, Chip, EmptyState, ErrorState, Input, Loading, Notice, Row
 import { qk, useOrders } from '@/hooks/data';
 import { errorMessage } from '@/lib/errors';
 import { formatDate } from '@/lib/format';
+import { inOrderTab as inTab, isOrderTab, ORDER_TABS as TABS, TO_RECEIVE, type OrderTab as Tab } from '@/lib/orders';
 import type { TranslationKey } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
-import type { Order } from '@/lib/types';
 import { spacing } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
 import { useSettings } from '@/providers/SettingsProvider';
-
-type Tab = 'all' | 'toPay' | 'toShip' | 'toReceive' | 'refund' | 'toReview' | 'done';
-const TABS: Tab[] = ['all', 'toPay', 'toShip', 'toReceive', 'refund', 'toReview', 'done'];
-
-const TO_SHIP = ['payment_confirmed', 'sent_to_store', 'preparing', 'verified', 'packed', 'ready'];
-const TO_RECEIVE = ['driver_assigned', 'driver_to_store', 'picked_up', 'in_delivery', 'driver_near', 'driver_arrived', 'recipient_check', 'delivered'];
-
-function inTab(o: Order, tab: Tab, toReview: Set<string>): boolean {
-  switch (tab) {
-    case 'all': return true;
-    case 'toPay': return o.status === 'received' && ['pending', 'processing', 'failed'].includes(o.payment_status);
-    case 'toShip': return TO_SHIP.includes(o.status);
-    case 'toReceive': return TO_RECEIVE.includes(o.status);
-    case 'refund': return o.status === 'refunded' || ['refunded', 'partially_refunded'].includes(o.payment_status);
-    case 'toReview': return toReview.has(o.id);
-    case 'done': return ['completed', 'cancelled', 'failed'].includes(o.status);
-  }
-}
 
 export default function Orders() {
   const { t, money, language, colors } = useSettings();
   const { session } = useAuth();
   const orders = useOrders();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<Tab>('all');
+  const params = useLocalSearchParams<{ tab?: string }>();
+  // « Mes commandes » du compte ouvre directement la bonne rubrique.
+  const [tab, setTab] = useState<Tab>(isOrderTab(params.tab) ? params.tab : 'all');
   const [lookup, setLookup] = useState('');
   const [lookupError, setLookupError] = useState<string | null>(null);
 
