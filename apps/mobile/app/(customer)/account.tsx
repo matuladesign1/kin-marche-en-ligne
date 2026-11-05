@@ -68,15 +68,18 @@ function HeaderIcon({ icon, label, onPress }: { icon: IconName; label: string; o
   );
 }
 
-/** Carte « Favoris » / « Historique » / « Coupons » avec vignette à droite. */
-function QuickCard({ label, image, icon, onPress }: { label: string; image?: string | null; icon: IconName; onPress: () => void }) {
+/** Carte « Favoris » / « Historique » / « Coupons » : titre en haut, nombre et vignette en bas. */
+function QuickCard({ label, image, icon, count, onPress }: { label: string; image?: string | null; icon: IconName; count?: number; onPress: () => void }) {
   const { colors } = useSettings();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={count ? `${label} (${count})` : label}
       style={({ pressed }) => [styles.quick, { backgroundColor: colors.surface, opacity: pressed ? 0.88 : 1 }]}>
-      <T size="sm" weight="700" numberOfLines={2} style={{ flex: 1 }}>{label}</T>
-      <View style={[styles.quickThumb, { backgroundColor: colors.surfaceAlt }]}>
-        {image ? <Image source={{ uri: image }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <Ionicons name={icon} size={22} color={colors.textMuted} />}
+      <T size="sm" weight="700" numberOfLines={2}>{label}</T>
+      <View style={styles.quickBottom}>
+        {count ? <T size="lg" weight="800" color={colors.primary}>{count > 99 ? '99+' : count}</T> : <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />}
+        <View style={[styles.quickThumb, { backgroundColor: colors.surfaceAlt }]}>
+          {image ? <Image source={{ uri: image }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <Ionicons name={icon} size={20} color={colors.textMuted} />}
+        </View>
       </View>
     </Pressable>
   );
@@ -117,7 +120,7 @@ export default function Account() {
   const spins = wheel.data?.spins_available ?? 0;
   const wheelOn = !!wheel.data?.enabled && (wheel.data?.prizes.length ?? 0) > 0;
 
-  const orderTiles: { tab: OrderTab; icon: IconName }[] = [
+  const orderTiles: { tab: Exclude<OrderTab, 'all' | 'done'>; icon: IconName }[] = [
     { tab: 'toPay', icon: 'card-outline' },
     { tab: 'toShip', icon: 'cube-outline' },
     { tab: 'toReceive', icon: 'bicycle-outline' },
@@ -176,10 +179,10 @@ export default function Account() {
             <Button style={{ flex: 1 }} title={t('auth.signUp')} variant="secondary" onPress={() => router.push('/(auth)/sign-up')} />
           </Row>
         ) : null}
-        <Row gap={spacing.sm}>
-          <QuickCard label={t('favorites.title')} image={favorites.image} icon="heart-outline" onPress={need('/favorites')} />
+        <Row gap={spacing.sm} style={{ alignItems: 'stretch' }}>
+          <QuickCard label={t('account.quick.favorites')} image={favorites.image} icon="heart-outline" onPress={need('/favorites')} />
           <QuickCard label={t('account.history')} image={recent.items?.[0]?.image_url} icon="time-outline" onPress={() => router.push('/recent')} />
-          <QuickCard label={`${t('coupons.title')}${coupons.data?.length ? ` (${coupons.data.length})` : ''}`} icon="pricetags-outline" onPress={() => router.push('/coupons')} />
+          <QuickCard label={t('account.quick.coupons')} count={coupons.data?.length} icon="pricetags-outline" onPress={() => router.push('/coupons')} />
         </Row>
       </View>
 
@@ -201,7 +204,7 @@ export default function Account() {
           <PanelHeader title={t('orders.mine')} action={t('common.seeAll')} onAction={need('/orders')} />
           <Row gap={0} style={{ alignItems: 'flex-start' }}>
             {orderTiles.map((o) => (
-              <IconTile key={o.tab} icon={o.icon} label={t(`orders.tab.${o.tab}`)} count={session ? counts[o.tab] : 0}
+              <IconTile key={o.tab} icon={o.icon} label={t(`account.orders.${o.tab}`)} count={session ? counts[o.tab] : 0}
                 onPress={need(`/orders?tab=${o.tab}`)} />
             ))}
           </Row>
@@ -219,7 +222,7 @@ export default function Account() {
         </Panel>
 
         <Panel>
-          <PanelHeader title={t('account.moreFeatures')} action={allFeatures ? t('account.lessFeatures') : t('account.allFeatures')}
+          <PanelHeader title={t('account.moreFeatures')} action={allFeatures ? t('account.lessFeatures') : t('common.seeAll')}
             onAction={() => setAllFeatures((v) => !v)} size="md" />
           <Row gap={0} style={{ flexWrap: 'wrap', alignItems: 'flex-start' }}>
             {(allFeatures ? features : features.slice(0, 4)).map(({ key, ...f }) => <IconTile key={key} width="25%" {...f} />)}
@@ -280,7 +283,8 @@ export default function Account() {
 const styles = StyleSheet.create({
   headerIcon: { width: 34, alignItems: 'center' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  quick: { flex: 1, minHeight: 64, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: spacing.md, paddingRight: 8 },
+  quick: { flex: 1, minHeight: 92, borderRadius: radius.md, padding: 10, gap: 6, justifyContent: 'space-between' },
+  quickBottom: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
   quickThumb: { width: 40, height: 40, borderRadius: 8, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   banner: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: radius.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   promo: { flex: 1, minHeight: 88, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md },

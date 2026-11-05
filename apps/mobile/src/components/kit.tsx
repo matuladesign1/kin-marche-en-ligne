@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Children, Fragment, useId, type ReactNode } from 'react';
+import { Children, Fragment, useEffect, useId, useRef, type ReactNode } from 'react';
 import {
   Modal, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle,
 } from 'react-native';
@@ -189,15 +189,23 @@ export function FilterChip({ label, icon, iconColor, active, onPress }: { label:
   );
 }
 
-/** Onglets texte avec soulignement (haut de l'accueil). */
+/** Onglets texte avec soulignement (haut de l'accueil). L'onglet actif est toujours ramené à l'écran. */
 export function TopTabs<K extends string>({ tabs, value, onChange }: { tabs: { key: K; label: string }[]; value: K; onChange: (k: K) => void }) {
   const { colors } = useSettings();
+  const scroll = useRef<ScrollView>(null);
+  const xs = useRef<Partial<Record<K, number>>>({});
+  const reveal = (k: K) => {
+    const x = xs.current[k];
+    if (x !== undefined) scroll.current?.scrollTo({ x: Math.max(0, x - spacing.lg), animated: true });
+  };
+  useEffect(() => { reveal(value); }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.topTabs}>
+    <ScrollView ref={scroll} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.topTabs}>
       {tabs.map((tb) => {
         const active = tb.key === value;
         return (
-          <Pressable key={tb.key} onPress={() => onChange(tb.key)} accessibilityRole="tab" accessibilityState={{ selected: active }} style={styles.topTab}>
+          <Pressable key={tb.key} onPress={() => onChange(tb.key)} accessibilityRole="tab" accessibilityState={{ selected: active }} style={styles.topTab}
+            onLayout={(e) => { xs.current[tb.key] = e.nativeEvent.layout.x; if (active) reveal(tb.key); }}>
             <Text style={{ color: colors.text, fontSize: active ? 22 : 17, fontWeight: '800' }}>{tb.label}</Text>
             <View style={[styles.topTabBar, { backgroundColor: active ? colors.primary : 'transparent' }]} />
           </Pressable>
@@ -247,9 +255,9 @@ const styles = StyleSheet.create({
   panelPadded: { padding: spacing.lg, gap: spacing.md },
   panelHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   headerAction: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  group: { borderRadius: radius.md, overflow: 'hidden' },
-  groupTitle: { marginLeft: spacing.lg, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  groupFooter: { marginHorizontal: spacing.lg, marginTop: 6 },
+  group: { borderRadius: radius.md, overflow: 'hidden', marginHorizontal: spacing.md },
+  groupTitle: { marginHorizontal: spacing.md + spacing.lg, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  groupFooter: { marginHorizontal: spacing.md + spacing.lg, marginTop: 6 },
   separator: { height: StyleSheet.hairlineWidth, marginLeft: spacing.lg },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, minHeight: 56, paddingVertical: 10 },
   badge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },

@@ -718,7 +718,6 @@ const ln: Record<TranslationKey, string> = {
   'account.seeCard': 'Karte na ngai',
   'account.loyaltyCard': 'Karte ya bosembo',
   'account.moreFeatures': 'Makambo mosusu',
-  'account.allFeatures': 'Makambo nyonso',
   'account.lessFeatures': 'Kitisa',
   'account.feature.addresses': 'Ba adresi ya komema',
   'account.feature.driver': 'Kokoma livreur',
@@ -825,5 +824,12 @@ const ln: Record<TranslationKey, string> = {
   'err.WHEEL_DISABLED': 'Roue de la chance ezali te mpo na sikoyo.',
   'err.WHEEL_EMPTY': 'Makabo nyonso esili kolongama : zonga noki !',
   'err.WHEEL_BUSY': 'Bato mingi bazali kosakana, meka lisusu mwa moke.',
+  'account.quick.favorites': 'Oyo nalingaka',
+  'account.quick.coupons': 'Ba coupon',
+  'account.orders.toPay': 'Kofuta',
+  'account.orders.toShip': 'Kotinda',
+  'account.orders.toReceive': 'Kozwa',
+  'account.orders.refund': 'Kozongisa',
+  'account.orders.toReview': 'Likanisi',
 };
 export default ln;

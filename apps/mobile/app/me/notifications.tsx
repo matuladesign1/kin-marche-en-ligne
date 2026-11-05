@@ -88,7 +88,7 @@ export default function NotificationSettings() {
       ) : null}
 
       {!isPushActive() && Platform.OS !== 'web' ? (
-        <T size="xs" muted style={{ paddingHorizontal: spacing.lg }}>{t('notifSettings.liveOnly')}</T>
+        <T size="xs" muted style={{ paddingHorizontal: spacing.md + spacing.lg }}>{t('notifSettings.liveOnly')}</T>
       ) : null}
     </ScrollView>
   );

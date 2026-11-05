@@ -128,14 +128,14 @@ export function ProductCard({ item, width }: { item: CatalogItem; width?: number
           ) : null}
         </Row>
         <T size="xs" muted numberOfLines={1}>
-          {off > 0 ? <T size="xs" muted style={{ textDecorationLine: 'line-through' }}>{money(item.price_usd)}  </T> : null}
+          {off > 0 ? <><T size="xs" muted style={{ textDecorationLine: 'line-through' }}>{money(item.price_usd)}</T>{' · '}</> : null}
           {t('product.minShort', { qty: formatQty(Number(item.min_quantity), item.unit, t) })}
           {item.sold_count > 0 ? ` · ${t('product.soldCount', { n: item.sold_count })}` : ''}
         </T>
         <Row gap={4}>
           <VerifiedBadge size={13} color={colors.accent} />
-          <T size="xs" weight="700" color={colors.accent} numberOfLines={1} style={{ flexShrink: 1 }}>
-            {item.store_name}{item.store_commune ? <T size="xs" muted> · {item.store_commune}</T> : null}
+          <T size="xs" weight="600" muted numberOfLines={1} style={{ flexShrink: 1 }}>
+            {item.store_name}{item.store_commune ? ` · ${item.store_commune}` : ''}
           </T>
         </Row>
       </View>

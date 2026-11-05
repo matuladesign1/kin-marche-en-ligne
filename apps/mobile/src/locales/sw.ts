@@ -718,7 +718,6 @@ const sw: Record<TranslationKey, string> = {
   'account.seeCard': 'Kadi yangu',
   'account.loyaltyCard': 'Kadi ya uaminifu',
   'account.moreFeatures': 'Huduma zaidi',
-  'account.allFeatures': 'Huduma zote',
   'account.lessFeatures': 'Onyesha kidogo',
   'account.feature.addresses': 'Anwani za usafirishaji',
   'account.feature.driver': 'Kuwa msafirishaji',
@@ -825,5 +824,12 @@ const sw: Record<TranslationKey, string> = {
   'err.WHEEL_DISABLED': 'Gurudumu la Bahati halipatikani kwa muda.',
   'err.WHEEL_EMPTY': 'Zawadi zote zimeshindwa: rudi hivi karibuni!',
   'err.WHEEL_BUSY': 'Gurudumu lina shughuli nyingi, jaribu tena baada ya muda mfupi.',
+  'account.quick.favorites': 'Vipendwa',
+  'account.quick.coupons': 'Kuponi',
+  'account.orders.toPay': 'Malipo',
+  'account.orders.toShip': 'Kutumwa',
+  'account.orders.toReceive': 'Kupokelewa',
+  'account.orders.refund': 'Marejesho',
+  'account.orders.toReview': 'Tathmini',
 };
 export default sw;

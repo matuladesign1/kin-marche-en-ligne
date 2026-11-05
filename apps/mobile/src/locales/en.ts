@@ -482,7 +482,6 @@ const en: Record<TranslationKey, string> = {
   'account.seeCard': 'My card',
   'account.loyaltyCard': 'Loyalty card',
   'account.moreFeatures': 'More features',
-  'account.allFeatures': 'All features',
   'account.lessFeatures': 'Show less',
   'account.feature.addresses': 'Delivery addresses',
   'account.feature.driver': 'Become a driver',
@@ -589,5 +588,12 @@ const en: Record<TranslationKey, string> = {
   'err.WHEEL_DISABLED': 'The Lucky Wheel is temporarily unavailable.',
   'err.WHEEL_EMPTY': 'All prizes have been won: come back soon!',
   'err.WHEEL_BUSY': 'The wheel is very busy, please try again in a moment.',
+  'account.quick.favorites': 'Favourites',
+  'account.quick.coupons': 'Coupons',
+  'account.orders.toPay': 'To pay',
+  'account.orders.toShip': 'To ship',
+  'account.orders.toReceive': 'To receive',
+  'account.orders.refund': 'Refunded',
+  'account.orders.toReview': 'To review',
 };
 export default en;

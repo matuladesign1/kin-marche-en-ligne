@@ -750,7 +750,6 @@ const fr = {
   'account.seeCard': 'Ma carte',
   'account.loyaltyCard': 'Carte fidélité',
   'account.moreFeatures': 'Plus de fonctionnalités',
-  'account.allFeatures': 'Toutes les fonctionnalités',
   'account.lessFeatures': 'Réduire',
   'account.feature.addresses': 'Adresses de livraison',
   'account.feature.driver': 'Devenir livreur',
@@ -857,6 +856,13 @@ const fr = {
   'err.WHEEL_DISABLED': 'La Roue de la chance est momentanément indisponible.',
   'err.WHEEL_EMPTY': 'Tous les lots ont été gagnés : revenez bientôt !',
   'err.WHEEL_BUSY': 'La roue est très sollicitée, réessayez dans un instant.',
+  'account.quick.favorites': 'Favoris',
+  'account.quick.coupons': 'Coupons',
+  'account.orders.toPay': 'À payer',
+  'account.orders.toShip': 'À expédier',
+  'account.orders.toReceive': 'À recevoir',
+  'account.orders.refund': 'Remboursés',
+  'account.orders.toReview': 'À évaluer',
 } as const;
 
 export type TranslationKey = keyof typeof fr;

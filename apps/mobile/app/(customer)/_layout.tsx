@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoyaltyWelcome } from '@/components/LoyaltyWelcome';
 import type { IconName } from '@/components/ui';
 import { useCart, useUnreadCount } from '@/hooks/data';
@@ -19,12 +20,15 @@ export default function CustomerTabs() {
   const { profile } = useAuth();
   const cart = useCart();
   const unread = useUnreadCount();
+  const insets = useSafeAreaInsets();
 
   // Les comptes non-clients sont renvoyés vers leur espace.
   if (profile && profile.role !== 'customer') return <Redirect href={homeForRole(profile.role)} />;
 
   const count = cart.data?.lines.length ?? 0;
   const messages = unread.data?.total ?? 0;
+  // La barre passe au-dessus de la barre de navigation du téléphone (boutons ou geste) : sa hauteur l'inclut.
+  const bottom = Math.max(insets.bottom, 6);
   return (
     <>
       <LoyaltyWelcome />
@@ -32,8 +36,9 @@ export default function CustomerTabs() {
         screenOptions={{
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.text,
-          tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
-          tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, height: 62, paddingTop: 6, paddingBottom: 8 },
+          tabBarLabelStyle: { fontSize: 11, lineHeight: 14, fontWeight: '600' },
+          tabBarItemStyle: { paddingVertical: 3, paddingHorizontal: 0 },
+          tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, height: 58 + bottom, paddingTop: 4, paddingBottom: bottom },
           tabBarBadgeStyle: { backgroundColor: colors.primary, fontSize: 10, fontWeight: '800' },
           headerStyle: { backgroundColor: colors.surface },
           headerTintColor: colors.text,

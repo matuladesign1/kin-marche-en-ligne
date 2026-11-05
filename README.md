@@ -119,7 +119,7 @@ npx expo start
 
 Rôles : après connexion, chaque compte est redirigé vers son espace (`/store-admin`, `/driver`, `/admin`). L'espace livreur est complet (tableau de bord, courses disponibles, mission avec carte et itinéraire calculé par Google, historique, revenus) ; les directeurs, agents et l'administrateur général gèrent leur activité sur l'administration web.
 
-Langues : français, anglais, lingala et swahili complets (823 textes chacun) ; **lingala et swahili à faire relire par des locuteurs natifs**.
+Langues : français, anglais, lingala et swahili complets (829 textes chacun) ; **lingala et swahili à faire relire par des locuteurs natifs**.
 
 Logo : `assets/images/logo-wide.png` (thème) et `assets/images/icon.png` (icône), non modifiés. L'administrateur peut remplacer le logo et les couleurs via `app_settings.branding` sans toucher au code.
 
