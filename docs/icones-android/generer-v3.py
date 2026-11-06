@@ -174,6 +174,41 @@ splash.alpha_composite(logo_ball(D), ((C - D) // 2, (C - D) // 2))
 save(splash, 'splash-logo.png')
 sphere = logo_ball(360)
 
+# ── 4 bis. Tous les autres logos (application et administration) avec les nouveaux visuels ────────────
+# Carré arrondi : le visuel clair tel quel (coins transparents).
+carre = Image.open(os.path.join(SRC, 'km-icone-blanche.png')).convert('RGBA').crop((BOX[0], BOX[0], BOX[1], BOX[1]))
+save(resized(carre, (512, 512)), 'logo-square.png')
+save(resized(carre, (256, 256)), 'admin-icon.png')
+save(resized(icon, (180, 180)).convert('RGB'), 'admin-apple-icon.png')
+
+# Logo seul, fond transparent (carte fidélité, administration) : léger halo du visuel retiré.
+clean = logo1.copy()
+clean[..., 3] = np.clip((clean[..., 3] - 0.15) / 0.85, 0, 1)
+_chroma = clean[..., :3].max(axis=2) - clean[..., :3].min(axis=2)
+clean[..., 3] = np.where(_chroma < 0.12, 0, clean[..., 3])   # ombres grises du visuel : retirées (le logo n'a pas de gris)
+seul = to_img(clean)
+seul = seul.crop(seul.getbbox())
+W0, H0 = 900, 241                                    # mêmes proportions que l'ancien logo de la carte
+k = min(W0 / seul.width, H0 / seul.height)
+s1 = resized(seul, (round(seul.width * k), round(seul.height * k)))
+h_logo = Image.new('RGBA', (W0, H0), (0, 0, 0, 0))
+h_logo.alpha_composite(s1, ((W0 - s1.width) // 2, (H0 - s1.height) // 2))
+save(h_logo, 'km-logo-h.png')
+
+# Bandeau (en-tête de l'application, connexion de l'administration) : fond clair arrondi, logo en couleurs.
+W, H = 1200, 516
+band = gradient((W, H), BOX[0] + 300, BOX[0] + 700, 1.2)
+main = to_img(logo1)
+main = main.crop(main.getbbox())
+mw = 1040
+ms = resized(main, (mw, round(mw * main.height / main.width)))
+band.alpha_composite(ms, ((W - ms.width) // 2, (H - ms.height) // 2))
+band.putalpha(rounded_mask((W, H), 64))
+save(band, 'logo-wide.png')
+
+# Rond (assistant, centre de la roue) : la boule de l'animation (logo « ligne » en rouge sur blanc).
+save(logo_ball(512), 'logo-round.png')
+
 # ── 5. Jeu Android complet (documentation) et aperçu ─────────────────────────────────────────
 for d, f in {'mdpi': 1, 'hdpi': 1.5, 'xhdpi': 2, 'xxhdpi': 3, 'xxxhdpi': 4}.items():
     n48, n108, n24 = round(48 * f), round(108 * f), round(24 * f)

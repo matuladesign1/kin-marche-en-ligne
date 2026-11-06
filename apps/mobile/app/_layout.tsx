@@ -17,17 +17,25 @@ import { useNotificationNavigation, usePushRegistration } from '@/hooks/usePushR
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 try { SplashScreen.setOptions({ duration: 250, fade: true }); } catch { /* ancienne version : fondu par défaut */ }
 const hideSplash = () => { SplashScreen.hideAsync().catch(() => undefined); };
+/** Durée minimale de l'animation d'ouverture : 4 sauts de 0,75 s. */
+const STARTUP_MS = 3000;
 
 /**
  * Écran d'ouverture animé, sans texte : la boule au logo saute et se transforme en produits.
  * Pendant ce temps, la session se charge et les bannières de l'accueil sont préchargées ;
- * l'accueil s'affiche dès que l'application est prête, sans attente artificielle (fondu de 0,3 s).
+ * l'accueil s'affiche après au moins 3 s d'animation (plus si l'application n'est pas encore prête), avec un fondu de 0,3 s.
  */
 function StartupOverlay() {
   const { loading } = useAuth();
   const qc = useQueryClient();
   const opacity = useRef(new Animated.Value(1)).current;
   const [gone, setGone] = useState(false);
+  // L'animation se voit à chaque ouverture : au moins 4 sauts (logo → pomme → tomates → huile → boisson).
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const h = setTimeout(() => setShown(true), STARTUP_MS);
+    return () => clearTimeout(h);
+  }, []);
 
   useEffect(() => {
     qc.prefetchQuery(bannersQuery('home'))
@@ -39,14 +47,14 @@ function StartupOverlay() {
   }, [qc]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || !shown) return;
     hideSplash();
     Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setGone(true));
-  }, [loading, opacity]);
+  }, [loading, shown, opacity]);
 
   if (gone) return null;
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, { zIndex: 10, opacity }]} pointerEvents={loading ? 'auto' : 'none'}>
+    <Animated.View style={[StyleSheet.absoluteFill, { zIndex: 10, opacity }]} pointerEvents={loading || !shown ? 'auto' : 'none'}>
       <StatusBar style="dark" />
       <LoadingScreen onLayout={hideSplash} />
     </Animated.View>
