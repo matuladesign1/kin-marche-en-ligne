@@ -59,6 +59,8 @@ jobs:
     name: Écrans carte, position et connexion
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
@@ -105,3 +107,13 @@ jobs:
         with:
           name: smoke
           path: smoke-out
+
+      - name: Publier les captures (version « smoke-results »)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd smoke-out && ls
+          gh release view smoke-results --repo "${{ github.repository }}" >/dev/null 2>&1 || \
+            gh release create smoke-results --repo "${{ github.repository }}" --prerelease --title "Test émulateur (captures)" --notes "Captures et journal du dernier test sur émulateur."
+          gh release upload smoke-results ./*.png logcat.txt crash.txt --clobber --repo "${{ github.repository }}" || true

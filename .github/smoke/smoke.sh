@@ -55,6 +55,8 @@ sleep 20; shot 03-magasins-position; alive "magasins + position"
 
 open_url "kinmarche://addresses/new"
 sleep 25; shot 04-adresse; alive adresse
+adb shell input swipe 540 1700 540 700 400; sleep 2; adb shell input swipe 540 1700 540 900 400; sleep 3
+shot 04b-adresse-bas
 tap_text "Enregistrer ma position GPS|Save my current GPS" adresse
 sleep 20; shot 05-adresse-gps; alive "adresse + GPS"
 

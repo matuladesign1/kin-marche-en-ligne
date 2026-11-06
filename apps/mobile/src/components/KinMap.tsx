@@ -15,9 +15,12 @@ import { useSettings } from '@/providers/SettingsProvider';
 // ma position), tracé de l'itinéraire et trajet déjà parcouru. Mode « suivi » pour la navigation.
 // Le fond de carte se change sans toucher au code (extra.mapTilesUrl dans app.config).
 
-const extra = (Constants.expoConfig?.extra ?? {}) as { mapTilesUrl?: string; mapAttribution?: string };
-const TILE_URL = extra.mapTilesUrl || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-const ATTRIBUTION = extra.mapAttribution || '© OpenStreetMap';
+const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, unknown>;
+/** Valeur texte de la configuration, sinon rien (un réglage absent peut arriver comme objet vide {}). */
+const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
+const customTiles = text(extra.mapTilesUrl);
+const TILE_URL = customTiles && customTiles.includes('{z}') ? customTiles : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const ATTRIBUTION = text(extra.mapAttribution) ?? '© OpenStreetMap';
 /** OpenStreetMap demande que chaque application s'identifie. */
 const TILE_HEADERS = { 'User-Agent': 'KinMarche/2.0 (+https://kin-marche-admin.vercel.app)' };
 const SUBDOMAINS = ['a', 'b', 'c'];
