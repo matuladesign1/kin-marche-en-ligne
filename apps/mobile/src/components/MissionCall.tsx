@@ -8,6 +8,7 @@ import { Alert, Animated, AppState, Easing, Modal, Pressable, StyleSheet, Vibrat
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Offer } from '@/hooks/driver';
 import { errorMessage } from '@/lib/errors';
+import { incomingCall } from '@/lib/kincall';
 import { supabase, unwrap } from '@/lib/supabase';
 import { spacing } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
@@ -84,7 +85,7 @@ export function MissionCall() {
 
   const left = offer ? Math.max(0, Math.round((new Date(offer.expires_at).getTime() - now) / 1000)) : 0;
   useEffect(() => {
-    if (offer && left === 0) { setOffer(null); Notifications.dismissAllNotificationsAsync().catch(() => undefined); check(); }
+    if (offer && left === 0) { setOffer(null); incomingCall.cancel(); Notifications.dismissAllNotificationsAsync().catch(() => undefined); check(); }
   }, [offer, left, check]);
 
   if (!offer) return null;
@@ -93,6 +94,7 @@ export function MissionCall() {
     if (busy) return;
     setBusy(true);
     Vibration.cancel();
+    incomingCall.cancel();                                                 // arrête l'appel plein écran
     Notifications.dismissAllNotificationsAsync().catch(() => undefined);   // arrête la sonnerie
     try {
       const r = unwrap(await supabase.rpc('respond_to_offer', { p_assignment_id: offer.assignment_id, p_accept: accept, p_reason: null })) as { ok: boolean };

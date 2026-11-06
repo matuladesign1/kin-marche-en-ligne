@@ -193,7 +193,7 @@ const SCREEN_SHADOW = Math.max(4, SCREEN_BALL * 0.14);
  */
 /** Logo complet « Kin Marché — Au prix du grand marché », en bas au centre de l'écran de chargement (taille moyenne). */
 const BRAND_LOGO = require('../../assets/images/logo-chargement.png');
-const BRAND_W = 220;
+const BRAND_W = 150;   // petit mais lisible
 const BRAND_H = Math.round(BRAND_W * 262 / 900);
 
 export function LoadingScreen({ children, onLayout }: { children?: ReactNode; onLayout?: () => void }) {

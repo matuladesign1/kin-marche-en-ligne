@@ -3,7 +3,8 @@ import { AppState } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { showMissionCall } from '@/components/MissionCall';
 import { showPromo } from '@/components/PromoPopup';
-import { channelForKind, isChatOpen, isCustomerOnlyKind, isPushActive, presentLocal } from '@/lib/notify';
+import { incomingCall } from '@/lib/kincall';
+import { channelForKind, ensureChannels, isChatOpen, isCustomerOnlyKind, isPushActive, presentLocal } from '@/lib/notify';
 import { supabase } from '@/lib/supabase';
 import type { AppNotification, NotificationCategory } from '@/lib/types';
 import { useAuth } from '@/providers/AuthProvider';
@@ -57,6 +58,17 @@ export function useLiveNotifications() {
         if (n.kind === 'delivery_offer') {
           qc.invalidateQueries({ queryKey: ['driver-offers'] });
           if (AppState.currentState === 'active') showMissionCall();
+          else {
+            // Application en arrière-plan ou téléphone verrouillé : appel plein écran qui allume l'écran.
+            const title = n.title;
+            const body = n.body ?? '';
+            ensureChannels().then(() => {
+              if (!incomingCall.show(title, body, 120_000)) {
+                presentLocal({ title, body, data: { ...(n.data ?? {}), notification_id: n.id, kind: n.kind }, channel: 'missions_appel' });
+              }
+            });
+            return;
+          }
         }
 
         const cat = categoryOf(n.kind);

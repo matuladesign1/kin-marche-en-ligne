@@ -13,6 +13,7 @@ import { Button, Loading, Notice, T, type IconName } from '@/components/ui';
 import { useUnreadCount } from '@/hooks/data';
 import { useDriver, useDriverActive, useDriverOffers, useDriverToday } from '@/hooks/driver';
 import { errorMessage } from '@/lib/errors';
+import { incomingCall } from '@/lib/kincall';
 import type { TranslationKey } from '@/lib/i18n';
 import { homeForRole } from '@/lib/roles';
 import { supabase, unwrap } from '@/lib/supabase';
@@ -87,7 +88,13 @@ export default function DriverHome() {
   const [locError, setLocError] = useState(false);
   // Barre d'état claire sur le bandeau bleu nuit, seulement quand cet écran est affiché.
   const [focused, setFocused] = useState(true);
-  useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
+  // Écran d'appel plein écran (Android 14+ : autorisation « notifications plein écran »), revérifiée à chaque retour.
+  const [fullScreenOk, setFullScreenOk] = useState(() => incomingCall.canUseFullScreen());
+  useFocusEffect(useCallback(() => {
+    setFocused(true);
+    setFullScreenOk(incomingCall.canUseFullScreen());
+    return () => setFocused(false);
+  }, []));
 
   // Offres et missions en temps réel.
   useEffect(() => {
@@ -198,6 +205,12 @@ export default function DriverHome() {
           {!d ? <Button title={t('driver.completeFile')} icon="document-text-outline" onPress={() => router.push('/driver-signup')} /> : null}
           {d && !verified ? <Notice text={t('err.DRIVER_NOT_VERIFIED')} /> : null}
           {locError ? <Notice tone="warning" text={t('driver.locationDenied')} /> : null}
+          {verified && !fullScreenOk ? (
+            <View style={{ gap: spacing.sm }}>
+              <Notice tone="warning" text={t('driver.fullScreen.hint')} />
+              <Button title={t('driver.fullScreen.allow')} icon="call-outline" variant="secondary" onPress={() => incomingCall.openSettings()} />
+            </View>
+          ) : null}
 
           {/* Courses disponibles */}
           <Pressable onPress={() => router.push('/driver/offers')} accessibilityRole="button"
