@@ -55,7 +55,7 @@ export function useLiveNotifications() {
         }
 
         // Nouvelle course proposée au livreur : écran d'appel (la sonnerie vient de la notification ci-dessous).
-        if (n.kind === 'delivery_offer') {
+        if (n.kind === 'delivery_offer' || n.kind === 'call_test') {
           qc.invalidateQueries({ queryKey: ['driver-offers'] });
           if (AppState.currentState === 'active') showMissionCall();
           else {
@@ -63,7 +63,7 @@ export function useLiveNotifications() {
             const title = n.title;
             const body = n.body ?? '';
             ensureChannels().then(() => {
-              if (!incomingCall.show(title, body, 120_000)) {
+              if (!incomingCall.show(title, body, n.kind === 'call_test' ? 60_000 : 120_000)) {
                 presentLocal({ title, body, data: { ...(n.data ?? {}), notification_id: n.id, kind: n.kind }, channel: 'missions_appel' });
               }
             });

@@ -31,6 +31,26 @@ async function reject(formData: FormData) { 'use server'; await decide(formData,
 // Touche Entrée dans le champ note : aucune décision.
 async function noDecision() { 'use server'; }
 
+// Test d'appel (administrateur général) : le téléphone du livreur sonne comme pour une vraie course, sans commande.
+async function callTest(formData: FormData) {
+  'use server';
+  const sb = await supabaseServer();
+  const name = String(formData.get('name') ?? 'le livreur');
+  const { error } = await sb.rpc('send_call_test', { p_driver: String(formData.get('id')) });
+  revalidatePath('/admin/livreurs');
+  redirect(`/admin/livreurs?f=${formData.get('f') ?? 'pending_review'}&${error
+    ? 'err=' + encodeURIComponent(error.message === 'NOT_A_DRIVER' ? 'Ce compte n’est pas un livreur.' : error.message)
+    : 'ok=' + encodeURIComponent(`Appel de test envoyé à ${name} : son téléphone sonne pendant 60 s. Sa réponse s’affiche dans « Tests d’appel » (bouton Actualiser).`)}#tests`);
+}
+
+const TEST_STATUS: Record<string, { label: string; cls: string }> = {
+  sent: { label: 'Sonne… (pas encore vu)', cls: 'warn' },
+  shown: { label: 'Appel affiché, en attente de réponse', cls: 'warn' },
+  accepted: { label: 'Accepté — l’appel fonctionne', cls: 'ok' },
+  declined: { label: 'Refusé — l’appel fonctionne', cls: 'ok' },
+  expired: { label: 'Sans réponse', cls: 'bad' },
+};
+
 // Un client devient livreur « à vérifier » : il complète ensuite son dossier dans l'application.
 async function makeDriver(formData: FormData) {
   'use server';
@@ -45,13 +65,21 @@ async function makeDriver(formData: FormData) {
 }
 
 export default async function Livreurs({ searchParams }: { searchParams: Promise<{ f?: string; ok?: string; err?: string }> }) {
-  await requirePermission('drivers');
+  const user = await requirePermission('drivers');
   const sp = await searchParams;
   const f = STATUS[sp.f ?? ''] ? sp.f! : 'pending_review';
   const sb = await supabaseServer();
   const { data: drivers } = await sb.from('drivers')
     .select('id, driver_code, status, province, city, address, zone_communes, emergency_contact_name, emergency_contact_phone, payout_method, payout_account_masked, is_available, verified_at, rating, rating_count, created_at, profiles(full_name, email, phone, avatar_url), driver_vehicles(mode, plate_number, max_weight_kg), driver_documents(id, doc_type, storage_path, status, created_at)')
     .eq('status', f).order('created_at', { ascending: true });
+
+  // Derniers tests d'appel (administrateur général).
+  const { data: tests } = user.isSuper
+    ? await sb.from('driver_call_tests')
+      .select('id, status, created_at, shown_at, answered_at, profiles!driver_call_tests_driver_id_fkey(full_name, phone)')
+      .order('created_at', { ascending: false }).limit(10)
+    : { data: null };
+  const nowMs = Date.now();
 
   // Documents d'identité : bucket privé, liens signés valables 10 minutes, visibles par l'admin uniquement.
   const paths = (drivers ?? []).flatMap((d: any) => (d.driver_documents ?? []).map((x: any) => x.storage_path));
@@ -70,6 +98,38 @@ export default async function Livreurs({ searchParams }: { searchParams: Promise
         <label style={{ flex: 1, minWidth: 260 }}>Ouvrir l&apos;espace livreur pour un compte existant (e-mail)<input name="email" type="email" required placeholder="livreur@exemple.com" /></label>
         <button type="submit">Ouvrir l&apos;espace livreur</button>
       </form>
+      {user.isSuper ? (
+        <div className="card" id="tests" style={{ marginBottom: 16 }}>
+          <div className="card-title">
+            <span>📞 Tests d’appel des livreurs</span>
+            <a className="btn secondary" href={`/admin/livreurs?f=${f}#tests`}>Actualiser</a>
+          </div>
+          <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>
+            « Tester l’appel » fait sonner le téléphone du livreur exactement comme une nouvelle course (sonnerie, écran d’appel, Accepter / Refuser),
+            sans créer de commande. Pratique à l’inscription d’un livreur ou pour vérifier son téléphone. L’application doit être installée et connectée à son compte.
+          </p>
+          {!tests?.length ? <p className="muted" style={{ margin: 0 }}>Aucun test pour le moment.</p> : (
+            <table>
+              <thead><tr><th>Livreur</th><th>Envoyé</th><th>Résultat</th><th>Délai de réponse</th></tr></thead>
+              <tbody>
+                {(tests as any[]).map((x) => {
+                  const late = (x.status === 'sent' || x.status === 'shown') && nowMs - new Date(x.created_at).getTime() > 75_000;
+                  const st = TEST_STATUS[late ? 'expired' : x.status] ?? TEST_STATUS.sent;
+                  const delay = x.answered_at ? Math.round((new Date(x.answered_at).getTime() - new Date(x.created_at).getTime()) / 1000) : null;
+                  return (
+                    <tr key={x.id}>
+                      <td>{x.profiles?.full_name ?? '—'}<div className="muted" style={{ fontSize: 12 }}>{x.profiles?.phone ?? ''}</div></td>
+                      <td>{dateTime(x.created_at)}</td>
+                      <td><span className={`badge ${st.cls}`}>{st.label}</span>{late && x.status === 'shown' ? <div className="muted" style={{ fontSize: 12 }}>L’appel s’est affiché</div> : null}</td>
+                      <td>{delay !== null && x.status !== 'expired' ? `${delay} s` : '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      ) : null}
       <div className="row" style={{ marginBottom: 12 }}>
         {Object.entries(STATUS).map(([k, v]) => <a key={k} className={`btn ${k === f ? '' : 'secondary'}`} href={`/admin/livreurs?f=${k}`}>{v.label}</a>)}
       </div>
@@ -112,6 +172,13 @@ export default async function Livreurs({ searchParams }: { searchParams: Promise
             {d.status === 'verified' ? <button formAction={suspend} className="danger">Suspendre</button> : null}
             {d.status === 'pending_review' ? <button formAction={reject} className="secondary">Refuser</button> : null}
           </form>
+          {user.isSuper ? (
+            <form action={callTest} className="row" style={{ marginTop: 8 }}>
+              <input type="hidden" name="id" value={d.id} /><input type="hidden" name="f" value={f} />
+              <input type="hidden" name="name" value={d.profiles?.full_name ?? 'le livreur'} />
+              <button type="submit" className="secondary">📞 Tester l’appel sur son téléphone</button>
+            </form>
+          ) : null}
         </div>
       ))}
       <p className="muted" style={{ fontSize: 13 }}>Un livreur ne peut se rendre disponible et recevoir des missions qu&apos;une fois certifié. Toute décision est inscrite au journal d&apos;audit.</p>

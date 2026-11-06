@@ -49,23 +49,45 @@ function Pulse({ delay }: { delay: number }) {
   );
 }
 
+/** Offre réelle, ou appel de test envoyé par l'administrateur général (test_id renseigné, aucune commande). */
+type CallItem = Offer & { test_id?: string };
+const TEST_SECONDS = 60;
+
 export function MissionCall() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const { t, money } = useSettings();
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
-  const [offer, setOffer] = useState<Offer | null>(null);
+  const [offer, setOffer] = useState<CallItem | null>(null);
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
   const isDriver = profile?.role === 'driver';
 
-  // Cherche une offre en attente (la plus récente encore valable).
+  // Cherche une offre en attente (la plus récente encore valable), sinon un appel de test en attente.
   const check = useCallback(async () => {
-    if (!isDriver) return;
-    const { data } = await supabase.rpc('get_driver_offers');
-    const list = ((data ?? []) as Offer[]).filter((o) => new Date(o.expires_at).getTime() > Date.now());
+    if (!isDriver || !session) return;
+    const since = new Date(Date.now() - TEST_SECONDS * 1000).toISOString();
+    const [{ data }, { data: tests }] = await Promise.all([
+      supabase.rpc('get_driver_offers'),
+      supabase.from('driver_call_tests').select('id, created_at').eq('driver_id', session.user.id)
+        .in('status', ['sent', 'shown']).gte('created_at', since).order('created_at', { ascending: false }).limit(1),
+    ]);
+    const list: CallItem[] = ((data ?? []) as Offer[]).filter((o) => new Date(o.expires_at).getTime() > Date.now());
+    for (const tc of (tests ?? []) as { id: string; created_at: string }[]) {
+      list.push({
+        assignment_id: `test:${tc.id}`, test_id: tc.id, order_id: '', order_number: 'TEST', store_name: 'Kin Marché',
+        store_commune: null, store_latitude: null, store_longitude: null, customer_commune: null, distance_km: null,
+        delivery_fee_usd: 0, items_count: 0, weight_kg: 0,
+        expires_at: new Date(new Date(tc.created_at).getTime() + TEST_SECONDS * 1000).toISOString(),
+      });
+    }
     setOffer((cur) => (cur && list.some((o) => o.assignment_id === cur.assignment_id) ? cur : list[0] ?? null));
-  }, [isDriver]);
+  }, [isDriver, session]);
+
+  // Appel de test affiché : l'administration le voit tout de suite.
+  useEffect(() => {
+    if (offer?.test_id) supabase.rpc('answer_call_test', { p_test: offer.test_id, p_status: 'shown' }).then(() => undefined);
+  }, [offer?.test_id]);
 
   useEffect(() => {
     if (!isDriver) { setOffer(null); return; }
@@ -85,7 +107,10 @@ export function MissionCall() {
 
   const left = offer ? Math.max(0, Math.round((new Date(offer.expires_at).getTime() - now) / 1000)) : 0;
   useEffect(() => {
-    if (offer && left === 0) { setOffer(null); incomingCall.cancel(); Notifications.dismissAllNotificationsAsync().catch(() => undefined); check(); }
+    if (offer && left === 0) {
+      if (offer.test_id) supabase.rpc('answer_call_test', { p_test: offer.test_id, p_status: 'expired' }).then(() => undefined);
+      setOffer(null); incomingCall.cancel(); Notifications.dismissAllNotificationsAsync().catch(() => undefined); check();
+    }
   }, [offer, left, check]);
 
   if (!offer) return null;
@@ -97,6 +122,13 @@ export function MissionCall() {
     incomingCall.cancel();                                                 // arrête l'appel plein écran
     Notifications.dismissAllNotificationsAsync().catch(() => undefined);   // arrête la sonnerie
     try {
+      if (offer.test_id) {
+        // Appel de test : la réponse part à l'administration, aucune commande n'est touchée.
+        unwrap(await supabase.rpc('answer_call_test', { p_test: offer.test_id, p_status: accept ? 'accepted' : 'declined' }));
+        setOffer(null);
+        Alert.alert(t('driver.test.title'), t('driver.test.done'));
+        return;
+      }
       const r = unwrap(await supabase.rpc('respond_to_offer', { p_assignment_id: offer.assignment_id, p_accept: accept, p_reason: null })) as { ok: boolean };
       qc.invalidateQueries({ queryKey: ['driver-offers'] });
       qc.invalidateQueries({ queryKey: ['driver-active'] });
@@ -117,8 +149,8 @@ export function MissionCall() {
       <StatusBar style="light" />
       <View style={[styles.screen, { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.xl }]}>
         <View style={{ alignItems: 'center', gap: spacing.sm }}>
-          <T size="sm" weight="800" color="#8FB3C9">{t('driver.call.label').toUpperCase()}</T>
-          <T size="xxl" weight="800" color="#FFFFFF" style={{ textAlign: 'center' }}>{t('driver.call.title')}</T>
+          <T size="sm" weight="800" color="#8FB3C9">{(offer.test_id ? t('driver.test.label') : t('driver.call.label')).toUpperCase()}</T>
+          <T size="xxl" weight="800" color="#FFFFFF" style={{ textAlign: 'center' }}>{offer.test_id ? t('driver.test.title') : t('driver.call.title')}</T>
           <View style={[styles.timer, { backgroundColor: left < 30 ? RED : 'rgba(255,255,255,0.12)' }]}>
             <Ionicons name="timer-outline" size={16} color="#FFFFFF" />
             <T weight="800" color="#FFFFFF">{t('driver.expiresIn', { s: left })}</T>
@@ -130,6 +162,12 @@ export function MissionCall() {
           <View style={styles.avatar}><MaterialCommunityIcons name="moped" size={58} color="#FFFFFF" /></View>
         </View>
 
+        {offer.test_id ? (
+          <View style={styles.card}>
+            <T size="lg" weight="800" color="#FFFFFF">Kin Marché</T>
+            <T color="#C4D2E0">{t('driver.test.body')}</T>
+          </View>
+        ) : (
         <View style={styles.card}>
           <View style={styles.leg}>
             <View style={[styles.dot, { backgroundColor: TURQUOISE }]} />
@@ -155,6 +193,7 @@ export function MissionCall() {
             <T size="xl" weight="800" color={GREEN}>{money(offer.delivery_fee_usd)}</T>
           </View>
         </View>
+        )}
 
         <View style={styles.actions}>
           <View style={styles.action}>

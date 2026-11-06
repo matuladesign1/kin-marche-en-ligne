@@ -79,7 +79,7 @@ export function isPushActive(): boolean {
 }
 
 export function channelForKind(kind: string | undefined): NotificationChannel {
-  if (kind === 'delivery_offer') return 'missions_appel';
+  if (kind === 'delivery_offer' || kind === 'call_test') return 'missions_appel';
   if (kind === 'order_status' || kind === 'new_order' || kind === 'no_driver') return 'orders';
   if (kind === 'message' || kind === 'ticket') return 'messages';
   if (kind === 'promo' || kind === 'marketing') return 'promos';
@@ -132,6 +132,7 @@ export function openNotification(n: { kind: string; data?: Record<string, unknow
   if (n.kind === 'wheel' || d.screen === 'wheel') router.push('/wheel');
   else if (n.kind === 'loyalty' || d.screen === 'loyalty') router.push('/loyalty');
   else if (n.kind === 'delivery_offer') router.push('/driver/offers');
+  else if (n.kind === 'call_test') router.push('/driver');
   else if (ticketId) router.push(`/support/${ticketId}`);
   else if (orderId) router.push(`/order/${orderId}`);
   else if (n.kind === 'message') router.push('/support');
