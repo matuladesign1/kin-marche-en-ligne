@@ -11,6 +11,7 @@ const fr = {
 
   'common.loading': 'Chargement…',
   'common.retry': 'Réessayer',
+  'map.unavailable': 'La carte n’a pas pu s’afficher.',
   'common.save': 'Enregistrer',
   'common.cancel': 'Annuler',
   'common.confirm': 'Confirmer',
@@ -397,6 +398,8 @@ const fr = {
   'auth.withFacebook': 'Facebook',
   'auth.providerDisabled': 'Cette connexion n’est pas encore activée par Kin Marché.',
   'auth.socialFailed': 'La connexion a été interrompue. Réessayez.',
+  'auth.resetChoose': 'Choisissez votre nouveau mot de passe.',
+  'auth.resetExpired': 'Ce lien n’est plus valable. Demandez un nouveau lien depuis « Mot de passe oublié ».',
 
   'account.section.shopping': 'Mes achats',
   'account.section.security': 'Connexion et sécurité',

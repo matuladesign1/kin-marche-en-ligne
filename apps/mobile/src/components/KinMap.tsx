@@ -1,7 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { Image } from 'expo-image';
-import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Component, forwardRef, memo, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Animated, Linking, PanResponder, Pressable, StyleSheet, Text, View,
   type LayoutChangeEvent, type StyleProp, type ViewStyle,
@@ -75,7 +75,7 @@ interface Props {
 
 type ViewState = { center: LatLng; zoom: number };
 
-export const KinMap = forwardRef<KinMapHandle, Props>(function KinMap(props, ref) {
+const KinMapView = forwardRef<KinMapHandle, Props>(function KinMapView(props, ref) {
   const {
     markers = [], route, trail, height, follow, followZoom = 17, centerPin, onCenterChange, initialCenter, initialZoom,
     fitKey, controls = true, showLabels = false, rounded = true, style, onUserMove,
@@ -301,6 +301,38 @@ export const KinMap = forwardRef<KinMapHandle, Props>(function KinMap(props, ref
   );
 });
 
+/** Une erreur dans la carte ne ferme jamais l'application : la carte laisse place à un message. */
+class MapBoundary extends Component<{ children: ReactNode; height?: number }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(error: unknown) { console.warn('[KinMap]', error); }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return <MapFallback height={this.props.height} onRetry={() => this.setState({ failed: false })} />;
+  }
+}
+
+function MapFallback({ height, onRetry }: { height?: number; onRetry: () => void }) {
+  const { t, colors } = useSettings();
+  return (
+    <View style={[styles.wrap, styles.rounded, styles.fallback, { height: height ?? 220, borderColor: colors.border, backgroundColor: colors.surfaceAlt }]}>
+      <Ionicons name="map-outline" size={28} color={colors.textMuted} />
+      <Text style={[styles.fallbackText, { color: colors.textMuted }]} maxFontSizeMultiplier={1.15}>{t('map.unavailable')}</Text>
+      <Pressable onPress={onRetry} hitSlop={8} accessibilityRole="button" style={[styles.fallbackBtn, { borderColor: colors.border }]}>
+        <Text style={{ color: colors.text, fontWeight: '700' }} maxFontSizeMultiplier={1.15}>{t('common.retry')}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+export const KinMap = forwardRef<KinMapHandle, Props>(function KinMap(props, ref) {
+  return (
+    <MapBoundary height={props.height}>
+      <KinMapView {...props} ref={ref} />
+    </MapBoundary>
+  );
+});
+
 function MapButton({ icon, onPress, active }: { icon: keyof typeof Ionicons.glyphMap; onPress: () => void; active?: boolean }) {
   return (
     <Pressable onPress={onPress} hitSlop={4} style={({ pressed }) => [styles.btn, { opacity: pressed ? 0.7 : 1 }]} accessibilityRole="button">
@@ -377,6 +409,9 @@ const MarkerAt = memo(function MarkerAt({ m, x, y, showLabel, primary, accent }:
 
 const styles = StyleSheet.create({
   wrap: { overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
+  fallback: { alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16 },
+  fallbackText: { fontSize: 13, textAlign: 'center' },
+  fallbackBtn: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 7 },
   rounded: { borderRadius: 14 },
   controls: { position: 'absolute', right: 10, top: 10, gap: 8 },
   btn: {

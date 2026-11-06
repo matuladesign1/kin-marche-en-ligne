@@ -118,6 +118,7 @@ function Navigator() {
         <Stack.Screen name="order/proof/[id]" options={{ title: t('proof.title') }} />
         <Stack.Screen name="order/review/[id]" options={{ title: t('review.title') }} />
         <Stack.Screen name="auth-callback" options={{ headerShown: false }} />
+        <Stack.Screen name="reset-password" options={{ title: t('account.changePassword') }} />
         <Stack.Screen name="store-admin/index" options={{ title: t('role.storeAdmin') }} />
         <Stack.Screen name="driver/index" options={{ headerShown: false }} />
         <Stack.Screen name="driver/offers" options={{ title: t('driver.availableRuns') }} />
