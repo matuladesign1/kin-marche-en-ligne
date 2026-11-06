@@ -7,7 +7,7 @@ import { openAppLink } from './links';
 // - « push » : envoyées par le serveur (fonctionne même application fermée, si Firebase est configuré au build) ;
 // - « locales » : affichées par l'application elle-même (bienvenue, et suivi en direct quand le push n'est pas disponible).
 
-export type NotificationChannel = 'orders' | 'missions' | 'messages' | 'promos' | 'general';
+export type NotificationChannel = 'orders' | 'missions' | 'missions_appel' | 'messages' | 'promos' | 'general';
 
 let channelsReady: Promise<void> | null = null;
 let pushActive = false;
@@ -25,6 +25,22 @@ export function ensureChannels(): Promise<void> {
       });
       await Notifications.setNotificationChannelAsync('missions', {
         name: 'Missions de livraison', importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 400, 200, 400],
+      });
+      // Nouvelle course pour le livreur : sonne comme un appel (sonnerie de 25 s), vibre longtemps,
+      // s'affiche sur l'écran verrouillé et passe le mode « Ne pas déranger ».
+      await Notifications.setNotificationChannelAsync('missions_appel', {
+        name: 'Nouvelles courses (appel)',
+        description: 'Sonne comme un appel quand une course vous est proposée.',
+        importance: Notifications.AndroidImportance.MAX,
+        sound: 'appel_mission.wav',
+        vibrationPattern: [0, 1000, 600, 1000, 600, 1000, 600, 1000, 600, 1000],
+        enableVibrate: true,
+        bypassDnd: true,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        audioAttributes: {
+          usage: Notifications.AndroidAudioUsage.NOTIFICATION_RINGTONE,
+          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+        },
       });
       // Messages de l'assistant et du livreur : bannière en haut de l'écran, son et vibration.
       await Notifications.setNotificationChannelAsync('messages', {
@@ -63,11 +79,18 @@ export function isPushActive(): boolean {
 }
 
 export function channelForKind(kind: string | undefined): NotificationChannel {
-  if (kind === 'delivery_offer') return 'missions';
+  if (kind === 'delivery_offer') return 'missions_appel';
   if (kind === 'order_status' || kind === 'new_order' || kind === 'no_driver') return 'orders';
   if (kind === 'message' || kind === 'ticket') return 'messages';
   if (kind === 'promo' || kind === 'marketing') return 'promos';
   return 'general';
+}
+
+/** Notifications réservées aux clients (commandes passées, fidélité, roue, promotions, bienvenue, preuve de paiement) :
+ *  un livreur ne les voit jamais (le serveur ne les lui envoie plus, l'application cache les anciennes). */
+export const CUSTOMER_ONLY_KINDS = ['order_status', 'loyalty', 'wheel', 'promo', 'marketing', 'welcome', 'payment_proof'] as const;
+export function isCustomerOnlyKind(kind: string | undefined): boolean {
+  return !!kind && (CUSTOMER_ONLY_KINDS as readonly string[]).includes(kind);
 }
 
 // Conversation affichée à l'écran : ses nouveaux messages ne sonnent pas (le client les voit déjà).

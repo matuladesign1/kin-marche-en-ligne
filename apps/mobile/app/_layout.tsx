@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import { bannersQuery } from '@/components/BannerCarousel';
 import { LoadingScreen } from '@/components/KinLoader';
+import { MissionCall } from '@/components/MissionCall';
 import { PromoPopup } from '@/components/PromoPopup';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -128,6 +129,7 @@ function Navigator() {
         <Stack.Screen name="admin/index" options={{ title: t('role.superAdmin') }} />
       </Stack>
       <PromoPopup />
+      <MissionCall />
       <StartupOverlay />
     </>
   );

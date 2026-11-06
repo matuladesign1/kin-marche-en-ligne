@@ -13,7 +13,9 @@ Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const data = (notification.request.content.data ?? {}) as Record<string, unknown>;
     const quiet = (data.kind === 'message' && isChatOpen(data.ticket_id)) || data.kind === 'promo';
-    return { shouldShowBanner: !quiet, shouldShowList: true, shouldPlaySound: !quiet, shouldSetBadge: false };
+    // Offre de course : l'écran d'appel est affiché, la notification sonne seulement (sonnerie d'appel).
+    const banner = !quiet && data.kind !== 'delivery_offer';
+    return { shouldShowBanner: banner, shouldShowList: true, shouldPlaySound: !quiet, shouldSetBadge: false };
   },
 });
 

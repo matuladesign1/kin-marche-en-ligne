@@ -307,6 +307,8 @@ const ln: Record<TranslationKey, string> = {
   "driver.accept": "Ndima",
   "driver.refuse": "Boya",
   "driver.expiresIn": "Ekosila nsima ya {s} s",
+  "driver.call.label": "Mobembo ya kotinda",
+  "driver.call.title": "Mobembo ya sika !",
   "driver.active": "Misala ezali kosalema",
   "driver.noActive": "Mosala moko te ezali kosalema.",
   "driver.earnings": "Litomba",

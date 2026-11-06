@@ -131,6 +131,8 @@ const en: Record<TranslationKey, string> = {
   'driver.accept': 'Accept',
   'driver.refuse': 'Decline',
   'driver.expiresIn': 'Expires in {s} s',
+  'driver.call.label': 'Delivery offer',
+  'driver.call.title': 'New delivery!',
   'driver.active': 'Ongoing deliveries',
   'driver.noActive': 'No ongoing delivery.',
   'driver.earnings': 'Earnings',

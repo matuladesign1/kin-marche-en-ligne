@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, unwrap } from '@/lib/supabase';
 import { cardNumberFromPhone } from '@/lib/loyalty';
+import { CUSTOMER_ONLY_KINDS } from '@/lib/notify';
 import { countOrderTabs } from '@/lib/orders';
 import { readRecent } from '@/lib/recent';
 import type {
@@ -286,25 +287,36 @@ export function useLinkLoyaltyCard() {
   });
 }
 
+/** Filtre « espace livreur » : un livreur ne voit pas les notifications de client. */
+const NOT_FOR_DRIVER = `(${CUSTOMER_ONLY_KINDS.join(',')})`;
+
 export function useNotifications() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
+  const driver = profile?.role === 'driver';
   return useQuery({
     queryKey: qk.notifications,
     enabled: !!session,
-    queryFn: async () => unwrap(await supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(100)) as AppNotification[],
+    queryFn: async () => {
+      let q = supabase.from('notifications').select('*');
+      if (driver) q = q.not('kind', 'in', NOT_FOR_DRIVER);
+      return unwrap(await q.order('created_at', { ascending: false }).limit(100)) as AppNotification[];
+    },
   });
 }
 
 /** Non lus : notifications + messages de l'assistance (pastille de l'onglet « Messages »). */
 export function useUnreadCount() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
+  const driver = profile?.role === 'driver';
   return useQuery({
     queryKey: qk.unread,
     enabled: !!session,
     refetchInterval: 60_000,
     queryFn: async () => {
       const [notes, messages] = await Promise.all([
-        supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null),
+        driver
+          ? supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null).not('kind', 'in', NOT_FOR_DRIVER)
+          : supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null),
         supabase.from('messages').select('id', { count: 'exact', head: true }).is('read_at', null).neq('sender_id', session!.user.id),
       ]);
       return { notifications: notes.count ?? 0, messages: messages.count ?? 0, total: (notes.count ?? 0) + (messages.count ?? 0) };

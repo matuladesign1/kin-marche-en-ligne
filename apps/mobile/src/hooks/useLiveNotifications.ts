@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
+import { showMissionCall } from '@/components/MissionCall';
 import { showPromo } from '@/components/PromoPopup';
-import { channelForKind, isChatOpen, isPushActive, presentLocal } from '@/lib/notify';
+import { channelForKind, isChatOpen, isCustomerOnlyKind, isPushActive, presentLocal } from '@/lib/notify';
 import { supabase } from '@/lib/supabase';
 import type { AppNotification, NotificationCategory } from '@/lib/types';
 import { useAuth } from '@/providers/AuthProvider';
@@ -26,6 +27,8 @@ export function useLiveNotifications() {
   const qc = useQueryClient();
   const prefs = useRef(profile?.notification_prefs ?? {});
   prefs.current = profile?.notification_prefs ?? {};
+  const role = useRef(profile?.role);
+  role.current = profile?.role;
 
   useEffect(() => {
     if (!session) return;
@@ -34,6 +37,8 @@ export function useLiveNotifications() {
       .channel(`live-notifications-${uid}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${uid}` }, (payload) => {
         const n = payload.new as AppNotification;
+        // Espace livreur : uniquement les notifications de livreur.
+        if (role.current === 'driver' && isCustomerOnlyKind(n.kind)) return;
         qc.invalidateQueries({ queryKey: qk.notifications });
         qc.invalidateQueries({ queryKey: qk.unread });
         if (n.kind === 'order_status' || n.kind === 'new_order') {
@@ -46,6 +51,12 @@ export function useLiveNotifications() {
           qc.invalidateQueries({ queryKey: qk.wheel });
           qc.invalidateQueries({ queryKey: qk.loyalty });
           qc.invalidateQueries({ queryKey: qk.myCoupons });
+        }
+
+        // Nouvelle course proposée au livreur : écran d'appel (la sonnerie vient de la notification ci-dessous).
+        if (n.kind === 'delivery_offer') {
+          qc.invalidateQueries({ queryKey: ['driver-offers'] });
+          if (AppState.currentState === 'active') showMissionCall();
         }
 
         const cat = categoryOf(n.kind);

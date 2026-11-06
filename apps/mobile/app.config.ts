@@ -40,7 +40,9 @@ const base = {
       "ACCESS_COARSE_LOCATION",
       "ACCESS_FINE_LOCATION",
       "RECORD_AUDIO",
-      "REQUEST_INSTALL_PACKAGES"
+      "REQUEST_INSTALL_PACKAGES",
+      "VIBRATE",
+      "WAKE_LOCK"
     ]
   },
   "web": {
@@ -66,7 +68,8 @@ const base = {
       "expo-notifications",
       {
         "icon": "./assets/images/notification-icon.png",
-        "color": "#1CB7B8"
+        "color": "#1CB7B8",
+        "sounds": ["./assets/sounds/appel_mission.wav"]
       }
     ],
     "expo-localization",

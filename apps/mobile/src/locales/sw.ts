@@ -307,6 +307,8 @@ const sw: Record<TranslationKey, string> = {
   "driver.accept": "Kubali",
   "driver.refuse": "Kataa",
   "driver.expiresIn": "Inaisha baada ya sekunde {s}",
+  "driver.call.label": "Safari inayopendekezwa",
+  "driver.call.title": "Safari mpya!",
   "driver.active": "Safari zinazoendelea",
   "driver.noActive": "Hakuna safari inayoendelea.",
   "driver.earnings": "Mapato",

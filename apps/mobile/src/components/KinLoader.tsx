@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Ellipse, G, Path, RadialGradient, Stop } from 'react-native-svg';
 import ICONS from './loader/icons.json';
 
@@ -190,13 +191,22 @@ const SCREEN_SHADOW = Math.max(4, SCREEN_BALL * 0.14);
  * et à la même taille que l'image de l'écran natif : le passage de l'un à l'autre ne se voit pas.
  * `children` s'affiche sous la boule (par exemple la progression du téléchargement).
  */
+/** Logo complet « Kin Marché — Au prix du grand marché », en bas au centre de l'écran de chargement (taille moyenne). */
+const BRAND_LOGO = require('../../assets/images/logo-chargement.png');
+const BRAND_W = 220;
+const BRAND_H = Math.round(BRAND_W * 262 / 900);
+
 export function LoadingScreen({ children, onLayout }: { children?: ReactNode; onLayout?: () => void }) {
+  const insets = useSafeAreaInsets();
   return (
     <View style={styles.screen} onLayout={onLayout} accessibilityRole="progressbar" accessibilityLabel="Kin Marché">
       <View style={styles.content}>
         <KinLoader size={SCREEN_BALL} jump={SCREEN_JUMP} style={{ transform: [{ translateY: -(SCREEN_JUMP - SCREEN_SHADOW) / 2 }] }} />
       </View>
       {children ? <View style={styles.below}>{children}</View> : null}
+      <View style={[styles.brand, { bottom: insets.bottom + 36 }]} pointerEvents="none">
+        <Image source={BRAND_LOGO} style={{ width: BRAND_W, height: BRAND_H }} contentFit="contain" accessibilityIgnoresInvertColors />
+      </View>
     </View>
   );
 }
@@ -208,4 +218,5 @@ const styles = StyleSheet.create({
   screen: { ...StyleSheet.absoluteFillObject, backgroundColor: SCREEN_BG },
   content: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   below: { position: 'absolute', left: 28, right: 28, top: '50%', marginTop: SCREEN_BALL / 2 + 36, alignItems: 'center' },
+  brand: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
 });

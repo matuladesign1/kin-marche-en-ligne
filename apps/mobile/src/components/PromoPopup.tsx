@@ -26,7 +26,8 @@ const STARTUP_DELAY_MS = 4000;
 const RECENT_MS = 48 * 3600_000;
 
 export function PromoPopup() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
+  const isCustomer = profile?.role === 'customer';
   const { colors, t } = useSettings();
   const { width } = useWindowDimensions();
   const markRead = useMarkNotificationsRead();
@@ -47,7 +48,7 @@ export function PromoPopup() {
   };
 
   useEffect(() => {
-    if (!session) return;
+    if (!session || !isCustomer) return;   // livreurs et équipes : pas de promotions
     listeners.add(present);
     // À l'ouverture : la dernière promotion pas encore vue (2 jours maximum).
     const h = setTimeout(async () => {
@@ -60,7 +61,7 @@ export function PromoPopup() {
     }, STARTUP_DELAY_MS);
     return () => { listeners.delete(present); clearTimeout(h); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user.id]);
+  }, [session?.user.id, isCustomer]);
 
   useEffect(() => {
     if (!promo) return;

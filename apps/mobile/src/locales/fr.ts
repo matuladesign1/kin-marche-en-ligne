@@ -330,6 +330,8 @@ const fr = {
   'driver.accept': 'Accepter',
   'driver.refuse': 'Refuser',
   'driver.expiresIn': 'Expire dans {s} s',
+  'driver.call.label': 'Course proposée',
+  'driver.call.title': 'Nouvelle course !',
   'driver.active': 'Missions en cours',
   'driver.noActive': 'Aucune mission en cours.',
   'driver.earnings': 'Revenus',
