@@ -222,7 +222,7 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
               <option value="video">Vidéo (avec image d’aperçu)</option>
             </select>
           </label>
-          <MediaUpload name="image_url" label="Image ou image d’aperçu *" accept="image/jpeg,image/png,image/webp" prefix="banner" maxMb={8} kind="image" hint="JPG, PNG ou WebP · 8 Mo max." />
+          <MediaUpload name="image_url" label="Image ou image d’aperçu *" accept="image/jpeg,image/png,image/webp,image/gif" prefix="banner" maxMb={8} kind="image" hint="JPG, PNG, WebP ou GIF animé · 8 Mo max." />
           <MediaUpload name="video_url" label="Vidéo (si type Vidéo)" accept="video/mp4,video/webm,video/quicktime" prefix="banner" maxMb={50} kind="video" hint="MP4, WebM ou MOV · 50 Mo max." />
           <label>Titre (affiché sur la bannière)<input name="title" maxLength={80} /></label>
           {storeSelect}
@@ -252,7 +252,7 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
               Format : <b>1667 × 238 px</b> — l’image s’affiche en entier, en bandeau, en haut de la page Messages. Placez le texte et le produit dans l’image.
             </div>
             <div className="cols">
-              <MediaUpload name="image_url" label="Image *" accept="image/jpeg,image/png,image/webp" prefix="banner" maxMb={8} kind="image" hint="JPG, PNG ou WebP · 8 Mo max." />
+              <MediaUpload name="image_url" label="Image *" accept="image/jpeg,image/png,image/webp,image/gif" prefix="banner" maxMb={8} kind="image" hint="JPG, PNG, WebP ou GIF animé · 8 Mo max." />
               <label>Nom (non affiché sur l’image)<input name="title" maxLength={80} placeholder="Ex. : Promo riz 25 kg" /></label>
               <label>Lien au toucher
                 <select name="link_type" defaultValue="product">

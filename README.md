@@ -169,7 +169,7 @@ Dans l'application : **Compte → Messages**, l'icône Messages en haut de l'acc
 
 ### Bannières de l'accueil
 
-Format des bannières de l'accueil : **1200 × 448 px, 100 pixels/pouce** ; elles sont affichées en entier (sans recadrage), toutes à la même taille, et défilent automatiquement. **Bannière de la page Messages** (publicité des produits, en haut de l'onglet Messages) : **1667 × 238 px**, photo, gérée uniquement par l'administrateur général. Chaque bannière peut être supprimée (bouton « Supprimer ») et les bannières terminées en une fois (« Supprimer les bannières terminées »), fichiers compris. Vidéo : MP4 (H.264), 15 s maximum, 50 Mo maximum, lue sans le son, avec une image d'aperçu au même format. Les fichiers partent directement du navigateur vers le stockage (aucune limite de taille du serveur web).
+Images des bannières (accueil et page Messages) : **JPG, PNG, WebP ou GIF animé** (le GIF s'anime dans l'application), 8 Mo maximum. Format des bannières de l'accueil : **1200 × 448 px, 100 pixels/pouce** ; elles sont affichées en entier (sans recadrage), toutes à la même taille, et défilent automatiquement. **Bannière de la page Messages** (publicité des produits, en haut de l'onglet Messages) : **1667 × 238 px**, photo, gérée uniquement par l'administrateur général. Chaque bannière peut être supprimée (bouton « Supprimer ») et les bannières terminées en une fois (« Supprimer les bannières terminées »), fichiers compris. Vidéo : MP4 (H.264), 15 s maximum, 50 Mo maximum, lue sans le son, avec une image d'aperçu au même format. Les fichiers partent directement du navigateur vers le stockage (aucune limite de taille du serveur web).
 
 ## APK Android de test
 
