@@ -63,6 +63,7 @@ export default function Stores() {
       <KinMap
         height={320}
         showLabels
+        cooperative
         fitKey={`${list.length}-${lat ?? ''}`}
         markers={[
           ...(stores.data ?? []).filter((x) => x.latitude != null && x.longitude != null).map((x) => {

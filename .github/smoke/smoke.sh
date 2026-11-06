@@ -34,9 +34,10 @@ except OSError:
 pat = re.compile(sys.argv[2])
 for m in re.finditer(r'<node [^>]*>', x):
     n = m.group(0)
-    t = re.search(r'text="([^"]*)"', n)
+    t = re.search(r' text="([^"]*)"', n)
+    d = re.search(r'content-desc="([^"]*)"', n)
     b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
-    if t and b and pat.search(t.group(1)):
+    if b and ((t and pat.search(t.group(1))) or (d and pat.search(d.group(1)))):
         x1, y1, x2, y2 = map(int, b.groups())
         print((x1 + x2) // 2, (y1 + y2) // 2)
         break
@@ -64,6 +65,12 @@ scroll_down; scroll_down; scroll_down
 shot 04b-adresse-bas
 tap_text "Enregistrer ma position GPS|Save my current GPS" adresse
 gps_fix; sleep 10; shot 05-adresse-gps; alive "adresse + GPS"
+tap_text "Placer le repère|Place the pin|Ajuster sur la carte|Adjust on the map" adresse-carte
+sleep 6; shot 05b-choix-position; alive "choix de la position"
+tap_text "Ma position GPS|My GPS position" choix-gps
+gps_fix; sleep 10; shot 05c-choix-gps; alive "choix + GPS"
+tap_text "Confirmer cette position|Confirm this position" choix-ok
+sleep 4; shot 05d-adresse-confirmee; alive "position confirmée"
 
 open_url "kinmarche://sign-in"
 sleep 15; shot 06-connexion; alive connexion

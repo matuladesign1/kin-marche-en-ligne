@@ -179,6 +179,7 @@ export default function OrderScreen() {
             <T weight="800">{toStore ? t('track.stageToStore') : t('track.stageToYou')}</T>
             <KinMap
               height={340}
+              cooperative
               fitKey={`${order.status}-${tracking?.assignment?.route_polyline?.length ?? 0}`}
               route={decodePolyline(tracking?.assignment?.route_polyline)}
               trail={trail}

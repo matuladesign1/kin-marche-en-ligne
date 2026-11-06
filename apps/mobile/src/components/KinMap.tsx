@@ -74,6 +74,10 @@ interface Props {
   rounded?: boolean;
   style?: StyleProp<ViewStyle>;
   onUserMove?: () => void;
+  /** false : carte fixe (aperçu), sans gestes ni boutons. */
+  interactive?: boolean;
+  /** Carte dans une page qui défile : un doigt fait défiler la page, deux doigts déplacent la carte. */
+  cooperative?: boolean;
 }
 
 type ViewState = { center: LatLng; zoom: number };
@@ -81,9 +85,20 @@ type ViewState = { center: LatLng; zoom: number };
 const KinMapView = forwardRef<KinMapHandle, Props>(function KinMapView(props, ref) {
   const {
     markers = [], route, trail, height, follow, followZoom = 17, centerPin, onCenterChange, initialCenter, initialZoom,
-    fitKey, controls = true, showLabels = false, rounded = true, style, onUserMove,
+    fitKey, controls = true, showLabels = false, rounded = true, style, onUserMove, interactive = true, cooperative = false,
   } = props;
-  const { colors } = useSettings();
+  const { colors, t } = useSettings();
+  const coop = useRef(cooperative);
+  coop.current = cooperative;
+  // Carte dans une page : un geste à un doigt fait défiler la page ; on rappelle d'utiliser deux doigts.
+  const [hint, setHint] = useState(false);
+  const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (hintTimer.current) clearTimeout(hintTimer.current); }, []);
+  const showHint = () => {
+    if (hintTimer.current) clearTimeout(hintTimer.current);
+    setHint(true);
+    hintTimer.current = setTimeout(() => setHint(false), 1800);
+  };
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [view, setView] = useState<ViewState>(() => ({
     center: isLatLng(follow) ? follow : isLatLng(initialCenter) ? initialCenter : KINSHASA,
@@ -161,8 +176,8 @@ const KinMapView = forwardRef<KinMapHandle, Props>(function KinMapView(props, re
   }, []);
 
   const responder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponder: (e) => !coop.current || e.nativeEvent.touches.length >= 2,
+    onMoveShouldSetPanResponder: (e) => !coop.current || e.nativeEvent.touches.length >= 2,
     onPanResponderTerminationRequest: () => false,
     onShouldBlockNativeResponder: () => true,
     onPanResponderGrant: () => {
@@ -258,7 +273,8 @@ const KinMapView = forwardRef<KinMapHandle, Props>(function KinMapView(props, re
       ref={containerRef}
       onLayout={onLayout}
       style={[styles.wrap, height ? { height } : { flex: 1 }, rounded && styles.rounded, { backgroundColor: '#E8E4DC', borderColor: colors.border }, style]}
-      {...responder.panHandlers}
+      {...(interactive ? responder.panHandlers : {})}
+      onTouchMove={interactive && cooperative ? (e) => { if (e.nativeEvent.touches.length === 1 && !hint) showHint(); } : undefined}
     >
       <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ translateX: translate.x }, { translateY: translate.y }, { scale }] }]}>
         {tiles.map((t) => (
@@ -289,7 +305,13 @@ const KinMapView = forwardRef<KinMapHandle, Props>(function KinMapView(props, re
         </View>
       ) : null}
 
-      {controls ? (
+      {hint ? (
+        <View pointerEvents="none" style={styles.hintWrap}>
+          <Text style={styles.hintText} maxFontSizeMultiplier={1.15}>{t('map.twoFingers')}</Text>
+        </View>
+      ) : null}
+
+      {controls && interactive ? (
         <View style={styles.controls}>
           <MapButton icon="add" onPress={() => zoomBy(1)} />
           <MapButton icon="remove" onPress={() => zoomBy(-1)} />
@@ -413,6 +435,11 @@ const MarkerAt = memo(function MarkerAt({ m, x, y, showLabel, primary, accent }:
 const styles = StyleSheet.create({
   wrap: { overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
   fallback: { alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16 },
+  hintWrap: { position: 'absolute', left: 0, right: 0, top: '42%', alignItems: 'center' },
+  hintText: {
+    backgroundColor: 'rgba(0,0,0,0.72)', color: '#FFFFFF', fontSize: 13, fontWeight: '600',
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, overflow: 'hidden',
+  },
   fallbackText: { fontSize: 13, textAlign: 'center' },
   fallbackBtn: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 7 },
   rounded: { borderRadius: 14 },

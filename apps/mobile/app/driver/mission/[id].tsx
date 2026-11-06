@@ -152,6 +152,7 @@ export default function Mission() {
           <View style={{ gap: 8 }}>
             <KinMap
               height={320}
+              cooperative
               fitKey={`${status}-${route.length}-${homePt?.latitude ?? ''}`}
               route={route}
               markers={[
