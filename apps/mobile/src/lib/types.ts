@@ -153,6 +153,9 @@ export interface Quote {
   points_used?: number;
   points_balance?: number;
   loyalty_discount_usd?: number;
+  tax_rate?: number;
+  tax_label?: string;
+  tax_usd?: number;
   total_usd?: number;
   avg_prep_minutes?: number;
   issues: string[];
@@ -170,6 +173,8 @@ export interface Order {
   coupon_discount_usd: number;
   loyalty_discount_usd: number;
   loyalty_points_used: number;
+  tax_rate?: number;
+  tax_usd?: number;
   total_usd: number;
   delivery_address: Record<string, unknown>;
   delivery_instructions: string | null;

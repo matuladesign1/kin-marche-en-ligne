@@ -503,3 +503,16 @@ export function useAppUpdate(currentBuild: number | null) {
     },
   });
 }
+
+/** Taux de la taxe sur les achats (TVA réglée par l'administrateur général ; 0 si elle est désactivée). */
+export function useTaxRate() {
+  return useQuery({
+    queryKey: ['tax-setting'],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase.from('app_settings').select('value').eq('key', 'tax').maybeSingle();
+      const v = (data?.value ?? {}) as { enabled?: boolean; rate?: number | string };
+      return v.enabled ? Math.min(Math.max(Number(v.rate ?? 0), 0), 100) : 0;
+    },
+  });
+}

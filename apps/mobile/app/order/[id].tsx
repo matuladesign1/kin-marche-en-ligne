@@ -10,7 +10,7 @@ import { StatusTimeline } from '@/components/StatusTimeline';
 import { Button, Card, Divider, ErrorState, Loading, Notice, Row, Screen, SectionHeader, T } from '@/components/ui';
 import { qk, useOrder } from '@/hooks/data';
 import { errorMessage } from '@/lib/errors';
-import { formatDate, formatQty } from '@/lib/format';
+import { formatDate, formatQty, formatRate } from '@/lib/format';
 import { decodePolyline } from '@/lib/polyline';
 import { supabase, unwrap } from '@/lib/supabase';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -143,6 +143,7 @@ export default function OrderScreen() {
         <Row style={{ justifyContent: 'space-between' }}><T size="sm">{t('checkout.deliveryFee')}</T><T size="sm">{money(order.delivery_fee_usd)}</T></Row>
         {order.coupon_discount_usd > 0 ? <Row style={{ justifyContent: 'space-between' }}><T size="sm">{t('checkout.couponDiscount')}</T><T size="sm">− {money(order.coupon_discount_usd)}</T></Row> : null}
         {order.loyalty_discount_usd > 0 ? <Row style={{ justifyContent: 'space-between' }}><T size="sm">{t('checkout.loyaltyDiscount')}</T><T size="sm">− {money(order.loyalty_discount_usd)}</T></Row> : null}
+        {(order.tax_usd ?? 0) > 0 ? <Row style={{ justifyContent: 'space-between' }}><T size="sm">{t('checkout.tax', { rate: formatRate(order.tax_rate) })}</T><T size="sm">{money(order.tax_usd ?? 0)}</T></Row> : null}
         <Row style={{ justifyContent: 'space-between' }}><T weight="700">{t('checkout.total')}</T><T weight="700">{money(order.total_usd)}</T></Row>
         {order.paid_at ? <T size="xs" muted>{t('payStatus.succeeded')} · {formatDate(order.paid_at, language)}</T> : null}
       </Card>

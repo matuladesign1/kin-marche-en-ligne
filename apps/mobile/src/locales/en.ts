@@ -51,6 +51,8 @@ const en: Record<TranslationKey, string> = {
   'checkout.instructions': 'Instructions for the driver (optional)', 'checkout.coupon': 'Promo code', 'checkout.applyCoupon': 'Apply',
   'checkout.usePoints': 'Use my points ({points} available)', 'checkout.deliveryFee': 'Delivery fee', 'checkout.couponDiscount': 'Coupon discount',
   'checkout.loyaltyDiscount': 'Loyalty discount', 'checkout.total': 'Total to pay', 'checkout.place': 'Confirm and pay',
+  'checkout.tax': 'VAT ({rate}%)',
+  'cart.taxNote': 'VAT of {rate}% and the delivery fee are added at checkout.',
   'checkout.noCash': 'Cash on delivery is not accepted: orders are paid in the app before being handed to the driver.',
   'checkout.distance': 'Store → address distance: {km} km',
   'payment.title': 'Payment', 'payment.choose': 'Choose your payment method', 'payment.pay': 'Pay {amount}',

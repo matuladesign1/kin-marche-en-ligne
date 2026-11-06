@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button, Card, Chip, Divider, Input, Loading, Notice, Row, Screen, SectionHeader, T } from '@/components/ui';
 import { qk, useAddresses, useLoyalty, useQuote } from '@/hooks/data';
 import { errorMessage, translateIssue } from '@/lib/errors';
-import { formatCdf, formatPoints, formatQty } from '@/lib/format';
+import { formatCdf, formatPoints, formatQty, formatRate } from '@/lib/format';
 import { NEXT_COUPON_KEY } from '@/lib/orders';
 import { supabase, unwrap } from '@/lib/supabase';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -126,6 +126,9 @@ export default function Checkout() {
           ) : null}
           {(quote.data.loyalty_discount_usd ?? 0) > 0 ? (
             <Row style={{ justifyContent: 'space-between' }}><T>{t('checkout.loyaltyDiscount')}</T><T color={colors.success}>− {money(quote.data.loyalty_discount_usd)}</T></Row>
+          ) : null}
+          {(quote.data.tax_usd ?? 0) > 0 ? (
+            <Row style={{ justifyContent: 'space-between' }}><T>{t('checkout.tax', { rate: formatRate(quote.data.tax_rate) })}</T><T>{money(quote.data.tax_usd)}</T></Row>
           ) : null}
           <Divider />
           <Row style={{ justifyContent: 'space-between' }}>

@@ -125,6 +125,8 @@ const ln: Record<TranslationKey, string> = {
   "checkout.deliveryFee": "Mbongo ya komema",
   "checkout.couponDiscount": "Bokitisi ya coupon",
   "checkout.loyaltyDiscount": "Bokitisi ya bosembo",
+  "checkout.tax": "TVA ({rate} %)",
+  "cart.taxNote": "TVA ya {rate} % mpe mbongo ya kotinda ekobakisama na ntango ya kofuta.",
   "checkout.total": "Motango ya kofuta",
   "checkout.place": "Ndima mpe futa",
   "checkout.noCash": "Kofuta tango ya kozwa eloko endimami te: mitindo efutamaka na application liboso ya kopesa livreur.",

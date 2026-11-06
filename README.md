@@ -167,6 +167,10 @@ Chaque accès est vérifié par la base de données (RLS + fonctions serveur), r
 
 Dans l'application : **Compte → Messages**, l'icône Messages en haut de l'accueil ou l'accès rapide « Messages ». Le client écrit à « ASSISTANT (sa ville) », à l'assistant d'un supermarché, ou au livreur de sa commande. Le nom affiché et le badge rouge « certifié » sont imposés par le serveur : un client ne peut pas se faire passer pour un assistant. Côté web, la messagerie ressemble à une messagerie instantanée (liste, recherche, non lus, accusés de lecture, photos et PDF, commande liée, actualisation automatique).
 
+### Taxe sur les achats (TVA)
+
+Administration → **Administration → Taxe sur les achats (TVA)** (administrateur général) : activer ou désactiver la taxe et régler le taux (**16 %** par défaut). La taxe s'ajoute à chaque commande : `taxe = (produits − réduction coupon − réduction fidélité) × taux`, sans les frais de livraison ; `total = produits + livraison − réductions + taxe`. Elle est calculée par le serveur (devis et passage de commande) et enregistrée sur chaque commande (`orders.tax_rate`, `orders.tax_usd`) : une commande passée garde le taux du jour de l'achat. L'application l'affiche dans le panier (rappel), au paiement et dans le détail de la commande (« TVA (16 %) ») ; l'export des commandes a une colonne « TVA USD » ; la page de l'administration montre la TVA collectée du mois et au total (commandes payées). Les points de fidélité et la Roue de la chance restent calculés sur le total payé.
+
 ### Campagnes promotionnelles (application, WhatsApp, e-mail)
 
 Administration → **Marketing → Campagnes** (administrateur général uniquement). Une campagne = un titre, un message, une **photo** et un lien (page des promotions, un produit, une catégorie ou un site web), envoyés à un public (tous les clients, clients ayant commandé, nouveaux clients, inactifs depuis 30 jours, ou une ville) sur un ou plusieurs canaux :

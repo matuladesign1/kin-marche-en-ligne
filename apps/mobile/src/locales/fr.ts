@@ -133,6 +133,8 @@ const fr = {
   'checkout.deliveryFee': 'Frais de livraison',
   'checkout.couponDiscount': 'Réduction coupon',
   'checkout.loyaltyDiscount': 'Réduction fidélité',
+  'checkout.tax': 'TVA ({rate} %)',
+  'cart.taxNote': 'TVA de {rate} % et frais de livraison ajoutés à l’étape du paiement.',
   'checkout.total': 'Total à payer',
   'checkout.place': 'Confirmer et payer',
   'checkout.noCash': 'Le paiement à la livraison n’est pas accepté : la commande est réglée dans l’application avant la remise au livreur.',

@@ -125,6 +125,8 @@ const sw: Record<TranslationKey, string> = {
   "checkout.deliveryFee": "Gharama ya kupeleka",
   "checkout.couponDiscount": "Punguzo la kuponi",
   "checkout.loyaltyDiscount": "Punguzo la uaminifu",
+  "checkout.tax": "VAT ({rate}%)",
+  "cart.taxNote": "VAT ya {rate}% na ada ya usafirishaji huongezwa wakati wa malipo.",
   "checkout.total": "Jumla ya kulipa",
   "checkout.place": "Thibitisha na ulipe",
   "checkout.noCash": "Kulipa wakati wa kupokea hakukubaliwi: agizo hulipwa ndani ya programu kabla ya kukabidhiwa msafirishaji.",

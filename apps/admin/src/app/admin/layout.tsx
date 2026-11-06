@@ -48,6 +48,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: '/admin/agents', label: 'Agents et accès', icon: 'shield' },
         { href: '/admin/categories', label: 'Catégories', icon: 'layers' },
         { href: '/admin/taux', label: 'Taux de change', icon: 'exchange' },
+        { href: '/admin/taxe', label: 'Taxe sur les achats (TVA)', icon: 'percent' },
         { href: '/admin/parametres', label: 'Logo et couleurs', icon: 'settings' },
       ] : []),
     ] },
