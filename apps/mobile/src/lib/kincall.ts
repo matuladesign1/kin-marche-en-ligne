@@ -9,6 +9,7 @@ type KinCallNative = {
   releaseLockScreen(): void;
   canUseFullScreenIntent(): boolean;
   openFullScreenSettings(): void;
+  setKeepScreenOn?(on: boolean): void;
 };
 
 const native = Platform.OS === 'android' ? requireOptionalNativeModule<KinCallNative>('KinCall') : null;
@@ -31,3 +32,8 @@ export const incomingCall = {
     try { native?.openFullScreenSettings(); } catch { /* rien */ }
   },
 };
+
+/** Garde l'écran allumé (navigation guidée) ; sans effet sur une ancienne version de l'application. */
+export function keepScreenOn(on: boolean): void {
+  try { native?.setKeepScreenOn?.(on); } catch { /* module absent */ }
+}

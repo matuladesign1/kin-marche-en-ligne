@@ -71,12 +71,22 @@ const ORS_TYPES: Record<number, { type: string; modifier?: string }> = {
   12: { type: 'fork', modifier: 'slight left' }, 13: { type: 'fork', modifier: 'slight right' },
 };
 
+// Adresse actuelle d'OpenRouteService (api.heigit.org) ; l'ancienne reste en secours.
+const ORS_URLS = [
+  'https://api.heigit.org/openrouteservice/v2/directions/driving-car',
+  'https://api.openrouteservice.org/v2/directions/driving-car',
+];
+
 async function viaOrs(points: LatLng[], key: string): Promise<Route | null> {
-  const res = await fetch('https://api.openrouteservice.org/v2/directions/driving-car', {
-    method: 'POST',
-    headers: { Authorization: key, 'Content-Type': 'application/json', Accept: 'application/json', 'User-Agent': UA },
-    body: JSON.stringify({ coordinates: points.map((p) => [p.lng, p.lat]), instructions: true, language: 'fr', geometry: true }),
-  }).catch(() => null);
+  let res: Response | null = null;
+  for (const url of ORS_URLS) {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: key, 'Content-Type': 'application/json', Accept: 'application/json', 'User-Agent': UA },
+      body: JSON.stringify({ coordinates: points.map((p) => [p.lng, p.lat]), instructions: true, language: 'fr', geometry: true }),
+    }).catch(() => null);
+    if (res?.ok) break;
+  }
   if (!res?.ok) return null;
   const j = await res.json().catch(() => null);
   const r = j?.routes?.[0];

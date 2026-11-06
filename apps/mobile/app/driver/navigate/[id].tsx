@@ -1,6 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { useKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -9,6 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { KinMap, type KinMarker } from '@/components/KinMap';
 import { Loading, T } from '@/components/ui';
 import { bearingDeg, distanceM, isLatLng, type LatLng } from '@/lib/geo';
+import { keepScreenOn } from '@/lib/kincall';
 import { alongOf, formatDistance, instruction, maneuverIcon, progressOn, type NavStep, type RouteResult } from '@/lib/navigation';
 import { decodePolyline } from '@/lib/polyline';
 import { supabase, unwrap } from '@/lib/supabase';
@@ -24,7 +24,6 @@ const REFRESH_MS = 60_000;
 const ARRIVED_M = 35;
 
 export default function Navigate() {
-  useKeepAwake();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, colors } = useSettings();
   const insets = useSafeAreaInsets();
@@ -37,6 +36,12 @@ export default function Navigate() {
   const lastRoute = useRef(0);
   const offCount = useRef(0);
   const prev = useRef<LatLng | null>(null);
+
+  // L'écran reste allumé pendant la navigation.
+  useEffect(() => {
+    keepScreenOn(true);
+    return () => keepScreenOn(false);
+  }, []);
 
   const q = useQuery({
     queryKey: ['navigate', id],
