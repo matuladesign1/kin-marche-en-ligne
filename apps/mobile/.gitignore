@@ -11,6 +11,8 @@ web-build/
 .env.*
 !.env.example
 android/
+# Modules natifs de l'application (pas le dossier android généré)
+!/modules/*/android/
 ios/
 google-services.json
 GoogleService-Info.plist
