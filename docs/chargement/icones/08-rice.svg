@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
   <title>Riz</title>
-  <path d="M17 17.5h14l2.5 4.5v13.5a3 3 0 0 1-3 3h-13a3 3 0 0 1-3-3V22z" stroke="#CE0000"/>
-  <path d="M17 17.5c1.8-1.6 4-2.4 7-2.4s5.2.8 7 2.4M21 12l3 3.1 3-3.1" stroke="#CE0000"/>
+  <path d="M17 17.5h14l2.5 4.5v13.5a3 3 0 0 1-3 3h-13a3 3 0 0 1-3-3V22z" stroke="#E60024"/>
+  <path d="M17 17.5c1.8-1.6 4-2.4 7-2.4s5.2.8 7 2.4M21 12l3 3.1 3-3.1" stroke="#E60024"/>
   <path d="M20.6 26.4l1.7 1.7M25.6 24.6l1.7 1.7M23 31l1.7 1.7M27.8 29.4l1.6 1.6" stroke="#1CB7B8"/>
 </svg>

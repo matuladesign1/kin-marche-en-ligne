@@ -1,7 +1,7 @@
 """Kin Marché en ligne : icône de l'application, icône de notification et logo « ligne » (novembre 2026, v3).
 
   sources/km-icone-blanche.png  carré arrondi clair, logo en couleurs  → icône de l'application (toutes tailles)
-  sources/km-logo-ligne.png     logo « ligne » (anneau et chariot turquoise) → notifications push, animation de chargement (fond blanc)
+  sources/km-logo-ligne.png     logo « ligne » → notifications push, animation de chargement (tracé en rouge sur boule blanche)
 
 Le fond clair du carré est reconstruit (ajustement quadratique par couleur) pour séparer le logo du fond pixel par
 pixel (alpha minimal), puis le recomposer à toutes les tailles sans halo. Le logo « ligne » est séparé du blanc de la
@@ -141,14 +141,19 @@ teal = teal[(np.asarray(badge.getchannel('A')).reshape(-1) > 200) & (teal[:, 0] 
 print('Turquoise du logo « ligne » : #%02X%02X%02X' % tuple(int(round(v)) for v in teal))
 
 
+ROUGE_ICONE = (230, 0, 36)                           # rouge des lettres de l'icône de l'application (#E60024)
+
+
 def logo_ball(D):
-    """Boule du logo : sphère blanche (même volume que les boules des produits) sous le logo « ligne »."""
+    """Boule du logo : sphère blanche ; le logo « ligne » (contour et U K, chariot, M) y est tracé en rouge."""
     v, u = np.mgrid[0:D, 0:D].astype(np.float64)
     r = np.clip(np.hypot((u + 0.5) / D - 0.36, (v + 0.5) / D - 0.30) / 0.75, 0, 1)
     g = np.interp(r, [0, 0.7, 1], [255, 243, 220])
     ball = Image.fromarray(np.uint8(np.dstack([g, g, g, np.full_like(g, 255)]).round()), 'RGBA')
     ball.putalpha(disc_mask(D))
-    ball.alpha_composite(resized(badge, (D, D)))
+    trace = Image.new('RGBA', badge.size, ROUGE_ICONE + (0,))
+    trace.putalpha(badge.getchannel('A'))           # formes exactes du logo « ligne », en rouge
+    ball.alpha_composite(resized(trace, (D, D)))
     return ball
 
 

@@ -12,10 +12,11 @@ import ICONS from './loader/icons.json';
  * graphique natif (useNativeDriver) : 60 images/s sans solliciter le JavaScript.
  */
 
-export const KM_RED = '#CE0000';
+/** Rouge des lettres de l'icône de l'application : logo de la boule et traits des produits. */
+export const KM_RED = '#E60024';
 /** Turquoise du logo « ligne » (anneau et chariot). */
 export const KM_TURQUOISE = '#1CB7B8';
-/** Boule du logo : logo « ligne » officiel (anneau blanc, lettres claires, anneau et chariot turquoise) sur sphère blanche. */
+/** Boule du logo : sphère blanche, logo « ligne » officiel tracé en rouge (contour et U K, chariot, M). */
 const LOGO_BALL = require('../../assets/images/logo-ball.png');
 
 type LineIcon = { key: string; label: string; paths: { d: string; accent?: boolean }[] };

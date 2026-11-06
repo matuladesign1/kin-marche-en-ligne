@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
   <title>Produits ménagers</title>
-  <path d="M19.3 21.5h9.4l1.8 4.5V36a2.5 2.5 0 0 1-2.5 2.5h-8a2.5 2.5 0 0 1-2.5-2.5V26z" stroke="#CE0000"/>
-  <path d="M21.2 21.5v-4h6.8l3.8 2.2-3.8 1.8M23.5 17.5v-3.5h4.5" stroke="#CE0000"/>
+  <path d="M19.3 21.5h9.4l1.8 4.5V36a2.5 2.5 0 0 1-2.5 2.5h-8a2.5 2.5 0 0 1-2.5-2.5V26z" stroke="#E60024"/>
+  <path d="M21.2 21.5v-4h6.8l3.8 2.2-3.8 1.8M23.5 17.5v-3.5h4.5" stroke="#E60024"/>
   <path d="M18.5 29h12M35.5 15.5h.01M38 18.5h.01M35.5 21.5h.01" stroke="#1CB7B8"/>
 </svg>

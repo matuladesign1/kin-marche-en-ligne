@@ -14,7 +14,7 @@ ICI = Path(__file__).resolve().parent
 RACINE = ICI.parent.parent
 ICONES = json.loads((RACINE / 'apps/mobile/src/components/loader/icons.json').read_text(encoding='utf-8'))
 LOGO = RACINE / 'apps/mobile/assets/images/logo-ball.png'
-ROUGE, TURQUOISE = '#CE0000', '#1CB7B8'
+ROUGE, TURQUOISE = '#E60024', '#1CB7B8'
 
 
 def svg_icone(icone: dict) -> str:
