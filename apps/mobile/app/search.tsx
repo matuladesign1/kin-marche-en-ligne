@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { ProductGrid } from '@/components/product';
-import { Button, Chip, Input, Loading, Notice, Row, Screen, SectionHeader, T } from '@/components/ui';
+import { Button, Chip, EmptyState, Input, Loading, Notice, Row, Screen, SectionHeader, T } from '@/components/ui';
 import { useCatalog } from '@/hooks/data';
 import { supabase, unwrap } from '@/lib/supabase';
 import type { CatalogItem } from '@/lib/types';
@@ -44,6 +44,8 @@ export default function Search() {
   const [visual, setVisual] = useState<{ photo: string; terms: string[]; items: CatalogItem[] } | null>(null);
   const [visualBusy, setVisualBusy] = useState(false);
   const [visualError, setVisualError] = useState<string | null>(null);
+  // Recherche par photo : la page ne montre que la photo et les articles similaires.
+  const [photoMode, setPhotoMode] = useState(params.mode === 'photo');
 
   useSpeechRecognitionEvent('result', (e) => {
     const text = e.results[0]?.transcript ?? '';
@@ -94,6 +96,7 @@ export default function Search() {
   // Recherche par photo similaire : empreinte de la photo calculée sur le téléphone, produits classés
   // du plus ressemblant au moins ressemblant (voir lib/visualSearch). Vision s'y ajoute s'il est activé.
   const runVisual = async (uri: string, base64?: string | null) => {
+    setPhotoMode(true);
     setVisualBusy(true);
     setVisualError(null);
     setVisual(null);
@@ -101,12 +104,12 @@ export default function Search() {
       const hash = await photoBlurhash(uri);
       if (!hash) throw new Error('NO_HASH');
       const [similar, vision] = await Promise.all([
-        findSimilarProducts(hash, { storeId: selectedStoreId, signedIn: !!session }),
+        findSimilarProducts(hash, { storeId: selectedStoreId }),
         visionSearch(base64),
       ]);
       const seen = new Set<string>();
       const items: CatalogItem[] = [];
-      for (const it of [...(vision?.items ?? []).slice(0, 8), ...similar.items]) {
+      for (const it of [...(vision?.items ?? []).slice(0, 8), ...similar]) {
         if (seen.has(it.product_id)) continue;
         seen.add(it.product_id);
         items.push(it);
@@ -129,6 +132,7 @@ export default function Search() {
     const res = fromCamera ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
     const asset = res.canceled ? null : res.assets[0];
     if (asset) runVisual(asset.uri, asset.base64);
+    else if (!visual) setPhotoMode(false);   // photo annulée : retour à la recherche normale
   };
 
   // Recherche par vidéo : on analyse une image extraite de la vidéo (1re seconde).
@@ -196,9 +200,39 @@ export default function Search() {
     setQuery(r.data);
   };
 
+  if (photoMode) {
+    return (
+      <Screen>
+        {visualBusy ? <Loading label={t('search.photoAnalyzing')} /> : null}
+        {visualError ? <Notice tone="warning" text={visualError} /> : null}
+        {visual ? (
+          <View style={{ gap: spacing.md }}>
+            <View style={[styles.photoHead, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Image source={{ uri: visual.photo }} style={[styles.photoThumb, { backgroundColor: colors.surfaceAlt }]} contentFit="cover"
+                accessibilityLabel={t('search.yourPhoto')} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <T weight="800">{t('search.photoResults')}</T>
+                {visual.items.length ? <T size="xs" muted>{t('search.photoSimilarHint')}</T> : null}
+                {visual.terms.length ? <T size="xs" muted numberOfLines={2}>{t('search.photoTerms', { terms: visual.terms.slice(0, 8).join(', ') })}</T> : null}
+              </View>
+            </View>
+            {visual.items.length ? <ProductGrid items={visual.items} emptyMessage="" /> : <EmptyState icon="images-outline" message={t('search.photoNone')} />}
+          </View>
+        ) : null}
+        {!visualBusy ? (
+          <Row style={{ flexWrap: 'wrap' }}>
+            <Chip label={t('search.photoAgain')} icon="camera-outline" onPress={() => searchByPhoto(true)} />
+            <Chip label={t('search.gallery')} icon="image-outline" onPress={() => searchByPhoto(false)} />
+            <Chip label={t('search.textSearch')} icon="search-outline" onPress={() => { setVisual(null); setVisualError(null); setPhotoMode(false); }} />
+          </Row>
+        ) : null}
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
-      <Input value={text} onChangeText={(v) => { setText(v); if (visual) setVisual(null); }} placeholder={t('home.searchPlaceholder')} autoFocus={!promoOnly && !params.mode} returnKeyType="search" clearButtonMode="while-editing" />
+      <Input value={text} onChangeText={setText} placeholder={t('home.searchPlaceholder')} autoFocus={!promoOnly && !params.mode} returnKeyType="search" clearButtonMode="while-editing" />
       <Row style={{ flexWrap: 'wrap' }}>
         <Chip label={t('search.scan')} icon="barcode-outline" onPress={openScanner} />
         <Chip label={listening ? t('search.listening') : t('search.voice')} icon={listening ? 'stop-circle-outline' : 'mic-outline'} active={listening} onPress={startVoice} />
@@ -210,28 +244,8 @@ export default function Search() {
       {permission && !permission.granted && !permission.canAskAgain ? <T size="sm" muted>{t('search.cameraDenied')}</T> : null}
 
       {voiceNote ? <Notice tone="warning" text={voiceNote} /> : null}
-      {visualError ? <Notice tone="warning" text={visualError} /> : null}
-      {visualBusy ? <Loading label={t('search.photoAnalyzing')} /> : null}
-      {visual ? (
-        <View style={{ gap: spacing.md }}>
-          <View style={[styles.photoHead, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Image source={{ uri: visual.photo }} style={[styles.photoThumb, { backgroundColor: colors.surfaceAlt }]} contentFit="cover"
-              accessibilityLabel={t('search.yourPhoto')} />
-            <View style={{ flex: 1, gap: 2 }}>
-              <T weight="800">{t('search.photoResults')}</T>
-              <T size="xs" muted>{t('search.photoSimilarHint')}</T>
-              {visual.terms.length ? <T size="xs" muted numberOfLines={2}>{t('search.photoTerms', { terms: visual.terms.slice(0, 8).join(', ') })}</T> : null}
-            </View>
-          </View>
-          <Row style={{ flexWrap: 'wrap' }}>
-            <Chip label={t('search.photoAgain')} icon="camera-outline" onPress={() => searchByPhoto(true)} />
-            <Chip label={t('search.gallery')} icon="image-outline" onPress={() => searchByPhoto(false)} />
-          </Row>
-          <ProductGrid items={visual.items} emptyMessage={t('search.photoNone')} />
-        </View>
-      ) : null}
 
-      {visual ? null : results.isLoading ? <Loading /> : (query || promoOnly) ? (
+      {results.isLoading ? <Loading /> : (query || promoOnly) ? (
         list.length > 0 ? <ProductGrid items={list} emptyMessage="" /> : (
           <View style={{ gap: spacing.md }}>
             <T muted>{t('search.noResult', { q: query })}</T>

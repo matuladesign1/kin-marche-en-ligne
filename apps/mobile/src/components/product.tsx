@@ -98,8 +98,8 @@ export const ProductCard = memo(function ProductCard({ item, width }: { item: Ca
             accessibilityLabel={t('product.addToCart')}
             style={[styles.cartBtn, { backgroundColor: colors.surface, opacity: pending ? 0.6 : 1 }]}
           >
-            <Ionicons name="cart-outline" size={19} color={colors.primary} />
-            <Ionicons name="add" size={12} color={colors.primary} style={styles.cartPlus} />
+            <Ionicons name="cart-outline" size={16} color={colors.primary} />
+            <Ionicons name="add" size={10} color={colors.primary} style={styles.cartPlus} />
           </Pressable>
         )}
       </View>
@@ -119,9 +119,9 @@ export const ProductCard = memo(function ProductCard({ item, width }: { item: Ca
             ) : null}
           </Row>
         ) : null}
-        <T size="sm" numberOfLines={2} style={{ minHeight: 36 }}>{name}</T>
+        <T size="sm" numberOfLines={1}>{name}</T>
         <Row gap={6} style={{ flexWrap: 'wrap' }}>
-          <T size="lg" weight="800">{money(item.effective_price_usd)}</T>
+          <T size="lg" weight="800" style={{ fontSize: 16 }}>{money(item.effective_price_usd)}</T>
           {off > 0 ? (
             <Row gap={1}>
               <Ionicons name="arrow-down" size={12} color={colors.danger} />
@@ -207,15 +207,15 @@ export function QuantityStepper({ value, step, min, max, onChange, disabled }: {
 const styles = StyleSheet.create({
   card: { borderRadius: radius.md, overflow: 'hidden', flexGrow: 1 },
   imageWrap: { aspectRatio: 1, width: '100%', alignItems: 'center', justifyContent: 'center' },
-  body: { paddingHorizontal: spacing.sm, paddingTop: spacing.sm, paddingBottom: spacing.md, gap: 4 },
+  body: { paddingHorizontal: spacing.sm, paddingTop: 6, paddingBottom: 10, gap: 3 },
   tag: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
   tagOutline: { borderWidth: 1, backgroundColor: 'transparent' },
   soldOut: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingVertical: 6, alignItems: 'center', backgroundColor: 'rgba(22,24,29,0.72)' },
   cartBtn: {
-    position: 'absolute', right: 8, bottom: 8, width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center',
+    position: 'absolute', right: 7, bottom: 7, width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 3,
   },
-  cartPlus: { position: 'absolute', top: 6, right: 6 },
+  cartPlus: { position: 'absolute', top: 5, right: 5 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -spacing.xs },
   gridCell: { width: '50%', padding: spacing.xs },
   stepper: { borderWidth: 1, borderRadius: radius.pill },

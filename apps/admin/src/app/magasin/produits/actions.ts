@@ -50,7 +50,7 @@ function inventoryFields(f: FormData) {
 // Adresses publiques du stockage « product-media » envoyées par le navigateur (ProductMediaUpload).
 const MEDIA_PREFIX = `${(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, '')}/storage/v1/object/public/product-media/`;
 
-const BLURHASH = /^U[\]0-9A-Za-z#$%*+,.:;=?@[^_{|}~-]{35}$/;
+const BLURHASH = /^\|[\]0-9A-Za-z#$%*+,.:;=?@[^_{|}~-]{165}$/;
 
 async function attachMedia(productId: string, urls: FormDataEntryValue[], hashes: FormDataEntryValue[] = []) {
   const sb = await supabaseServer();

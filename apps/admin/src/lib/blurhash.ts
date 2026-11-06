@@ -1,4 +1,4 @@
-// Empreinte visuelle des photos de produits (Blurhash 4 × 4, algorithme de référence de Wolt, licence MIT).
+// Empreinte visuelle des photos de produits (Blurhash 9 × 9, algorithme de référence de Wolt, licence MIT).
 // Même calcul que le téléphone (expo-image) : la recherche par photo compare ces empreintes.
 
 const B83 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~';
@@ -21,8 +21,8 @@ function toSRGB(v: number): number {
 
 const signPow = (v: number, e: number) => Math.sign(v) * Math.pow(Math.abs(v), e);
 
-/** Empreinte de pixels RGBA (largeur × hauteur), 4 × 4 composantes : chaîne de 36 caractères commençant par « U ». */
-export function encodeBlurhash(pixels: Uint8ClampedArray, width: number, height: number, cx = 4, cy = 4): string {
+/** Empreinte de pixels RGBA (largeur × hauteur), 9 × 9 composantes : chaîne de 166 caractères commençant par « | ». */
+export function encodeBlurhash(pixels: Uint8ClampedArray, width: number, height: number, cx = 9, cy = 9): string {
   const factors: [number, number, number][] = [];
   for (let y = 0; y < cy; y++) {
     for (let x = 0; x < cx; x++) {

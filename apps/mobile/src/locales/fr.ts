@@ -98,9 +98,9 @@ const fr = {
   'search.photo': 'Photo',
   'search.gallery': 'Galerie',
   'search.video': 'Vidéo',
-  'search.photoResults': "Produits similaires à votre photo",
+  'search.photoResults': "Articles similaires",
   'search.photoTerms': 'Éléments détectés : {terms}',
-  'search.photoNone': 'Aucun produit du catalogue ne correspond à cette image.',
+  'search.photoNone': "Aucun article similaire trouvé. Cadrez bien le produit, en pleine lumière, et reprenez la photo.",
   'search.photoNotEnabled': 'La recherche par photo n\u2019est pas encore activée (service Google Cloud Vision à activer).',
   'stores.title': 'Supermarchés Kin Marché',
   'stores.useLocation': 'Utiliser ma position',
@@ -925,11 +925,15 @@ const fr = {
   "cat.col.new": "Nouveautés",
   "cat.col.featured": "Recommandés",
   "cat.col.local": "Made in RDC",
-  "search.photoSimilarHint": "Les plus ressemblants d’abord (couleurs et forme du produit).",
+  "search.photoSimilarHint": "Les articles qui ressemblent à votre photo.",
   "search.photoAgain": "Nouvelle photo",
   "search.photoAnalyzing": "Analyse de la photo…",
   "search.yourPhoto": "Votre photo",
   "search.photoError": "Impossible d’analyser cette photo. Réessayez avec une photo nette du produit.",
+  "search.textSearch": "Recherche par texte",
+  "cat.seeMore": "Voir plus",
+  "cat.hot": "Produits à succès",
+  "cat.emptyShort": "Aucun article dans cette catégorie pour le moment.",
 } as const;
 
 export type TranslationKey = keyof typeof fr;

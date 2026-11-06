@@ -2,17 +2,49 @@ import { Image } from 'expo-image';
 import { supabase } from './supabase';
 import type { CatalogItem } from './types';
 
-// Recherche par photo similaire, calculée sur le téléphone, sans service extérieur.
-// Chaque photo est résumée par une empreinte Blurhash 4 × 4 (couleur moyenne et répartition des couleurs),
-// produite par expo-image (même calcul que l'administration à l'envoi des photos).
-// Les produits sont classés du plus ressemblant au moins ressemblant.
+// Recherche par photo : on ne montre que les articles qui ressemblent vraiment à la photo.
+// Chaque photo est résumée par une empreinte Blurhash 9 × 9 (calculée par expo-image sur le téléphone,
+// et par le navigateur à l'envoi des photos dans l'administration). L'empreinte est redessinée en
+// petite image 16 × 16 ; le fond (couleur du bord de la photo) est écarté, puis on compare :
+//  - les couleurs du produit (palette) ;
+//  - le produit lui-même, recadré et redessiné en 8 × 8 (même taille quel que soit le cadrage).
+// On ne garde que l'article le plus proche s'il ressemble nettement (et ceux presque aussi proches),
+// avec les articles ressemblants de sa catégorie. Sinon : aucun résultat plutôt que des articles sans rapport.
 
 const B83 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~';
-const COMPONENTS: [number, number] = [4, 4];
+/** Empreinte 9 × 9 (le maximum de Blurhash) : 166 caractères, commence par « | ». */
+export const COMPONENTS: [number, number] = [9, 9];
 /** Photos réduites à 96 px avant le calcul : rapide, et identique pour le client et le catalogue. */
 const SIZE = 96;
 /** Anciennes photos sans empreinte calculées par recherche (téléchargement limité sur données mobiles). */
 const MAX_BACKFILL = 12;
+/** Ressemblance (0 à 1) à partir de laquelle l'article est retenu d'office. */
+const SURE = 0.5;
+/** En dessous de SURE : retenu seulement s'il dépasse ce seuil et nettement le 2e article. */
+const MIN_MATCH = 0.3;
+const LEAD = 0.1;
+/** Articles presque aussi proches que le meilleur : gardés aussi. */
+const MARGIN = 0.04;
+/** Articles de la même catégorie montrés en plus s'ils ressemblent au moins à ce point. */
+const MIN_RELATED = 0.42;
+const MAX_RESULTS = 12;
+
+const GRID = 16;
+const HUES = 12;
+const LEVELS = 3;
+const GREYS = 5;
+const BINS = HUES * LEVELS + GREYS;
+
+/** Poids de chaque point de l'image : le produit est au centre de la photo (recadrage carré). */
+const WEIGHT = (() => {
+  const w = new Float32Array(GRID * GRID);
+  const c = (GRID - 1) / 2;
+  const s = GRID * 0.3;
+  for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) {
+    w[y * GRID + x] = Math.exp(-((x - c) ** 2 + (y - c) ** 2) / (2 * s * s));
+  }
+  return w;
+})();
 
 function decode83(s: string): number {
   let v = 0;
@@ -29,6 +61,7 @@ const toLinear = (v: number) => {
   return x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
 };
 const signPow = (v: number, e: number) => Math.sign(v) * Math.pow(Math.abs(v), e);
+const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 /** Couleur (RGB linéaire) → CIELAB, pour comparer les couleurs comme l'œil. */
 function toLab(r: number, g: number, b: number): [number, number, number] {
@@ -41,48 +74,154 @@ function toLab(r: number, g: number, b: number): [number, number, number] {
 }
 
 export interface VisualFeature {
-  lab: [number, number, number];
-  /** 15 composantes de répartition × 3 canaux. */
-  ac: number[];
+  /** Palette du produit : 12 teintes × 3 luminosités + 5 gris, somme = 1. */
+  hist: Float32Array;
+  /** Le produit seul (cadre ajusté au produit), redessiné en 6 × 6, en CIELAB. */
+  obj: Float32Array;
 }
 
-/** Lit une empreinte Blurhash 4 × 4 (36 caractères). */
+const OBJ = 8;
+const deltaE = (lab: Float32Array, i: number, L: number, a: number, b: number) =>
+  Math.sqrt((lab[i] - L) ** 2 + (lab[i + 1] - a) ** 2 + (lab[i + 2] - b) ** 2);
+
+/** Sépare le produit du fond : le fond est la couleur du bord de la photo (blanc du catalogue, table, mur…). */
+function foreground(lab: Float32Array): Float32Array {
+  const border: number[] = [];
+  for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) {
+    if (x === 0 || y === 0 || x === GRID - 1 || y === GRID - 1) border.push((y * GRID + x) * 3);
+  }
+  const median = (k: number) => {
+    const v = border.map((i) => lab[i + k]).sort((m, n) => m - n);
+    return v[v.length >> 1];
+  };
+  const bL = median(0), bA = median(1), bB = median(2);
+  const fg = new Float32Array(GRID * GRID);
+  let share = 0;
+  for (let p = 0; p < GRID * GRID; p++) {
+    fg[p] = clamp01((deltaE(lab, p * 3, bL, bA, bB) - 6) / 10);
+    share += fg[p];
+  }
+  // Produit qui remplit toute la photo (ou photo unie) : pas de fond à retirer.
+  if (share < GRID * GRID * 0.12) fg.fill(1);
+  return fg;
+}
+
+function palette(lab: Float32Array, fg: Float32Array): Float32Array {
+  const h = new Float32Array(BINS);
+  for (let p = 0; p < GRID * GRID; p++) {
+    const L = lab[p * 3], a = lab[p * 3 + 1], b = lab[p * 3 + 2];
+    const chroma = Math.hypot(a, b);
+    const w = fg[p] * (0.5 + 0.5 * WEIGHT[p]);
+    if (w <= 0) continue;
+    const colored = clamp01((chroma - 6) / 14);   // 0 = gris, 1 = coloré
+    if (colored < 1) {                            // gris : 5 niveaux de luminosité
+      const pos = clamp01(L / 100) * (GREYS - 1);
+      const g0 = Math.floor(pos), f = pos - g0;
+      h[HUES * LEVELS + g0] += w * (1 - colored) * (1 - f);
+      if (g0 + 1 < GREYS) h[HUES * LEVELS + g0 + 1] += w * (1 - colored) * f;
+    }
+    if (colored > 0) {                            // couleurs : teinte × luminosité, réparties en douceur
+      const hue = ((((Math.atan2(b, a) / (2 * Math.PI)) % 1) + 1) % 1) * HUES;
+      const h0 = Math.floor(hue) % HUES, h1 = (h0 + 1) % HUES, fh = hue - Math.floor(hue);
+      const lv = clamp01(L / 100) * (LEVELS - 1);
+      const l0 = Math.min(LEVELS - 1, Math.floor(lv)), l1 = Math.min(LEVELS - 1, l0 + 1), fl = lv - l0;
+      const add = (hh: number, ll: number, v: number) => { h[ll * HUES + hh] += w * colored * v; };
+      add(h0, l0, (1 - fh) * (1 - fl)); add(h1, l0, fh * (1 - fl));
+      add(h0, l1, (1 - fh) * fl); add(h1, l1, fh * fl);
+    }
+  }
+  let sum = 0;
+  for (let i = 0; i < BINS; i++) sum += h[i];
+  if (sum > 0) for (let i = 0; i < BINS; i++) h[i] /= sum;
+  return h;
+}
+
+/** Le produit recadré (boîte englobante) et redessiné en 6 × 6 : même taille quel que soit le cadrage. */
+function objectGrid(lab: Float32Array, fg: Float32Array): Float32Array {
+  let x0 = GRID, x1 = -1, y0 = GRID, y1 = -1;
+  for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) {
+    if (fg[y * GRID + x] >= 0.5) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  }
+  if (x1 < 0) { x0 = 0; y0 = 0; x1 = GRID - 1; y1 = GRID - 1; }
+  const out = new Float32Array(OBJ * OBJ * 3);
+  for (let j = 0; j < OBJ; j++) {
+    for (let i = 0; i < OBJ; i++) {
+      const fx = x0 + ((i + 0.5) / OBJ) * (x1 - x0 + 1) - 0.5;
+      const fy = y0 + ((j + 0.5) / OBJ) * (y1 - y0 + 1) - 0.5;
+      const xa = Math.max(0, Math.min(GRID - 1, Math.floor(fx))), xb = Math.min(GRID - 1, xa + 1), tx = clamp01(fx - xa);
+      const ya = Math.max(0, Math.min(GRID - 1, Math.floor(fy))), yb = Math.min(GRID - 1, ya + 1), ty = clamp01(fy - ya);
+      for (let k = 0; k < 3; k++) {
+        const v = (lab[(ya * GRID + xa) * 3 + k] * (1 - tx) + lab[(ya * GRID + xb) * 3 + k] * tx) * (1 - ty)
+          + (lab[(yb * GRID + xa) * 3 + k] * (1 - tx) + lab[(yb * GRID + xb) * 3 + k] * tx) * ty;
+        out[(j * OBJ + i) * 3 + k] = v;
+      }
+    }
+  }
+  return out;
+}
+
+/** Lit une empreinte Blurhash (4 × 4 au moins) : palette du produit et produit redessiné. */
 export function blurhashFeature(hash: string | null | undefined): VisualFeature | null {
-  if (!hash || hash.length !== 36) return null;
+  if (!hash || hash.length < 6) return null;
   const size = decode83(hash[0]);
-  if ((size % 9) + 1 !== 4 || Math.floor(size / 9) + 1 !== 4) return null;
+  if (!Number.isFinite(size)) return null;
+  const nx = (size % 9) + 1, ny = Math.floor(size / 9) + 1;
+  if (nx * ny < 16 || hash.length !== 4 + 2 * nx * ny) return null;
   const maxValue = (decode83(hash[1]) + 1) / 166;
   const dc = decode83(hash.slice(2, 6));
   if (!Number.isFinite(dc) || !Number.isFinite(maxValue)) return null;
-  const lab = toLab(toLinear(dc >> 16), toLinear((dc >> 8) & 255), toLinear(dc & 255));
-  const ac: number[] = [];
-  for (let i = 1; i < 16; i++) {
+  const comps: number[] = [toLinear(dc >> 16), toLinear((dc >> 8) & 255), toLinear(dc & 255)];
+  for (let i = 1; i < nx * ny; i++) {
     const v = decode83(hash.slice(4 + i * 2, 6 + i * 2));
     if (!Number.isFinite(v)) return null;
-    for (const q of [Math.floor(v / 361), Math.floor(v / 19) % 19, v % 19]) ac.push(signPow((q - 9) / 9, 2) * maxValue);
+    for (const q of [Math.floor(v / 361), Math.floor(v / 19) % 19, v % 19]) comps.push(signPow((q - 9) / 9, 2) * maxValue);
   }
-  return { lab, ac };
-}
-
-/** Écart entre deux photos (0 = identiques). La teinte compte plus que la luminosité, qui dépend de l'éclairage. */
-export function visualDistance(a: VisualFeature, b: VisualFeature): number {
-  const dl = a.lab[0] - b.lab[0], da = a.lab[1] - b.lab[1], db = a.lab[2] - b.lab[2];
-  const color = Math.sqrt(0.5 * dl * dl + da * da + db * db) / 100;
-  let layout = 0;
-  for (let i = 1; i < 16; i++) {
-    const order = (i % 4) + Math.floor(i / 4);   // basses fréquences = grandes formes du produit
-    const w = order === 1 ? 1 : order === 2 ? 0.5 : order === 3 ? 0.2 : 0.1;
-    for (let c = 0; c < 3; c++) {
-      const d = a.ac[(i - 1) * 3 + c] - b.ac[(i - 1) * 3 + c];
-      layout += w * d * d;
+  // Image 12 × 12 redessinée à partir de l'empreinte (décodage Blurhash), en CIELAB.
+  const lab = new Float32Array(GRID * GRID * 3);
+  for (let y = 0; y < GRID; y++) {
+    for (let x = 0; x < GRID; x++) {
+      let r = 0, g = 0, b = 0;
+      for (let j = 0; j < ny; j++) {
+        const cy = Math.cos((Math.PI * y * j) / GRID);
+        for (let i = 0; i < nx; i++) {
+          const basis = Math.cos((Math.PI * x * i) / GRID) * cy;
+          const k = (i + j * nx) * 3;
+          r += comps[k] * basis; g += comps[k + 1] * basis; b += comps[k + 2] * basis;
+        }
+      }
+      lab.set(toLab(clamp01(r), clamp01(g), clamp01(b)), (y * GRID + x) * 3);
     }
   }
-  return color + 0.8 * Math.sqrt(layout);
+  const fg = foreground(lab);
+  return { hist: palette(lab, fg), obj: objectGrid(lab, fg) };
 }
 
-/** Ressemblance affichable (100 % = même photo). */
-export function similarityPercent(distance: number): number {
-  return Math.max(0, Math.min(100, Math.round(100 * Math.exp(-1.6 * distance))));
+/** Ressemblance de deux photos, de 0 (rien à voir) à 1 (identiques). */
+export function visualSimilarity(a: VisualFeature, b: VisualFeature): number {
+  let common = 0;
+  for (let i = 0; i < BINS; i++) common += Math.min(a.hist[i], b.hist[i]);
+  let sum = 0;
+  for (let p = 0; p < OBJ * OBJ; p++) {
+    const dl = (a.obj[p * 3] - b.obj[p * 3]) * 0.6;   // la luminosité dépend de l'éclairage : elle compte moins
+    const da = a.obj[p * 3 + 1] - b.obj[p * 3 + 1];
+    const db = a.obj[p * 3 + 2] - b.obj[p * 3 + 2];
+    sum += Math.sqrt(dl * dl + da * da + db * db);
+  }
+  const layout = clamp01(1 - sum / (OBJ * OBJ) / 40);
+  return 0.65 * common + 0.35 * layout;
+}
+
+/** Empreintes du catalogue déjà lues (évite de les redessiner à chaque recherche). */
+const featureCache = new Map<string, VisualFeature | null>();
+function cachedFeature(hash: string | null): VisualFeature | null {
+  if (!hash) return null;
+  let f = featureCache.get(hash);
+  if (f === undefined) {
+    f = blurhashFeature(hash);
+    if (featureCache.size > 4000) featureCache.clear();
+    featureCache.set(hash, f);
+  }
+  return f;
 }
 
 /** Empreinte d'une photo (fichier du téléphone ou adresse web). */
@@ -97,45 +236,62 @@ export async function photoBlurhash(uri: string): Promise<string | null> {
 
 interface VisualRow { image_id: string; product_id: string; url: string; blurhash: string | null }
 
-export interface SimilarResult {
-  items: CatalogItem[];
-  /** Ressemblance (%) par produit. */
-  score: Record<string, number>;
+export interface Ranked { productId: string; score: number }
+
+/**
+ * Choisit les articles à montrer : le meilleur s'il ressemble assez, ceux presque aussi proches,
+ * puis les articles ressemblants de la même catégorie. Rien si aucun article ne ressemble.
+ */
+export function pickSimilar(ranked: Ranked[], categoryOf: (productId: string) => string | null): Ranked[] {
+  const best = ranked[0];
+  if (!best) return [];
+  const second = ranked[1]?.score ?? 0;
+  if (best.score < SURE && !(best.score >= MIN_MATCH && best.score - second >= LEAD)) return [];
+  const keep = ranked.filter((r) => r.score >= best.score - MARGIN);
+  const ids = new Set(keep.map((r) => r.productId));
+  const cats = new Set(keep.map((r) => categoryOf(r.productId)).filter(Boolean));
+  for (const r of ranked) {
+    if (keep.length >= MAX_RESULTS) break;
+    if (!ids.has(r.productId) && r.score >= MIN_RELATED && cats.has(categoryOf(r.productId))) {
+      keep.push(r);
+      ids.add(r.productId);
+    }
+  }
+  return keep;
 }
 
-/** Produits du catalogue les plus ressemblants à la photo (une offre par produit, en stock et moins chère d'abord). */
-export async function findSimilarProducts(photoHash: string, opts: { storeId: string | null; signedIn: boolean; limit?: number }): Promise<SimilarResult> {
+/** Articles du catalogue qui ressemblent à la photo (une offre par article, en stock et moins chère d'abord). */
+export async function findSimilarProducts(photoHash: string, opts: { storeId: string | null }): Promise<CatalogItem[]> {
   const query = blurhashFeature(photoHash);
   if (!query) throw new Error('NO_FEATURE');
   const { data, error } = await supabase.rpc('visual_catalog');
   if (error) throw error;
   const rows = (data ?? []) as VisualRow[];
 
-  // Anciennes photos sans empreinte : calculées ici une seule fois, puis enregistrées pour tout le monde.
-  const missing = rows.filter((r) => !r.blurhash).slice(0, MAX_BACKFILL);
+  // Photos sans empreinte 6 × 6 : calculées ici une seule fois, puis enregistrées pour tout le monde.
+  const missing = rows.filter((r) => !r.blurhash || r.blurhash[0] !== '|').slice(0, MAX_BACKFILL);
   for (let k = 0; k < missing.length; k += 3) {
     await Promise.all(missing.slice(k, k + 3).map(async (r) => {
       try {
         const h = await photoBlurhash(r.url);
         if (!h) return;
         r.blurhash = h;
-        if (opts.signedIn) supabase.rpc('set_image_blurhash', { p_image: r.image_id, p_hash: h }).then(() => undefined);
+        supabase.rpc('set_image_blurhash', { p_image: r.image_id, p_hash: h }).then(() => undefined);
       } catch { /* photo illisible : ignorée */ }
     }));
   }
 
   const best = new Map<string, number>();
   for (const r of rows) {
-    const f = blurhashFeature(r.blurhash);
+    const f = cachedFeature(r.blurhash);
     if (!f) continue;
-    const d = visualDistance(query, f);
-    const cur = best.get(r.product_id);
-    if (cur === undefined || d < cur) best.set(r.product_id, d);
+    const s = visualSimilarity(query, f);
+    if (s > (best.get(r.product_id) ?? -1)) best.set(r.product_id, s);
   }
-  const ranked = [...best.entries()].sort((a, b) => a[1] - b[1]).slice(0, opts.limit ?? 30);
-  if (!ranked.length) return { items: [], score: {} };
+  const ranked = [...best.entries()].map(([productId, score]) => ({ productId, score })).sort((a, b) => b.score - a.score).slice(0, 40);
+  if (!ranked.length || ranked[0].score < MIN_MATCH) return [];
 
-  let q = supabase.from('catalog_items').select('*').in('product_id', ranked.map(([id]) => id));
+  let q = supabase.from('catalog_items').select('*').in('product_id', ranked.map((r) => r.productId));
   if (opts.storeId) q = q.eq('store_id', opts.storeId);
   const { data: offers, error: e2 } = await q;
   if (e2) throw e2;
@@ -146,13 +302,6 @@ export async function findSimilarProducts(photoHash: string, opts: { storeId: st
       byProduct.set(it.product_id, it);
     }
   }
-  const score: Record<string, number> = {};
-  const items: CatalogItem[] = [];
-  for (const [id, d] of ranked) {
-    const it = byProduct.get(id);
-    if (!it) continue;
-    score[id] = similarityPercent(d);
-    items.push(it);
-  }
-  return { items, score };
+  const available = ranked.filter((r) => byProduct.has(r.productId));
+  return pickSimilar(available, (id) => byProduct.get(id)?.category_id ?? null).map((r) => byProduct.get(r.productId)!);
 }

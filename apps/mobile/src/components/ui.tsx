@@ -35,7 +35,7 @@ export function T({ children, size = 'md', weight = '400', muted, color, style, 
 }) {
   const { colors } = useSettings();
   return (
-    <Text
+    <Text maxFontSizeMultiplier={1.15}
       numberOfLines={numberOfLines}
       style={[{ fontSize: font[size], fontWeight: weight, color: color ?? (muted ? colors.textMuted : colors.text) }, style]}
     >
@@ -65,7 +65,7 @@ export function Button({ title, onPress, variant = 'primary', icon, loading, dis
       ]}
     >
       {loading ? <ActivityIndicator color={fg} /> : icon ? <Ionicons name={icon} size={18} color={fg} /> : null}
-      <Text style={{ color: fg, fontSize: font.md, fontWeight: '600' }}>{title}</Text>
+      <Text maxFontSizeMultiplier={1.15} style={{ color: fg, fontSize: font.md, fontWeight: '600' }}>{title}</Text>
     </Pressable>
   );
 }
@@ -115,7 +115,7 @@ export function Chip({ label, active, onPress, icon }: { label: string; active?:
       }]}
     >
       {icon ? <Ionicons name={icon} size={14} color={active ? colors.onPrimary : colors.text} /> : null}
-      <Text style={{ color: active ? colors.onPrimary : colors.text, fontSize: font.sm, fontWeight: '500' }}>{label}</Text>
+      <Text maxFontSizeMultiplier={1.15} style={{ color: active ? colors.onPrimary : colors.text, fontSize: font.sm, fontWeight: '500' }}>{label}</Text>
     </Pressable>
   );
 }
@@ -131,7 +131,7 @@ export function SectionHeader({ title, action, onAction }: { title: string; acti
       <T size="lg" weight="700">{title}</T>
       {action && onAction ? (
         <Pressable onPress={onAction} hitSlop={8}>
-          <Text style={{ color: colors.primary, fontWeight: '600', fontSize: font.sm }}>{action}</Text>
+          <Text maxFontSizeMultiplier={1.15} style={{ color: colors.primary, fontWeight: '600', fontSize: font.sm }}>{action}</Text>
         </Pressable>
       ) : null}
     </Row>
