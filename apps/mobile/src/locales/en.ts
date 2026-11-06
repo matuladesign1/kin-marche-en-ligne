@@ -666,5 +666,6 @@ const en: Record<TranslationKey, string> = {
   "cat.seeMore": "See more",
   "cat.hot": "Top sellers",
   "cat.emptyShort": "No items in this category yet.",
+  "search.photoRead": "Text read on the packaging: {terms}",
 };
 export default en;

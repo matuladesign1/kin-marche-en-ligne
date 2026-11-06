@@ -934,6 +934,7 @@ const fr = {
   "cat.seeMore": "Voir plus",
   "cat.hot": "Produits à succès",
   "cat.emptyShort": "Aucun article dans cette catégorie pour le moment.",
+  "search.photoRead": "Texte lu sur l’emballage : {terms}",
 } as const;
 
 export type TranslationKey = keyof typeof fr;

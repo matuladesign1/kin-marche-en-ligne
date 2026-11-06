@@ -902,5 +902,6 @@ const sw: Record<TranslationKey, string> = {
   "cat.seeMore": "Ona zaidi",
   "cat.hot": "Zinazouzwa sana",
   "cat.emptyShort": "Bado hakuna bidhaa katika kundi hili.",
+  "search.photoRead": "Maandishi yaliyosomwa kwenye kifurushi: {terms}",
 };
 export default sw;

@@ -1,0 +1,21 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'cd.kinmarche'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.kinvision"
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // Lecture du texte (alphabet latin) avec le modèle intégré à l'application :
+  // gratuit, sans compte Google Cloud ni carte bancaire, fonctionne sans Internet.
+  implementation 'com.google.mlkit:text-recognition:16.0.1'
+}

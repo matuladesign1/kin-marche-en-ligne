@@ -10,6 +10,7 @@ import type { CatalogItem } from './types';
 //  - le produit lui-même, recadré et redessiné en 8 × 8 (même taille quel que soit le cadrage).
 // On ne garde que l'article le plus proche s'il ressemble nettement (et ceux presque aussi proches),
 // avec les articles ressemblants de sa catégorie. Sinon : aucun résultat plutôt que des articles sans rapport.
+// Le nom lu sur l'emballage (lecture du texte sur le téléphone, voir textRecognition) passe avant tout.
 
 const B83 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~';
 /** Empreinte 9 × 9 (le maximum de Blurhash) : 166 caractères, commence par « | ». */
@@ -261,37 +262,120 @@ export function pickSimilar(ranked: Ranked[], categoryOf: (productId: string) =>
 }
 
 /** Articles du catalogue qui ressemblent à la photo (une offre par article, en stock et moins chère d'abord). */
-export async function findSimilarProducts(photoHash: string, opts: { storeId: string | null }): Promise<CatalogItem[]> {
-  const query = blurhashFeature(photoHash);
-  if (!query) throw new Error('NO_FEATURE');
-  const { data, error } = await supabase.rpc('visual_catalog');
+// --- Texte lu sur l'emballage (ML Kit, sur le téléphone) -------------------------------------
+// Le nom du produit écrit en grand sur l'emballage (Pepsi, Nutribom, Blévita…) désigne l'article exact.
+
+const STOP = new Set(['les', 'des', 'une', 'pour', 'avec', 'sans', 'dans', 'sur', 'par', 'aux', 'the', 'and', 'net', 'poids']);
+const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+/** Mots utiles d'un texte : 3 lettres au moins, sans accents, sans nombres seuls. */
+export function wordsOf(s: string): string[] {
+  return fold(s).split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !/^\d+$/.test(w) && !STOP.has(w));
+}
+
+function editDistance(a: string, b: string): number {
+  const prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let diag = prev[0];
+    prev[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = prev[j];
+      prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, diag + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diag = tmp;
+    }
+  }
+  return prev[b.length];
+}
+
+/** Même mot, en tolérant une erreur de lecture (deux pour les mots longs). */
+function sameWord(read: string, word: string): boolean {
+  if (read === word) return true;
+  const n = Math.min(read.length, word.length);
+  if (n < 5 || Math.abs(read.length - word.length) > 2) return false;
+  return editDistance(read, word) <= (n >= 8 ? 2 : 1);
+}
+
+/** Part des mots du nom lus sur la photo (0 à 1) ; au moins un mot de 4 lettres doit être lu. */
+export function textMatchScore(read: string[], names: string[]): number {
+  let best = 0;
+  for (const name of names) {
+    const ws = wordsOf(name);
+    if (!ws.length) continue;
+    let hit = 0;
+    let strong = false;
+    for (const w of ws) {
+      if (read.some((r) => sameWord(r, w))) { hit++; if (w.length >= 4) strong = true; }
+    }
+    if (strong) best = Math.max(best, hit / ws.length);
+  }
+  return best;
+}
+
+interface CatalogName { id: string; name: string; name_i18n: Record<string, string> | null }
+let namesCache: { at: number; rows: CatalogName[] } | null = null;
+async function catalogNames(): Promise<CatalogName[]> {
+  if (namesCache && Date.now() - namesCache.at < 10 * 60_000) return namesCache.rows;
+  const { data, error } = await supabase.from('products').select('id, name, name_i18n').eq('is_active', true).limit(5000);
   if (error) throw error;
-  const rows = (data ?? []) as VisualRow[];
+  namesCache = { at: Date.now(), rows: (data ?? []) as CatalogName[] };
+  return namesCache.rows;
+}
+const namesOf = (p: CatalogName) => [p.name, ...Object.values(p.name_i18n ?? {})].filter((v): v is string => typeof v === 'string' && !!v);
 
-  // Photos sans empreinte 6 × 6 : calculées ici une seule fois, puis enregistrées pour tout le monde.
-  const missing = rows.filter((r) => !r.blurhash || r.blurhash[0] !== '|').slice(0, MAX_BACKFILL);
-  for (let k = 0; k < missing.length; k += 3) {
-    await Promise.all(missing.slice(k, k + 3).map(async (r) => {
-      try {
-        const h = await photoBlurhash(r.url);
-        if (!h) return;
-        r.blurhash = h;
-        supabase.rpc('set_image_blurhash', { p_image: r.image_id, p_hash: h }).then(() => undefined);
-      } catch { /* photo illisible : ignorée */ }
-    }));
+export interface PhotoWord { text: string; /** Taille du mot par rapport à la photo (0 à 1). */ size: number }
+export interface PhotoSearchResult { items: CatalogItem[]; /** Mots lus sur la photo qui ont désigné un article. */ readWords: string[] }
+/** Taille minimale d'un mot lu (le nom est écrit en grand ; la liste des ingrédients est ignorée). */
+const MIN_WORD_SIZE = 0.03;
+
+/**
+ * Articles du catalogue qui correspondent à la photo :
+ * 1. le nom lu sur l'emballage désigne l'article exact ;
+ * 2. sinon, la ressemblance visuelle (couleurs et forme du produit) ;
+ * puis les articles ressemblants de la même catégorie. Une offre par article (en stock et moins chère d'abord).
+ */
+export async function findSimilarProducts(photoHash: string | null, opts: { storeId: string | null; words?: PhotoWord[] }): Promise<PhotoSearchResult> {
+  // 1. Texte lu sur l'emballage
+  const read = [...new Set((opts.words ?? []).filter((w) => w.size >= MIN_WORD_SIZE).flatMap((w) => wordsOf(w.text)))];
+  const textScore = new Map<string, number>();
+  const names = new Map<string, CatalogName>();
+  if (read.length) {
+    for (const p of await catalogNames()) {
+      const sc = textMatchScore(read, namesOf(p));
+      if (sc >= 0.5) { textScore.set(p.id, sc); names.set(p.id, p); }
+    }
   }
 
-  const best = new Map<string, number>();
-  for (const r of rows) {
-    const f = cachedFeature(r.blurhash);
-    if (!f) continue;
-    const s = visualSimilarity(query, f);
-    if (s > (best.get(r.product_id) ?? -1)) best.set(r.product_id, s);
+  // 2. Ressemblance visuelle
+  const visualScore = new Map<string, number>();
+  const query = blurhashFeature(photoHash);
+  if (query) {
+    const { data, error } = await supabase.rpc('visual_catalog');
+    if (error) throw error;
+    const rows = (data ?? []) as VisualRow[];
+    // Photos sans empreinte 9 × 9 : calculées ici une seule fois, puis enregistrées pour tout le monde.
+    const missing = rows.filter((r) => !r.blurhash || r.blurhash[0] !== '|').slice(0, MAX_BACKFILL);
+    for (let k = 0; k < missing.length; k += 3) {
+      await Promise.all(missing.slice(k, k + 3).map(async (r) => {
+        try {
+          const h = await photoBlurhash(r.url);
+          if (!h) return;
+          r.blurhash = h;
+          supabase.rpc('set_image_blurhash', { p_image: r.image_id, p_hash: h }).then(() => undefined);
+        } catch { /* photo illisible : ignorée */ }
+      }));
+    }
+    for (const r of rows) {
+      const f = cachedFeature(r.blurhash);
+      if (!f) continue;
+      const sc = visualSimilarity(query, f);
+      if (sc > (visualScore.get(r.product_id) ?? -1)) visualScore.set(r.product_id, sc);
+    }
   }
-  const ranked = [...best.entries()].map(([productId, score]) => ({ productId, score })).sort((a, b) => b.score - a.score).slice(0, 40);
-  if (!ranked.length || ranked[0].score < MIN_MATCH) return [];
+  const visual = [...visualScore.entries()].map(([productId, score]) => ({ productId, score })).sort((a, b) => b.score - a.score).slice(0, 40);
 
-  let q = supabase.from('catalog_items').select('*').in('product_id', ranked.map((r) => r.productId));
+  // 3. Offres des articles candidats
+  const ids = [...new Set([...textScore.keys(), ...visual.map((r) => r.productId)])];
+  if (!ids.length) return { items: [], readWords: [] };
+  let q = supabase.from('catalog_items').select('*').in('product_id', ids);
   if (opts.storeId) q = q.eq('store_id', opts.storeId);
   const { data: offers, error: e2 } = await q;
   if (e2) throw e2;
@@ -302,6 +386,27 @@ export async function findSimilarProducts(photoHash: string, opts: { storeId: st
       byProduct.set(it.product_id, it);
     }
   }
-  const available = ranked.filter((r) => byProduct.has(r.productId));
-  return pickSimilar(available, (id) => byProduct.get(id)?.category_id ?? null).map((r) => byProduct.get(r.productId)!);
+  const categoryOf = (id: string) => byProduct.get(id)?.category_id ?? null;
+  const available = visual.filter((r) => byProduct.has(r.productId));
+
+  // 4. Choix : nom lu d'abord ; sinon l'article nettement le plus ressemblant.
+  const byText = [...textScore.entries()].filter(([id]) => byProduct.has(id))
+    .sort((a, b) => b[1] - a[1] || (visualScore.get(b[0]) ?? 0) - (visualScore.get(a[0]) ?? 0))
+    .map(([productId, score]) => ({ productId, score }));
+  let chosen: Ranked[];
+  if (byText.length) {
+    chosen = [...byText];
+    const seen = new Set(chosen.map((r) => r.productId));
+    const cats = new Set(chosen.map((r) => categoryOf(r.productId)).filter(Boolean));
+    for (const r of available) {
+      if (chosen.length >= MAX_RESULTS) break;
+      if (!seen.has(r.productId) && r.score >= MIN_RELATED && cats.has(categoryOf(r.productId))) { chosen.push(r); seen.add(r.productId); }
+    }
+  } else {
+    chosen = pickSimilar(available, categoryOf);
+  }
+  const readWords = byText.length
+    ? read.filter((r) => byText.some((t) => { const p = names.get(t.productId); return !!p && namesOf(p).some((n) => wordsOf(n).some((w) => sameWord(r, w))); }))
+    : [];
+  return { items: chosen.map((r) => byProduct.get(r.productId)!), readWords };
 }

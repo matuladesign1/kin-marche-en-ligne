@@ -1,5 +1,4 @@
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
-import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import * as VideoThumbnails from 'expo-video-thumbnails';
@@ -15,22 +14,17 @@ import { supabase, unwrap } from '@/lib/supabase';
 import type { CatalogItem } from '@/lib/types';
 import { radius, spacing } from '@/lib/theme';
 import type { Language } from '@/lib/types';
+import { readPhotoText } from '@/lib/textRecognition';
 import { findSimilarProducts, photoBlurhash } from '@/lib/visualSearch';
-import { useAuth } from '@/providers/AuthProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 
 // Langues de reconnaissance vocale. Le lingala dépend du moteur installé sur le téléphone :
 // s'il n'est pas pris en charge, on bascule sur le français et on le signale.
 const SPEECH_LANG: Record<Language, string> = { fr: 'fr-FR', en: 'en-US', sw: 'sw-KE', ln: 'ln-CD' };
 
-// Google Cloud Vision (texte et marques de l'emballage) complète la recherche par photo quand il est activé
-// sur le projet Google ; sinon il n'est plus appelé de la session.
-let visionAvailable: boolean | null = null;
-
 export default function Search() {
   const params = useLocalSearchParams<{ promo?: string; q?: string; mode?: string }>();
   const { t, selectedStoreId, language, colors } = useSettings();
-  const { session } = useAuth();
   const [text, setText] = useState(params.q ?? '');
   const [query, setQuery] = useState(params.q ?? '');
   const [inStockOnly, setInStockOnly] = useState(false);
@@ -76,45 +70,18 @@ export default function Search() {
     setListening(true);
   };
 
-  const visionSearch = async (base64?: string | null) => {
-    if (!base64 || !session || visionAvailable === false) return null;
-    try {
-      const { data, error } = await supabase.functions.invoke('image-search', { body: { image_base64: base64, store_id: selectedStoreId } });
-      if (error) {
-        let code: string | undefined;
-        try { code = (await (error as { context?: Response }).context?.json())?.error; } catch { /* ignore */ }
-        if (code === 'VISION_API_ERROR' || code === 'VISION_NOT_CONFIGURED') visionAvailable = false;
-        return null;
-      }
-      visionAvailable = true;
-      return data as { terms: string[]; items: CatalogItem[] };
-    } catch {
-      return null;
-    }
-  };
-
-  // Recherche par photo similaire : empreinte de la photo calculée sur le téléphone, produits classés
-  // du plus ressemblant au moins ressemblant (voir lib/visualSearch). Vision s'y ajoute s'il est activé.
-  const runVisual = async (uri: string, base64?: string | null) => {
+  // Recherche par photo, entièrement sur le téléphone (voir lib/visualSearch) : le nom lu sur l'emballage
+  // désigne l'article exact ; sinon, l'article qui ressemble nettement (couleurs et forme) et sa catégorie.
+  const runVisual = async (uri: string) => {
     setPhotoMode(true);
     setVisualBusy(true);
     setVisualError(null);
     setVisual(null);
     try {
-      const hash = await photoBlurhash(uri);
-      if (!hash) throw new Error('NO_HASH');
-      const [similar, vision] = await Promise.all([
-        findSimilarProducts(hash, { storeId: selectedStoreId }),
-        visionSearch(base64),
-      ]);
-      const seen = new Set<string>();
-      const items: CatalogItem[] = [];
-      for (const it of [...(vision?.items ?? []).slice(0, 8), ...similar]) {
-        if (seen.has(it.product_id)) continue;
-        seen.add(it.product_id);
-        items.push(it);
-      }
-      setVisual({ photo: uri, terms: vision?.terms ?? [], items });
+      const [hash, words] = await Promise.all([photoBlurhash(uri).catch(() => null), readPhotoText(uri)]);
+      if (!hash && !words.length) throw new Error('NO_FEATURE');
+      const found = await findSimilarProducts(hash, { storeId: selectedStoreId, words });
+      setVisual({ photo: uri, terms: found.readWords, items: found.items });
     } catch {
       setVisualError(t('search.photoError'));
     } finally {
@@ -124,14 +91,14 @@ export default function Search() {
 
   const searchByPhoto = async (fromCamera: boolean) => {
     // Recadrage carré sur le produit : la comparaison porte sur le produit, pas sur le décor.
-    const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.5, base64: visionAvailable !== false, allowsEditing: true, aspect: [1, 1] };
+    const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.7, allowsEditing: true, aspect: [1, 1] };
     if (fromCamera) {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) return;
     }
     const res = fromCamera ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
     const asset = res.canceled ? null : res.assets[0];
-    if (asset) runVisual(asset.uri, asset.base64);
+    if (asset) runVisual(asset.uri);
     else if (!visual) setPhotoMode(false);   // photo annulée : retour à la recherche normale
   };
 
@@ -141,9 +108,8 @@ export default function Search() {
     if (res.canceled || !res.assets[0]) return;
     setVisualBusy(true);
     try {
-      const thumb = await VideoThumbnails.getThumbnailAsync(res.assets[0].uri, { time: 1000, quality: 0.5 });
-      const b64 = visionAvailable === false ? null : await FileSystem.readAsStringAsync(thumb.uri, { encoding: FileSystem.EncodingType.Base64 });
-      await runVisual(thumb.uri, b64);
+      const thumb = await VideoThumbnails.getThumbnailAsync(res.assets[0].uri, { time: 1000, quality: 0.7 });
+      await runVisual(thumb.uri);
     } catch {
       setVisualBusy(false);
       setVisualError(t('common.error'));
@@ -213,7 +179,7 @@ export default function Search() {
               <View style={{ flex: 1, gap: 2 }}>
                 <T weight="800">{t('search.photoResults')}</T>
                 {visual.items.length ? <T size="xs" muted>{t('search.photoSimilarHint')}</T> : null}
-                {visual.terms.length ? <T size="xs" muted numberOfLines={2}>{t('search.photoTerms', { terms: visual.terms.slice(0, 8).join(', ') })}</T> : null}
+                {visual.terms.length ? <T size="xs" muted numberOfLines={2}>{t('search.photoRead', { terms: visual.terms.slice(0, 6).join(', ').toUpperCase() })}</T> : null}
               </View>
             </View>
             {visual.items.length ? <ProductGrid items={visual.items} emptyMessage="" /> : <EmptyState icon="images-outline" message={t('search.photoNone')} />}

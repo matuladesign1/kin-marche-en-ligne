@@ -902,5 +902,6 @@ const ln: Record<TranslationKey, string> = {
   "cat.seeMore": "Tala mingi",
   "cat.hot": "Biloko etekami mingi",
   "cat.emptyShort": "Eloko ezali naino te na catégorie oyo.",
+  "search.photoRead": "Makomi etangami na emballage : {terms}",
 };
 export default ln;
