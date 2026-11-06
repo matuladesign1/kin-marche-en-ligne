@@ -36,8 +36,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=$(cat .github/smoke/tag 2>/dev/null || true)
-          gh release download $TAG --pattern '*.apk' --dir apk --repo "${{ github.repository }}"
+          TAG=$(cat .github/smoke/tag 2>/dev/null || gh api "repos/${{ github.repository }}/releases?per_page=1" --jq '.[0].tag_name')
+          echo "APK testé : $TAG"
+          gh release download "$TAG" --pattern '*.apk' --dir apk --repo "${{ github.repository }}"
           ls -l apk
 
       - name: Activer KVM
