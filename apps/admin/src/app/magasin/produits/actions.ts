@@ -50,8 +50,16 @@ function inventoryFields(f: FormData) {
 // Adresses publiques du stockage « product-media » envoyées par le navigateur (ProductMediaUpload).
 const MEDIA_PREFIX = `${(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, '')}/storage/v1/object/public/product-media/`;
 
-async function attachMedia(productId: string, urls: FormDataEntryValue[]) {
+const BLURHASH = /^U[\]0-9A-Za-z#$%*+,.:;=?@[^_{|}~-]{35}$/;
+
+async function attachMedia(productId: string, urls: FormDataEntryValue[], hashes: FormDataEntryValue[] = []) {
   const sb = await supabaseServer();
+  // « adresse empreinte » envoyé par ProductMediaUpload : empreinte visuelle de chaque photo.
+  const blurhashOf = new Map<string, string>();
+  for (const v of hashes) {
+    const [u, h] = String(v ?? '').split(' ');
+    if (u && h && BLURHASH.test(h)) blurhashOf.set(u, h);
+  }
   const { count } = await sb.from('product_images').select('id', { count: 'exact', head: true }).eq('product_id', productId);
   let order = count ?? 0;
   for (const v of urls) {
@@ -60,7 +68,7 @@ async function attachMedia(productId: string, urls: FormDataEntryValue[]) {
     const isVideo = /\.(mp4|mov|webm)$/i.test(url);
     const { error } = isVideo
       ? await sb.from('product_videos').insert({ product_id: productId, url, sort_order: order })
-      : await sb.from('product_images').insert({ product_id: productId, url, sort_order: order });
+      : await sb.from('product_images').insert({ product_id: productId, url, sort_order: order, blurhash: blurhashOf.get(url) ?? null });
     if (error) throw error;
     order++;
   }
@@ -88,7 +96,7 @@ export async function createProduct(formData: FormData) {
   const invRes = await sb.from('store_inventory').insert({ ...inv, store_id: storeId, product_id: productId }).select('id').single();
   if (invRes.error) redirect(`/magasin/produits/nouveau?err=${encodeURIComponent(invRes.error.message.includes('duplicate') ? 'Ce produit est déjà dans le catalogue de ce magasin.' : invRes.error.message)}`);
   try {
-    await attachMedia(productId!, formData.getAll('media_url'));
+    await attachMedia(productId!, formData.getAll('media_url'), formData.getAll('media_blurhash'));
   } catch (e) {
     redirect(`/magasin/produits/${invRes.data.id}?err=${encodeURIComponent('Produit créé, mais l’envoi des photos a échoué : ' + (e as Error).message)}`);
   }
@@ -109,7 +117,7 @@ export async function updateProduct(formData: FormData) {
   const r2 = await sb.from('store_inventory').update(inv).eq('id', invId);
   if (r2.error) back('err=' + encodeURIComponent(r2.error.message));
   try {
-    await attachMedia(productId, formData.getAll('media_url'));
+    await attachMedia(productId, formData.getAll('media_url'), formData.getAll('media_blurhash'));
   } catch (e) {
     back('err=' + encodeURIComponent((e as Error).message));
   }

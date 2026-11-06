@@ -11,7 +11,7 @@ export function isFeedFilter(v: unknown): v is FeedFilter {
 }
 
 export type Feed =
-  | { kind: 'all'; storeId?: string | null; filter?: FeedFilter }
+  | { kind: 'all'; storeId?: string | null; filter?: FeedFilter; /** Catégorie choisie et ses sous-catégories. */ categoryIds?: string[] | null }
   | { kind: 'featured' }
   | { kind: 'recent' }
   | { kind: 'similar'; productId: string; categoryId: string | null; storeId?: string | null };
@@ -29,6 +29,7 @@ export function useProductFeed(feed: Feed, enabled = true) {
       switch (feed.kind) {
         case 'all':
           if (feed.storeId) q = q.eq('store_id', feed.storeId);
+          if (feed.categoryIds?.length) q = q.in('category_id', feed.categoryIds);
           switch (feed.filter ?? 'all') {
             case 'promo':
               q = q.eq('on_promo', true).order('in_stock', { ascending: false }).order('sold_count', { ascending: false });
