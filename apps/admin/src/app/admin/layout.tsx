@@ -38,6 +38,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       ...(user.isSuper ? [
         { href: '/admin/fidelite', label: 'Cartes fidélité', icon: 'card', badge: loyaltyToVerify },
         { href: '/admin/roue', label: 'Roue de la chance', icon: 'wheel', badge: giftsToHand },
+        { href: '/admin/campagnes', label: 'Campagnes (push, WhatsApp, e-mail)', icon: 'megaphone' },
       ] : []),
       ...(can('marketing') ? [{ href: '/admin/marketing', label: 'Coupons, bannières, partenaires', icon: 'tag' }] : []),
     ] },

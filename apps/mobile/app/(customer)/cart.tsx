@@ -95,6 +95,7 @@ export default function Cart() {
       title={t('cart.featured')}
       refreshing={cart.isRefetching}
       onRefresh={() => cart.refetch()}
+      endFooter={false}
     />
   );
 }

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import { bannersQuery } from '@/components/BannerCarousel';
 import { LoadingScreen } from '@/components/KinLoader';
+import { PromoPopup } from '@/components/PromoPopup';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SettingsProvider, useSettings } from '@/providers/SettingsProvider';
@@ -117,7 +118,7 @@ function Navigator() {
         <Stack.Screen name="order/review/[id]" options={{ title: t('review.title') }} />
         <Stack.Screen name="auth-callback" options={{ headerShown: false }} />
         <Stack.Screen name="store-admin/index" options={{ title: t('role.storeAdmin') }} />
-        <Stack.Screen name="driver/index" options={{ title: t('driver.spaceTitle') }} />
+        <Stack.Screen name="driver/index" options={{ headerShown: false }} />
         <Stack.Screen name="driver/offers" options={{ title: t('driver.availableRuns') }} />
         <Stack.Screen name="driver/history" options={{ title: t('driver.history') }} />
         <Stack.Screen name="driver/mission/[id]" options={{ title: t('driver.mission') }} />
@@ -126,6 +127,7 @@ function Navigator() {
         <Stack.Screen name="driver-signup" options={{ title: t('driver.signupTitle') }} />
         <Stack.Screen name="admin/index" options={{ title: t('role.superAdmin') }} />
       </Stack>
+      <PromoPopup />
       <StartupOverlay />
     </>
   );

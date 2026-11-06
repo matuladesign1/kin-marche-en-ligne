@@ -3,17 +3,18 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
-import { ensureChannels, ensurePermission, openNotification, setPushActive } from '@/lib/notify';
+import { ensureChannels, ensurePermission, isChatOpen, openNotification, setPushActive } from '@/lib/notify';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
+  // Application ouverte : un message de la conversation affichée ne sonne pas ;
+  // une promotion s'affiche en grande carte dans l'application (PromoPopup) plutôt qu'en bandeau.
+  handleNotification: async (notification) => {
+    const data = (notification.request.content.data ?? {}) as Record<string, unknown>;
+    const quiet = (data.kind === 'message' && isChatOpen(data.ticket_id)) || data.kind === 'promo';
+    return { shouldShowBanner: !quiet, shouldShowList: true, shouldPlaySound: !quiet, shouldSetBadge: false };
+  },
 });
 
 /**

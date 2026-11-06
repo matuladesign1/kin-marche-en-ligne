@@ -1,12 +1,13 @@
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { Platform } from 'react-native';
+import { openAppLink } from './links';
 
 // Notifications affichées directement sur le téléphone.
 // - « push » : envoyées par le serveur (fonctionne même application fermée, si Firebase est configuré au build) ;
 // - « locales » : affichées par l'application elle-même (bienvenue, et suivi en direct quand le push n'est pas disponible).
 
-export type NotificationChannel = 'orders' | 'missions' | 'general';
+export type NotificationChannel = 'orders' | 'missions' | 'messages' | 'promos' | 'general';
 
 let channelsReady: Promise<void> | null = null;
 let pushActive = false;
@@ -24,6 +25,14 @@ export function ensureChannels(): Promise<void> {
       });
       await Notifications.setNotificationChannelAsync('missions', {
         name: 'Missions de livraison', importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 400, 200, 400],
+      });
+      // Messages de l'assistant et du livreur : bannière en haut de l'écran, son et vibration.
+      await Notifications.setNotificationChannelAsync('messages', {
+        name: 'Messages (assistant et livreur)', importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 200, 120, 200],
+      });
+      // Promotions (photo en grand) : le client peut les couper séparément dans les réglages du téléphone.
+      await Notifications.setNotificationChannelAsync('promos', {
+        name: 'Promotions', importance: Notifications.AndroidImportance.HIGH,
       });
     })().catch(() => {
       channelsReady = null;
@@ -56,7 +65,18 @@ export function isPushActive(): boolean {
 export function channelForKind(kind: string | undefined): NotificationChannel {
   if (kind === 'delivery_offer') return 'missions';
   if (kind === 'order_status' || kind === 'new_order' || kind === 'no_driver') return 'orders';
+  if (kind === 'message' || kind === 'ticket') return 'messages';
+  if (kind === 'promo' || kind === 'marketing') return 'promos';
   return 'general';
+}
+
+// Conversation affichée à l'écran : ses nouveaux messages ne sonnent pas (le client les voit déjà).
+let openChat: string | null = null;
+export function setOpenChat(ticketId: string | null): void {
+  openChat = ticketId;
+}
+export function isChatOpen(ticketId: unknown): boolean {
+  return !!openChat && openChat === ticketId;
 }
 
 /** Affiche immédiatement une notification sur le téléphone. */
@@ -81,6 +101,11 @@ export function openNotification(n: { kind: string; data?: Record<string, unknow
   const d = n.data ?? {};
   const orderId = typeof d.order_id === 'string' ? d.order_id : null;
   const ticketId = typeof d.ticket_id === 'string' ? d.ticket_id : null;
+  if (n.kind === 'promo' || n.kind === 'marketing') {
+    // Promotion : produit, catégorie, promotions ou site web ; sans lien, la boîte « Messages » qui l'affiche en grand.
+    if (!openAppLink(d.link_type, d.link_value)) router.push('/(customer)/messages');
+    return;
+  }
   if (n.kind === 'wheel' || d.screen === 'wheel') router.push('/wheel');
   else if (n.kind === 'loyalty' || d.screen === 'loyalty') router.push('/loyalty');
   else if (n.kind === 'delivery_offer') router.push('/driver/offers');

@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Alert, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useDeleteNotifications, useMarkNotificationsRead, useNotifications, useUnreadCount } from '@/hooks/data';
 import { timeAgo } from '@/lib/format';
+import { hasAppLink } from '@/lib/links';
 import { openNotification } from '@/lib/notify';
 import { TO_RECEIVE } from '@/lib/orders';
 import { radius, spacing } from '@/lib/theme';
@@ -43,6 +45,42 @@ function KindIcon({ n }: { n: AppNotification }) {
     <View style={[styles.kindIcon, { backgroundColor: colors.surfaceAlt }]}>
       {custom ?? <Ionicons name={icon} size={22} color={color} />}
     </View>
+  );
+}
+
+/** Promotion de l'administration : photo en grand (format 2:1 du push), titre, texte et « Voir l'offre ». */
+function PromoCard({ n, onOpen, onDelete }: { n: AppNotification; onOpen: () => void; onDelete: () => void }) {
+  const { t, language, colors } = useSettings();
+  const d = n.data ?? {};
+  const image = typeof d.image_url === 'string' ? d.image_url : null;
+  return (
+    <Pressable onPress={onOpen} accessibilityRole="button"
+      style={({ pressed }) => [styles.promo, { backgroundColor: colors.surface, opacity: pressed ? 0.92 : 1 }]}>
+      <View style={styles.promoHead}>
+        <Ionicons name="pricetags" size={15} color={colors.primary} />
+        <T size="xs" weight="800" color={colors.primary} style={{ flex: 1 }}>{t('promo.label').toUpperCase()}</T>
+        <T size="xs" muted>{timeAgo(n.created_at, language, t)}</T>
+        {!n.read_at ? <View style={[styles.dot, { backgroundColor: colors.primary }]} /> : null}
+        <Pressable onPress={onDelete} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('inbox.delete')}
+          style={({ pressed }) => [styles.trash, { opacity: pressed ? 0.5 : 1 }]}>
+          <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
+        </Pressable>
+      </View>
+      {image ? (
+        <Image source={{ uri: image }} style={[styles.promoImage, { backgroundColor: colors.surfaceAlt }]} contentFit="cover" transition={200}
+          accessibilityLabel={n.title} />
+      ) : null}
+      <View style={{ gap: 4 }}>
+        <T weight={n.read_at ? '700' : '800'}>{n.title}</T>
+        {n.body ? <T size="sm" muted numberOfLines={4}>{n.body}</T> : null}
+      </View>
+      {hasAppLink(d.link_type, d.link_value) ? (
+        <View style={[styles.promoCta, { backgroundColor: colors.primary }]}>
+          <T size="sm" weight="800" color="#FFFFFF">{t('promo.cta')}</T>
+          <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+        </View>
+      ) : null}
+    </Pressable>
   );
 }
 
@@ -129,8 +167,11 @@ export function Inbox() {
       keyExtractor={(n) => n.id}
       ListHeaderComponent={header}
       contentContainerStyle={{ paddingBottom: spacing.xxl }}
-      ItemSeparatorComponent={() => <View style={[styles.sep, { backgroundColor: colors.border }]} />}
-      renderItem={({ item: n }) => (
+      ItemSeparatorComponent={({ leadingItem, trailingItem }: { leadingItem?: AppNotification; trailingItem?: AppNotification }) =>
+        leadingItem?.kind === 'promo' || trailingItem?.kind === 'promo' ? null : <View style={[styles.sep, { backgroundColor: colors.border }]} />}
+      renderItem={({ item: n }) => n.kind === 'promo' ? (
+        <PromoCard n={n} onOpen={() => { if (!n.read_at) markRead.mutate([n.id]); openNotification(n); }} onDelete={() => del.mutate([n.id])} />
+      ) : (
         <Pressable
           onPress={() => { if (!n.read_at) markRead.mutate([n.id]); openNotification(n); }}
           accessibilityRole="button"
@@ -167,4 +208,8 @@ const styles = StyleSheet.create({
   kindIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 9, height: 9, borderRadius: 5 },
   sep: { height: StyleSheet.hairlineWidth, marginLeft: 76 },
+  promo: { marginHorizontal: spacing.md, marginVertical: spacing.sm, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm },
+  promoHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  promoImage: { width: '100%', aspectRatio: 2, borderRadius: radius.md },
+  promoCta: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: radius.pill, paddingHorizontal: spacing.lg, paddingVertical: 9 },
 });

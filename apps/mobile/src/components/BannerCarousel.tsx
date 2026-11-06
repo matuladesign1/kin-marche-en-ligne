@@ -1,11 +1,11 @@
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Easing, Linking, Pressable, StyleSheet, View, type FlatList } from 'react-native';
+import { Animated, Dimensions, Easing, Pressable, StyleSheet, View, type FlatList } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { localized } from '@/lib/i18n';
+import { openAppLink } from '@/lib/links';
 import { supabase } from '@/lib/supabase';
 import { radius, spacing } from '@/lib/theme';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -53,14 +53,7 @@ export function useBanners(placement: BannerPlacement = 'home') {
 }
 
 function openBanner(b: Banner) {
-  if (!b.link_value && b.link_type !== 'promotion') return;
-  switch (b.link_type) {
-    case 'product': router.push(`/product/${b.link_value}`); break;
-    case 'category': router.push(`/category/${b.link_value}`); break;
-    case 'promotion': router.push('/search?promo=1'); break;
-    case 'url': if (b.link_value && /^https:\/\//.test(b.link_value)) Linking.openURL(b.link_value); break;
-    default: break;
-  }
+  openAppLink(b.link_type, b.link_value);
 }
 
 function VideoSlide({ uri, poster, active }: { uri: string; poster: string; active: boolean }) {

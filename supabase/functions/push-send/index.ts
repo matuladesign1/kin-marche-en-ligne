@@ -17,10 +17,15 @@ Deno.serve(async (req) => {
 
   // Même canal Android que l'application (lib/notify.ts : channelForKind).
   const channelId = n.kind === 'delivery_offer' ? 'missions'
-    : ['order_status', 'new_order', 'no_driver'].includes(n.kind) ? 'orders' : 'general';
+    : ['order_status', 'new_order', 'no_driver'].includes(n.kind) ? 'orders'
+    : ['message', 'ticket'].includes(n.kind) ? 'messages'
+    : ['promo', 'marketing'].includes(n.kind) ? 'promos' : 'general';
+  // Promotion avec photo : affichée en grand dans la notification (Android l'affiche directement).
+  const image = typeof n.data?.image_url === 'string' && /^https:\/\//.test(n.data.image_url) ? n.data.image_url : null;
   const messages = tokens.map((t) => ({
     to: t.token, title: n.title, body: n.body ?? undefined, sound: 'default', priority: 'high',
     channelId,
+    ...(image ? { richContent: { image } } : {}),
     data: { ...(n.data ?? {}), notification_id: n.id, kind: n.kind },
   }));
   const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };

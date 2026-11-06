@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { channelForKind, isPushActive, presentLocal } from '@/lib/notify';
+import { showPromo } from '@/components/PromoPopup';
+import { channelForKind, isChatOpen, isPushActive, presentLocal } from '@/lib/notify';
 import { supabase } from '@/lib/supabase';
 import type { AppNotification, NotificationCategory } from '@/lib/types';
 import { useAuth } from '@/providers/AuthProvider';
@@ -46,11 +48,16 @@ export function useLiveNotifications() {
           qc.invalidateQueries({ queryKey: qk.myCoupons });
         }
 
-        // Chaque notification s'affiche aussi sur le téléphone (bienvenue et gains de la roue compris),
-        // sauf si le push du serveur s'en charge déjà ou si le client a coupé cette catégorie.
-        if (isPushActive()) return;
         const cat = categoryOf(n.kind);
         if (cat !== 'system' && prefs.current?.[cat] === false) return;
+        // Message de la conversation ouverte à l'écran : déjà visible, pas d'alerte.
+        if (cat === 'messages' && isChatOpen(n.data?.ticket_id)) return;
+        // Promotion reçue application ouverte : grande carte avec la photo en entier.
+        if (cat === 'promos' && AppState.currentState === 'active') { showPromo(n); return; }
+
+        // Chaque notification s'affiche aussi sur le téléphone (bienvenue, messages de l'assistant et du livreur,
+        // gains de la roue…), sauf si le push du serveur s'en charge déjà ou si le client a coupé cette catégorie.
+        if (isPushActive()) return;
         presentLocal({
           title: n.title,
           body: n.body,

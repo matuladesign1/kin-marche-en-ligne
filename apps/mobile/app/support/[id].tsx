@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -10,6 +10,7 @@ import { Button, Input, Notice, Row, T } from '@/components/ui';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { conversationSubtitle, conversationTitle, dayLabel, type Channel, type ChatMessage, type Ticket } from '@/lib/chat';
 import { errorMessage } from '@/lib/errors';
+import { setOpenChat } from '@/lib/notify';
 import type { TranslationKey } from '@/lib/i18n';
 import { supabase, unwrap } from '@/lib/supabase';
 import { radius, spacing } from '@/lib/theme';
@@ -36,6 +37,11 @@ export default function Chat() {
   const [found, setFound] = useState<OrderInfo | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const uid = session?.user.id;
+  // Conversation à l'écran : ses nouveaux messages ne déclenchent pas d'alerte sur le téléphone.
+  useFocusEffect(useCallback(() => {
+    setOpenChat(ticketId);
+    return () => setOpenChat(null);
+  }, [ticketId]));
   const dark = isDark;
   const chatBg = dark ? '#0E1116' : '#F5EFEB';
   const mineBg = dark ? '#5B1D1A' : '#FDDCD9';
