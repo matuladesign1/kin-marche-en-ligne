@@ -15,7 +15,7 @@ const base = {
   "splash": {
     "image": "./assets/images/splash-logo.png",
     "resizeMode": "contain",
-    "backgroundColor": "#CE0000"
+    "backgroundColor": "#FFFFFF"
   },
   "ios": {
     "supportsTablet": true,
@@ -76,7 +76,7 @@ const base = {
         "image": "./assets/images/splash-logo.png",
         "imageWidth": 220,
         "resizeMode": "contain",
-        "backgroundColor": "#CE0000"
+        "backgroundColor": "#FFFFFF"
       }
     ],
     [

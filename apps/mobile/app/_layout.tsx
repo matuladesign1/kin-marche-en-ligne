@@ -47,7 +47,7 @@ function StartupOverlay() {
   if (gone) return null;
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { zIndex: 10, opacity }]} pointerEvents={loading ? 'auto' : 'none'}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <LoadingScreen onLayout={hideSplash} />
     </Animated.View>
   );

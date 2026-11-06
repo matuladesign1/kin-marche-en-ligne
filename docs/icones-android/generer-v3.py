@@ -1,7 +1,7 @@
 """Kin Marché en ligne : icône de l'application, icône de notification et logo « ligne » (novembre 2026, v3).
 
   sources/km-icone-blanche.png  carré arrondi clair, logo en couleurs  → icône de l'application (toutes tailles)
-  sources/km-logo-ligne.png     logo « ligne » (anneau et chariot turquoise) → notifications push, animation de chargement
+  sources/km-logo-ligne.png     logo « ligne » (anneau et chariot turquoise) → notifications push, animation de chargement (fond blanc)
 
 Le fond clair du carré est reconstruit (ajustement quadratique par couleur) pour séparer le logo du fond pixel par
 pixel (alpha minimal), puis le recomposer à toutes les tailles sans halo. Le logo « ligne » est séparé du blanc de la
@@ -142,16 +142,12 @@ print('Turquoise du logo « ligne » : #%02X%02X%02X' % tuple(int(round(v)) for 
 
 
 def logo_ball(D):
-    """Boule du logo : sphère rouge Kin Marché (volume) sous le logo « ligne », anneau blanc au bord."""
+    """Boule du logo : sphère blanche (même volume que les boules des produits) sous le logo « ligne »."""
     v, u = np.mgrid[0:D, 0:D].astype(np.float64)
     r = np.clip(np.hypot((u + 0.5) / D - 0.36, (v + 0.5) / D - 0.30) / 0.75, 0, 1)
-    R = np.interp(r, [0, 0.55, 1], [242, 206, 150])
-    G = np.interp(r, [0, 0.55, 1], [34, 0, 0])
-    ball = Image.fromarray(np.uint8(np.dstack([R, G, G, np.full_like(R, 255)]).round()), 'RGBA')
-    inner = round(D * 0.97)                         # le rouge s'arrête sous l'anneau blanc
-    disc = Image.new('L', (D, D), 0)
-    disc.paste(disc_mask(inner), ((D - inner) // 2, (D - inner) // 2))
-    ball.putalpha(disc)
+    g = np.interp(r, [0, 0.7, 1], [255, 243, 220])
+    ball = Image.fromarray(np.uint8(np.dstack([g, g, g, np.full_like(g, 255)]).round()), 'RGBA')
+    ball.putalpha(disc_mask(D))
     ball.alpha_composite(resized(badge, (D, D)))
     return ball
 
@@ -165,7 +161,7 @@ notif = Image.new('RGBA', (96, 96), (255, 255, 255, 0))
 notif.alpha_composite(small, (4, 4))
 save(notif, 'notification-icon.png')
 
-# ── 4. Écran de démarrage : la boule du logo, même taille et même place que la première image de l'animation ──
+# ── 4. Écran de démarrage (fond blanc) : la boule du logo, même taille et même place que la première image de l'animation ──
 C = 1200
 D = round(C * 112 / 220)                            # image de 220 dp → boule de 112 dp
 splash = Image.new('RGBA', (C, C), (0, 0, 0, 0))
@@ -197,7 +193,7 @@ nb.alpha_composite(resized(notif, (24, 24)), (210, 52))
 tint = Image.new('RGBA', (96, 96), tuple(int(round(x)) for x in teal) + (255,)); tint.putalpha(notif.split()[3])
 nb.alpha_composite(tint, (20, 150))
 sheet.alpha_composite(nb, (1010, 20))
-red = Image.new('RGBA', (330, 300), (206, 0, 0, 255))
+red = Image.new('RGBA', (330, 300), (255, 255, 255, 255))
 red.alpha_composite(resized(sphere, (180, 180)), (75, 60))
 sheet.alpha_composite(red, (1370, 20))
 sheet.save(os.path.join(OUT, 'apercu-v3.png'))

@@ -7,12 +7,14 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { KM_RED, KM_TURQUOISE, LoadingDots, LoadingScreen } from '@/components/KinLoader';
+import { KM_TURQUOISE, LoadingDots, LoadingScreen } from '@/components/KinLoader';
 import { useAppUpdate } from '@/hooks/data';
 import { useSettings } from '@/providers/SettingsProvider';
 
 type Phase = 'checking' | 'downloading' | 'done' | 'error' | 'latest';
 const FLAG_GRANT_READ_URI_PERMISSION = 1;
+const INK = '#1B1D22';
+const INK_SOFT = '#5B6170';
 
 /**
  * Mise à jour de l'application : téléchargement de l'APK dans l'application, avec la même animation
@@ -127,7 +129,7 @@ export default function UpdateScreen() {
   } else if (phase === 'latest') {
     body = (
       <>
-        <Ionicons name="checkmark-circle" size={36} color="#FFFFFF" />
+        <Ionicons name="checkmark-circle" size={36} color={KM_TURQUOISE} />
         <Text style={styles.status}>{t('update.latest')}</Text>
         <Action label={t('common.close')} onPress={close} />
       </>
@@ -135,7 +137,7 @@ export default function UpdateScreen() {
   } else if (phase === 'error') {
     body = (
       <>
-        <Ionicons name="cloud-offline-outline" size={36} color="#FFFFFF" />
+        <Ionicons name="cloud-offline-outline" size={36} color={INK_SOFT} />
         <Text style={styles.status}>{update.data ? t('update.error') : t('update.checkError')}</Text>
         <Action label={t('common.retry')} onPress={retry} />
         <Action label={t('common.close')} onPress={close} ghost />
@@ -165,13 +167,13 @@ export default function UpdateScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <LoadingScreen>
         <View style={styles.panel}>{body}</View>
       </LoadingScreen>
       <Pressable onPress={close} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common.close')}
         style={[styles.closeBtn, { top: insets.top + 8 }]}>
-        <Ionicons name="close" size={26} color="#FFFFFF" />
+        <Ionicons name="close" size={26} color={INK} />
       </Pressable>
     </View>
   );
@@ -181,24 +183,24 @@ function Action({ label, onPress, ghost }: { label: string; onPress: () => void;
   return (
     <Pressable onPress={onPress} accessibilityRole="button"
       style={({ pressed }) => [styles.action, ghost ? styles.actionGhost : null, { opacity: pressed ? 0.85 : 1 }]}>
-      <Text style={[styles.actionText, ghost ? { color: '#FFFFFF' } : null]}>{label}</Text>
+      <Text style={[styles.actionText, ghost ? { color: INK } : null]}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   panel: { alignSelf: 'stretch', alignItems: 'center', gap: 12, maxWidth: 420, width: '100%' },
-  status: { color: '#FFFFFF', fontSize: 15, fontWeight: '600', textAlign: 'center' },
-  version: { color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: '600' },
+  status: { color: INK, fontSize: 15, fontWeight: '600', textAlign: 'center' },
+  version: { color: INK_SOFT, fontSize: 13, fontWeight: '600' },
   row: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', alignSelf: 'stretch' },
-  label: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', flexShrink: 1 },
-  pct: { color: '#FFFFFF', fontSize: 30, fontWeight: '900', fontVariant: ['tabular-nums'] },
-  track: { alignSelf: 'stretch', height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.22)', overflow: 'hidden' },
+  label: { color: INK, fontSize: 15, fontWeight: '700', flexShrink: 1 },
+  pct: { color: INK, fontSize: 30, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  track: { alignSelf: 'stretch', height: 10, borderRadius: 5, backgroundColor: '#E7E9EE', overflow: 'hidden' },
   fill: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '100%', backgroundColor: KM_TURQUOISE, borderRadius: 5, transformOrigin: 'left' },
-  bytes: { color: 'rgba(255,255,255,0.88)', fontSize: 13, fontWeight: '600', alignSelf: 'flex-start', fontVariant: ['tabular-nums'] },
-  hint: { color: 'rgba(255,255,255,0.8)', fontSize: 12, textAlign: 'center', lineHeight: 17 },
-  action: { marginTop: 4, minWidth: 220, paddingHorizontal: 22, paddingVertical: 13, borderRadius: 999, backgroundColor: '#FFFFFF', alignItems: 'center' },
-  actionGhost: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.7)' },
-  actionText: { color: KM_RED, fontSize: 15, fontWeight: '800' },
-  closeBtn: { position: 'absolute', left: 14, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.18)' },
+  bytes: { color: INK_SOFT, fontSize: 13, fontWeight: '600', alignSelf: 'flex-start', fontVariant: ['tabular-nums'] },
+  hint: { color: INK_SOFT, fontSize: 12, textAlign: 'center', lineHeight: 17 },
+  action: { marginTop: 4, minWidth: 220, paddingHorizontal: 22, paddingVertical: 13, borderRadius: 999, backgroundColor: KM_TURQUOISE, alignItems: 'center' },
+  actionGhost: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#C9CDD6' },
+  actionText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  closeBtn: { position: 'absolute', left: 14, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1F2F5' },
 });

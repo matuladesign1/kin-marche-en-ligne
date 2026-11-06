@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Ellipse, G, Path, RadialGradient, Stop } from 'react-native-svg';
 import ICONS from './loader/icons.json';
 
 /**
@@ -15,7 +15,7 @@ import ICONS from './loader/icons.json';
 export const KM_RED = '#CE0000';
 /** Turquoise du logo « ligne » (anneau et chariot). */
 export const KM_TURQUOISE = '#1CB7B8';
-/** Boule du logo : logo « ligne » officiel (anneau blanc, lettres blanches, anneau et chariot turquoise) sur sphère rouge. */
+/** Boule du logo : logo « ligne » officiel (anneau blanc, lettres claires, anneau et chariot turquoise) sur sphère blanche. */
 const LOGO_BALL = require('../../assets/images/logo-ball.png');
 
 type LineIcon = { key: string; label: string; paths: { d: string; accent?: boolean }[] };
@@ -57,7 +57,7 @@ const Ball = memo(function Ball({ step, size, onRed }: { step: number; size: num
 
 /**
  * Boule qui rebondit et se transforme. `size` : diamètre de la boule ; `jump` : hauteur du saut ;
- * `onRed` : version pour fond rouge (anneau blanc autour du logo, ombre plus sombre).
+ * `onRed` : version pour un fond rouge (ombre plus sombre, boules sans contour gris).
  */
 export function KinLoader({ size = 96, jump, onRed = false, style }: { size?: number; jump?: number; onRed?: boolean; style?: StyleProp<ViewStyle> }) {
   const H = jump ?? Math.round(size * 0.95);
@@ -177,12 +177,14 @@ export function LoadingDots({ color = KM_TURQUOISE }: { color?: string }) {
   );
 }
 
+/** Fond des écrans de chargement (identique à l'écran natif d'ouverture). */
+export const SCREEN_BG = '#FFFFFF';
 const SCREEN_BALL = 112;
 const SCREEN_JUMP = 104;
 const SCREEN_SHADOW = Math.max(4, SCREEN_BALL * 0.14);
 
 /**
- * Écran de chargement plein écran (démarrage, téléchargement de la mise à jour) : fond rouge Kin Marché
+ * Écran de chargement plein écran (démarrage, téléchargement de la mise à jour) : fond blanc
  * et la boule animée seule, sans texte. Au repos, la boule est au centre exact de l'écran, à la même place
  * et à la même taille que l'image de l'écran natif : le passage de l'un à l'autre ne se voit pas.
  * `children` s'affiche sous la boule (par exemple la progression du téléchargement).
@@ -190,18 +192,8 @@ const SCREEN_SHADOW = Math.max(4, SCREEN_BALL * 0.14);
 export function LoadingScreen({ children, onLayout }: { children?: ReactNode; onLayout?: () => void }) {
   return (
     <View style={styles.screen} onLayout={onLayout} accessibilityRole="progressbar" accessibilityLabel="Kin Marché">
-      <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-        <Defs>
-          <LinearGradient id="kmScreen" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor="#DE0000" />
-            <Stop offset="0.55" stopColor={KM_RED} />
-            <Stop offset="1" stopColor="#A00000" />
-          </LinearGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill="url(#kmScreen)" />
-      </Svg>
       <View style={styles.content}>
-        <KinLoader size={SCREEN_BALL} jump={SCREEN_JUMP} onRed style={{ transform: [{ translateY: -(SCREEN_JUMP - SCREEN_SHADOW) / 2 }] }} />
+        <KinLoader size={SCREEN_BALL} jump={SCREEN_JUMP} style={{ transform: [{ translateY: -(SCREEN_JUMP - SCREEN_SHADOW) / 2 }] }} />
       </View>
       {children ? <View style={styles.below}>{children}</View> : null}
     </View>
@@ -212,7 +204,7 @@ const styles = StyleSheet.create({
   shadow: { position: 'absolute', bottom: 0 },
   dots: { flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', height: 16 },
   dot: { width: 7, height: 7, borderRadius: 4 },
-  screen: { ...StyleSheet.absoluteFillObject, backgroundColor: KM_RED },
+  screen: { ...StyleSheet.absoluteFillObject, backgroundColor: SCREEN_BG },
   content: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   below: { position: 'absolute', left: 28, right: 28, top: '50%', marginTop: SCREEN_BALL / 2 + 36, alignItems: 'center' },
 });
