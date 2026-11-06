@@ -1,25 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { AUDIENCES, LINKS, type Audiences, type ChannelState } from '@/lib/campaigns';
 import { supabaseBrowser } from '@/lib/supabase-browser';
 
-export type Audiences = {
-  segments: Partial<Record<'all' | 'buyers' | 'new' | 'lapsed', { customers: number; phone: number; email: number }>>;
-  cities: { city: string; customers: number }[];
-};
-export type ChannelState = { email: boolean; whatsapp: boolean; push_devices: number };
 type Option = { id: string; name: string };
-
-export const AUDIENCES: Record<string, string> = {
-  all: 'Tous les clients',
-  buyers: 'Clients ayant déjà commandé',
-  new: 'Nouveaux clients (aucune commande)',
-  lapsed: 'Clients inactifs depuis 30 jours',
-  city: 'Clients d’une ville',
-};
-export const LINKS: Record<string, string> = {
-  promotion: 'Page des promotions', product: 'Un produit', category: 'Une catégorie', url: 'Un site web',
-};
 
 /** Photo de la promotion : redimensionnée dans le navigateur (1440 px max, JPEG), puis envoyée au stockage « branding ». */
 async function prepareImage(file: File): Promise<{ blob: Blob; width: number; height: number }> {
