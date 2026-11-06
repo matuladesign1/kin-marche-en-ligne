@@ -4,7 +4,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, Easing, Linking, Pressable, StyleSheet, View, type FlatList } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions, useQuery } from '@tanstack/react-query';
 import { localized } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { radius, spacing } from '@/lib/theme';
@@ -32,8 +32,9 @@ export const MESSAGES_BANNER_RATIO = 1667 / 238;
 const IMAGE_MS = 5000;
 const VIDEO_MS = 9000;
 
-export function useBanners(placement: BannerPlacement = 'home') {
-  return useQuery({
+/** Requête des bannières d'un emplacement (partagée avec le préchargement au démarrage). */
+export function bannersQuery(placement: BannerPlacement) {
+  return queryOptions({
     queryKey: ['banners', placement],
     staleTime: 5 * 60_000,
     queryFn: async () => {
@@ -45,6 +46,10 @@ export function useBanners(placement: BannerPlacement = 'home') {
         (!b.starts_at || new Date(b.starts_at).getTime() <= now) && (!b.ends_at || new Date(b.ends_at).getTime() > now));
     },
   });
+}
+
+export function useBanners(placement: BannerPlacement = 'home') {
+  return useQuery(bannersQuery(placement));
 }
 
 function openBanner(b: Banner) {

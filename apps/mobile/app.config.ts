@@ -39,7 +39,8 @@ const base = {
       "CAMERA",
       "ACCESS_COARSE_LOCATION",
       "ACCESS_FINE_LOCATION",
-      "RECORD_AUDIO"
+      "RECORD_AUDIO",
+      "REQUEST_INSTALL_PACKAGES"
     ]
   },
   "web": {

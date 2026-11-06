@@ -1,26 +1,56 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { View } from 'react-native';
-import { BasketLoader } from '@/components/BasketLoader';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, StyleSheet } from 'react-native';
+import { bannersQuery } from '@/components/BannerCarousel';
+import { LoadingScreen } from '@/components/KinLoader';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SettingsProvider, useSettings } from '@/providers/SettingsProvider';
 import { useLiveNotifications } from '@/hooks/useLiveNotifications';
 import { useNotificationNavigation, usePushRegistration } from '@/hooks/usePushRegistration';
 
-// Écran d'ouverture animé : affiché au démarrage le temps de charger la session (au moins 2,4 s).
+// L'écran natif (rouge, logo) reste affiché jusqu'à ce que l'écran animé soit prêt : aucun écran blanc entre les deux.
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
+try { SplashScreen.setOptions({ duration: 250, fade: true }); } catch { /* ancienne version : fondu par défaut */ }
+const hideSplash = () => { SplashScreen.hideAsync().catch(() => undefined); };
+
+/**
+ * Écran d'ouverture animé (boule Kin Marché qui saute et se transforme en produits).
+ * Pendant ce temps, la session se charge et les bannières de l'accueil sont préchargées ;
+ * l'accueil s'affiche dès que l'application est prête, sans attente artificielle (fondu de 0,3 s).
+ */
 function StartupOverlay() {
-  const { colors } = useSettings();
+  const { t } = useSettings();
   const { loading } = useAuth();
-  const [minElapsed, setMinElapsed] = useState(false);
-  useEffect(() => { const h = setTimeout(() => setMinElapsed(true), 2400); return () => clearTimeout(h); }, []);
-  if (!loading && minElapsed) return null;
+  const qc = useQueryClient();
+  const opacity = useRef(new Animated.Value(1)).current;
+  const [gone, setGone] = useState(false);
+
+  useEffect(() => {
+    qc.prefetchQuery(bannersQuery('home'))
+      .then(() => {
+        const urls = (qc.getQueryData(bannersQuery('home').queryKey) ?? []).map((b) => b.image_url);
+        if (urls.length) Image.prefetch(urls).catch(() => undefined);
+      })
+      .catch(() => undefined);
+  }, [qc]);
+
+  useEffect(() => {
+    if (loading) return;
+    hideSplash();
+    Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setGone(true));
+  }, [loading, opacity]);
+
+  if (gone) return null;
   return (
-    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.background, zIndex: 10 }}>
-      <BasketLoader size="large" />
-    </View>
+    <Animated.View style={[StyleSheet.absoluteFill, { zIndex: 10, opacity }]} pointerEvents={loading ? 'auto' : 'none'}>
+      <StatusBar style="light" />
+      <LoadingScreen tagline={t('loader.tagline')} onLayout={hideSplash} />
+    </Animated.View>
   );
 }
 
@@ -62,6 +92,7 @@ function Navigator() {
         <Stack.Screen name="about" options={{ title: t('about.title') }} />
         <Stack.Screen name="cake" options={{ title: t('cake.title') }} />
         <Stack.Screen name="settings" options={{ title: t('settings.title') }} />
+        <Stack.Screen name="update" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="orders" options={{ title: t('orders.mine') }} />
         <Stack.Screen name="wheel" options={{ title: t('wheel.title') }} />
         <Stack.Screen name="recent" options={{ title: t('account.history') }} />

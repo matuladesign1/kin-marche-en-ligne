@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+  <title>Panier</title>
+  <path d="M17.5 21.5l5-8.5M30.5 21.5l-5-8.5" stroke="#CE0000"/>
+  <path d="M10.5 21.5h27l-3.2 14.6a2.6 2.6 0 0 1-2.5 2.1H16.2a2.6 2.6 0 0 1-2.5-2.1z" stroke="#CE0000"/>
+  <path d="M19 26.5v6.5M24 26.5v6.5M29 26.5v6.5" stroke="#00B0A8"/>
+</svg>

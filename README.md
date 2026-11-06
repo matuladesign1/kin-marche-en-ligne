@@ -171,6 +171,18 @@ Dans l'application : **Compte → Messages**, l'icône Messages en haut de l'acc
 
 Images des bannières (accueil et page Messages) : **JPG, PNG, WebP ou GIF animé** (le GIF s'anime dans l'application), 8 Mo maximum. Format des bannières de l'accueil : **1200 × 448 px, 100 pixels/pouce** ; elles sont affichées en entier (sans recadrage), toutes à la même taille, et défilent automatiquement. **Bannière de la page Messages** (publicité des produits, en haut de l'onglet Messages) : **1667 × 238 px**, photo, gérée uniquement par l'administrateur général. Chaque bannière peut être supprimée (bouton « Supprimer ») et les bannières terminées en une fois (« Supprimer les bannières terminées »), fichiers compris. Vidéo : MP4 (H.264), 15 s maximum, 50 Mo maximum, lue sans le son, avec une image d'aperçu au même format. Les fichiers partent directement du navigateur vers le stockage (aucune limite de taille du serveur web).
 
+### Animation de chargement Kin Marché
+
+Tous les chargements de l'application (ouverture, écrans « Veuillez patienter… », listes) utilisent la même animation : la **boule au logo officiel** saute, retombe au même endroit avec un léger écrasement et un rebond élastique, puis se transforme à chaque impact en produit dessiné au trait (pomme, tomates, bidon d'huile, boisson, pain, panier, lait, riz, légumes, conserves, produits ménagers) avant de revenir au logo. Le logo n'est pas redessiné : c'est le fichier officiel, avec seulement un léger reflet pour le volume.
+
+- Code : `apps/mobile/src/components/KinLoader.tsx` (boule, `LoadingScreen` plein écran) ; icônes : `src/components/loader/icons.json` (source unique, 48 × 48, trait 2,6, rouge `#CE0000` + détail turquoise `#00B0A8`).
+- Technique : `Animated` de React Native avec le pilote natif (60 images/s sur le fil graphique) et `react-native-svg`, déjà présents dans l'application. Pas de Lottie : aucune bibliothèque native de plus, et un rendu plus léger qu'un fichier Lottie de 12 objets.
+- **Ouverture** : l'écran natif rouge reste affiché jusqu'à ce que l'écran animé soit prêt (aucun écran blanc), la session se charge et les bannières de l'accueil sont préchargées ; l'accueil apparaît dès que l'application est prête, sans durée minimale (fondu de 0,3 s).
+- **Mise à jour** (Paramètres → Version → MISE À JOUR) : l'APK est téléchargé dans l'application (écran `app/update.tsx`) avec le pourcentage **réel**, la barre de progression, les Mo reçus sur le total, « Téléchargement en cours... » puis « Téléchargement terminé », un message et « Réessayer » en cas d'erreur, puis l'installation s'ouvre (permission Android « installer des applications »).
+- Icônes SVG et aperçu : `docs/chargement/` (`icones/*.svg`, `ecrans.png`, `apercu.html` à ouvrir dans un navigateur ; `python3 docs/chargement/generer.py` les régénère).
+
+**Tester sur Android** : installer le nouvel APK puis fermer complètement l'application et la rouvrir (animation d'ouverture) ; ouvrir une catégorie ou la recherche (chargements dans les écrans) ; quand un APK plus récent existe dans Releases, Paramètres affiche « MISE À JOUR » : la toucher lance le téléchargement avec la progression réelle (au premier essai, Android demande d'autoriser Kin Marché à installer des applications).
+
 ## APK Android de test
 
 À chaque modification de l'application mobile, GitHub compile un APK et le publie dans **Releases** du dépôt. Il est signé avec la clé de débogage : il sert aux tests (installation directe sur un téléphone Android), pas à la publication sur le Play Store, qui demandera une clé de signature dédiée (EAS ou keystore privé).

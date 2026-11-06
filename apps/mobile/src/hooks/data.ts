@@ -487,7 +487,7 @@ export function useAppUpdate(currentBuild: number | null) {
         headers: { Accept: 'application/vnd.github+json' },
       });
       if (!res.ok) return null;
-      const list = (await res.json()) as { tag_name: string; html_url: string; assets?: { name: string; browser_download_url: string }[] }[];
+      const list = (await res.json()) as { tag_name: string; html_url: string; assets?: { name: string; size: number; browser_download_url: string }[] }[];
       const builds = list
         .map((r) => ({ build: Number(/^apk-(\d+)$/.exec(r.tag_name)?.[1]), r }))
         .filter((x) => Number.isFinite(x.build))
@@ -495,7 +495,11 @@ export function useAppUpdate(currentBuild: number | null) {
       const latest = builds[0];
       if (!latest) return null;
       const apk = latest.r.assets?.find((a) => a.name.endsWith('.apk'));
-      return { build: latest.build, url: apk?.browser_download_url ?? latest.r.html_url, newer: currentBuild != null && latest.build > currentBuild };
+      return {
+        build: latest.build, url: apk?.browser_download_url ?? latest.r.html_url, newer: currentBuild != null && latest.build > currentBuild,
+        /** Fichier APK direct (téléchargement dans l'application) et sa taille en octets. */
+        apkUrl: apk?.browser_download_url ?? null, size: apk?.size ?? 0,
+      };
     },
   });
 }
