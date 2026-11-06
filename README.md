@@ -167,6 +167,28 @@ Chaque accès est vérifié par la base de données (RLS + fonctions serveur), r
 
 Dans l'application : **Compte → Messages**, l'icône Messages en haut de l'accueil ou l'accès rapide « Messages ». Le client écrit à « ASSISTANT (sa ville) », à l'assistant d'un supermarché, ou au livreur de sa commande. Le nom affiché et le badge rouge « certifié » sont imposés par le serveur : un client ne peut pas se faire passer pour un assistant. Côté web, la messagerie ressemble à une messagerie instantanée (liste, recherche, non lus, accusés de lecture, photos et PDF, commande liée, actualisation automatique).
 
+### Campagnes promotionnelles (application, WhatsApp, e-mail)
+
+Administration → **Marketing → Campagnes** (administrateur général uniquement). Une campagne = un titre, un message, une **photo** et un lien (page des promotions, un produit, une catégorie ou un site web), envoyés à un public (tous les clients, clients ayant commandé, nouveaux clients, inactifs depuis 30 jours, ou une ville) sur un ou plusieurs canaux :
+
+- **Application** : la promotion arrive dans l'onglet **Messages** sous forme de grande carte avec la photo, et s'affiche **en grand par-dessus l'application** quand elle est ouverte (ou à l'ouverture suivante, pendant 2 jours). Sur le téléphone, la notification push affiche **la photo en grand** (format 2:1, comme les promotions des grandes applications de commerce) dès que le push est activé (voir « Notifications push » plus bas) ; d'ici là, la notification de l'application ouverte est un texte.
+- **WhatsApp** : modèle de message Meta (photo + titre + message) envoyé au numéro du profil du client (format RDC accepté : `0812345678`, `+243 81 234 5678`).
+- **E-mail** : courriel avec la photo, le titre, le message et un bouton « Voir l'offre » (page publique `/ouvrir` de l'administration, qui ouvre l'application sur le produit ou la catégorie, ou propose de la télécharger).
+
+Photo : JPG, PNG ou WebP, **idéalement 1440 × 720 px (2:1)** ; elle est réduite automatiquement dans le navigateur (1440 px, JPEG). L'aperçu montre la notification du téléphone, la carte dans Messages, WhatsApp et l'e-mail. Boutons : **Envoyer maintenant**, **M'envoyer un test** (seulement sur votre compte, la campagne reste en brouillon), **Enregistrer le brouillon**. Historique : statut, envois par canal, vues dans l'application (en %), « Envoyer aux canaux restants » (par exemple après avoir configuré WhatsApp), « Réutiliser », « Retirer des Messages » (offre terminée) et « Supprimer ». Les clients qui ont coupé « Promotions » dans l'application (Compte → Notifications) ne reçoivent rien, sur aucun canal ; aucun double envoi n'est possible.
+
+**Activer WhatsApp et l'e-mail** (Administration → Campagnes → Réglages ; les clés sont gardées dans le coffre privé du serveur et ne sont jamais réaffichées) :
+- **E-mail** : compte sur [resend.com](https://resend.com), domaine vérifié (enregistrements DNS), clé API, et l'expéditeur (ex. `Kin Marché <promo@votre-domaine.cd>`).
+- **WhatsApp** : compte WhatsApp Business sur Meta (API Cloud), numéro vérifié, **jeton d'accès permanent** (utilisateur système), **Phone number ID**, et un **modèle approuvé** de catégorie *Marketing* : en-tête *Image*, corps `*{{1}}*` puis `{{2}}` (1 = titre, 2 = message), langue `fr`. Les clients doivent avoir accepté de recevoir des messages WhatsApp de Kin Marché (règle de Meta).
+
+### Messages de l'assistant et du livreur
+
+Chaque message de l'assistant (ASSISTANT de la ville ou du supermarché) ou du livreur crée une notification « Messages » pour le client : bandeau en haut de l'écran, son et vibration (canal Android **Messages**), puis la conversation s'ouvre au toucher. Le message n'alerte pas si la conversation est déjà ouverte à l'écran. Application fermée : même chose par le push, dès qu'il est activé.
+
+### Espace livreur
+
+Accueil du livreur : bandeau bleu nuit avec le statut **En ligne / Hors ligne** (interrupteur), les gains du jour, les courses livrées et le solde ; bouton rouge « Voir les courses disponibles » avec le nombre d'offres ; carte de la course en cours (retrait → livraison, statut, arrivée estimée, « Continuer la course ») ; raccourcis en tuiles (historique, revenus, carte professionnelle, messages avec les non lus).
+
 ### Bannières de l'accueil
 
 Images des bannières (accueil et page Messages) : **JPG, PNG, WebP ou GIF animé** (le GIF s'anime dans l'application), 8 Mo maximum. Format des bannières de l'accueil : **1200 × 448 px, 100 pixels/pouce** ; elles sont affichées en entier (sans recadrage), toutes à la même taille, et défilent automatiquement. **Bannière de la page Messages** (publicité des produits, en haut de l'onglet Messages) : **1667 × 238 px**, photo, gérée uniquement par l'administrateur général. Chaque bannière peut être supprimée (bouton « Supprimer ») et les bannières terminées en une fois (« Supprimer les bannières terminées »), fichiers compris. Vidéo : MP4 (H.264), 15 s maximum, 50 Mo maximum, lue sans le son, avec une image d'aperçu au même format. Les fichiers partent directement du navigateur vers le stockage (aucune limite de taille du serveur web).
@@ -175,7 +197,7 @@ Images des bannières (accueil et page Messages) : **JPG, PNG, WebP ou GIF anim�
 
 - **Icône de l'application** : `docs/icones-android/sources/km-icone-blanche.png` (carré clair, lettres rouges, chariot vert). Fond clair reconstruit (`#F5F5F3`) et logo séparé du fond pixel par pixel, pour l'icône adaptative Android (rond, carré arrondi…), l'icône monochrome d'Android 13 et la Play Store.
 - **Notifications push** : `docs/icones-android/sources/km-logo-ligne.png` (logo « ligne »). Android impose une icône blanche : c'est la silhouette exacte du logo « ligne » (anneau et logo), teintée en turquoise `#1CB7B8` dans la liste des notifications.
-- Les deux sont régénérés par `python3 docs/icones-android/generer-v3.py docs/icones-android/sources <dossier>` (aperçu : `docs/icones-android/apercu-v3.png`). **Tous les logos** viennent maintenant de ces deux visuels : bandeau de l'en-tête et de la connexion (`logo-wide.png`), carré du pied de page et de l'administration (`logo-square.png`), rond de l'assistant et du centre de la roue (`logo-round.png`, logo « ligne » en rouge sur blanc), logo de la carte fidélité (`km-logo-h.png`, `km-fidelite-logo.png`), icônes de l'onglet de l'administration (`icon.png`, `apple-icon.png`). Les anciens visuels rouges (`generer.py`) ne sont plus utilisés.
+- Les deux sont régénérés par `python3 docs/icones-android/generer-v3.py docs/icones-android/sources <dossier>` (aperçu : `docs/icones-android/apercu-v3.png`). **Tous les logos** viennent maintenant de ces deux visuels : bandeau de l'en-tête et de la connexion (`logo-wide.png`), carré de l'administration (`logo-square.png`), pied de page de l'application (`logo-ball.png` : le logo « ligne » en rouge sur boule blanche, comme l'animation ; le panier n'a pas de pied de page), rond de l'assistant et du centre de la roue (`logo-round.png`, logo « ligne » en rouge sur blanc), logo de la carte fidélité (`km-logo-h.png`, `km-fidelite-logo.png`), icônes de l'onglet de l'administration (`icon.png`, `apple-icon.png`). Les anciens visuels rouges (`generer.py`) ne sont plus utilisés.
 
 ### Animation de chargement Kin Marché
 
@@ -198,7 +220,7 @@ Tous les chargements de l'application (ouverture, écrans « Veuillez patienter�
 - **Connexion Google / Facebook** : Supabase → Authentication → Providers → activer Google et Facebook (identifiants OAuth créés dans Google Cloud et Meta for Developers), puis Authentication → URL Configuration → ajouter `kinmarche://auth-callback` aux Redirect URLs.
 - **Recherche par photo** : activer l'API Cloud Vision sur le projet Google (déjà prévu dans la fonction `image-search`).
 - **Carte Google dans l'application (espace livreur, suivi de commande)** : Google Cloud → APIs & Services → activer **Maps SDK for Android** → Credentials → *Create API key* → *API restrictions* : cocher uniquement « Maps SDK for Android ». Puis GitHub → dépôt → Settings → Secrets and variables → Actions → *New repository secret* : nom `GOOGLE_MAPS_ANDROID_KEY`, valeur = la clé. Le prochain APK affiche la carte ; en attendant, l'itinéraire est dessiné en schéma et le bouton « Naviguer » ouvre Google Maps. (Ne jamais réutiliser la clé serveur des calculs de trajet.)
-- **Notifications push (application fermée)** — environ 10 minutes, une seule fois :
+- **Notifications push (application fermée, photos des promotions en grand)** — environ 10 minutes, une seule fois :
   1. **Firebase** (console.firebase.google.com) : créer un projet « Kin Marché », ajouter une application **Android** avec le nom de package `cd.kinmarche.enligne`, télécharger `google-services.json`.
   2. **Expo** (expo.dev, compte gratuit) : créer le projet `kin-marche-en-ligne` et noter son **Project ID**. Dans Project settings → Credentials → Android → `cd.kinmarche.enligne` → **FCM V1 service account key** : envoyer la clé JSON créée dans Firebase → Paramètres du projet → Comptes de service → « Générer une nouvelle clé privée ».
   3. **GitHub** → Settings → Secrets and variables → Actions : `EAS_PROJECT_ID` = le Project ID, `GOOGLE_SERVICES_JSON_BASE64` = le contenu de `google-services.json` encodé en base64.

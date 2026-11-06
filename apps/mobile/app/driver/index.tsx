@@ -53,7 +53,7 @@ function Kpi({ icon, tint, value, label }: { icon: IconName; tint: string; value
   return (
     <View style={styles.kpi}>
       <View style={[styles.kpiIcon, { backgroundColor: `${tint}2E` }]}><Ionicons name={icon} size={18} color={tint} /></View>
-      <T size="lg" weight="800" color="#FFFFFF" numberOfLines={1}>{value}</T>
+      <T size={value.length > 9 ? 'md' : 'lg'} weight="800" color="#FFFFFF" numberOfLines={1}>{value}</T>
       <T size="xs" color="#AFC0D3" numberOfLines={1}>{label}</T>
     </View>
   );
@@ -68,7 +68,7 @@ function Tile({ icon, tint, title, subtitle, onPress, badge }: { icon: IconName;
         <View style={[styles.tileIcon, { backgroundColor: `${tint}1F` }]}><Ionicons name={icon} size={22} color={tint} /></View>
         {badge ? <View style={[styles.badge, { backgroundColor: colors.primary }]}><T size="xs" weight="800" color="#FFFFFF">{badge > 99 ? '99+' : badge}</T></View> : null}
       </View>
-      <T weight="800" numberOfLines={1}>{title}</T>
+      <T weight="800" numberOfLines={2}>{title}</T>
       <T size="xs" muted numberOfLines={2}>{subtitle}</T>
     </Pressable>
   );
