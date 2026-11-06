@@ -19,12 +19,11 @@ try { SplashScreen.setOptions({ duration: 250, fade: true }); } catch { /* ancie
 const hideSplash = () => { SplashScreen.hideAsync().catch(() => undefined); };
 
 /**
- * Écran d'ouverture animé (boule Kin Marché qui saute et se transforme en produits).
+ * Écran d'ouverture animé, sans texte : la boule au logo saute et se transforme en produits.
  * Pendant ce temps, la session se charge et les bannières de l'accueil sont préchargées ;
  * l'accueil s'affiche dès que l'application est prête, sans attente artificielle (fondu de 0,3 s).
  */
 function StartupOverlay() {
-  const { t } = useSettings();
   const { loading } = useAuth();
   const qc = useQueryClient();
   const opacity = useRef(new Animated.Value(1)).current;
@@ -49,7 +48,7 @@ function StartupOverlay() {
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { zIndex: 10, opacity }]} pointerEvents={loading ? 'auto' : 'none'}>
       <StatusBar style="light" />
-      <LoadingScreen tagline={t('loader.tagline')} onLayout={hideSplash} />
+      <LoadingScreen onLayout={hideSplash} />
     </Animated.View>
   );
 }

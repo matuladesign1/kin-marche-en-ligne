@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Easing, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Animated, Easing, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import ICONS from './loader/icons.json';
 
@@ -13,40 +13,27 @@ import ICONS from './loader/icons.json';
  */
 
 export const KM_RED = '#CE0000';
-export const KM_TURQUOISE = '#00B0A8';
-const LOGO = require('../../assets/images/logo-round.png');
+/** Turquoise du logo « ligne » (anneau et chariot). */
+export const KM_TURQUOISE = '#1CB7B8';
+/** Boule du logo : logo « ligne » officiel (anneau blanc, lettres blanches, anneau et chariot turquoise) sur sphère rouge. */
+const LOGO_BALL = require('../../assets/images/logo-ball.png');
 
 type LineIcon = { key: string; label: string; paths: { d: string; accent?: boolean }[] };
 const PRODUCTS = ICONS as LineIcon[];
 /** Étape 0 = logo, puis chaque produit, puis retour au logo. */
 export const LOADER_STEPS = PRODUCTS.length + 1;
 
-// Un saut (ms) : montée, chute, impact (écrasement), retour élastique. La transformation se fait à l'impact.
-const RISE = 380;
-const FALL = 340;
-const IMPACT = 90;
-const SETTLE = 380;
-const MORPH = 260;
+// Un saut en trois tiers égaux (750 ms) : montée, descente, puis impact + changement d'objet + rebond.
+const RISE = 250;
+const FALL = 250;
+const IMPACT = 70;
+const SETTLE = 180;
+const MORPH = 200;
 
 /** Une boule : le logo (étape 0) ou un produit au trait sur une sphère blanche. */
 const Ball = memo(function Ball({ step, size, onRed }: { step: number; size: number; onRed: boolean }) {
   if (step === 0) {
-    return (
-      <View style={{ width: size, height: size }}>
-        <Image source={LOGO} style={{ width: size, height: size, borderRadius: size / 2 }} contentFit="cover" accessibilityIgnoresInvertColors />
-        {/* Léger reflet pour l'effet de volume : le logo lui-même n'est pas modifié. */}
-        <Svg style={StyleSheet.absoluteFill} viewBox="0 0 48 48">
-          <Defs>
-            <RadialGradient id="kmGloss" cx="0.3" cy="0.2" r="0.5">
-              <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.3" />
-              <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
-            </RadialGradient>
-          </Defs>
-          <Circle cx={24} cy={24} r={23.6} fill="url(#kmGloss)" />
-          {onRed ? <Circle cx={24} cy={24} r={23.3} fill="none" stroke="#FFFFFF" strokeWidth={1.4} /> : null}
-        </Svg>
-      </View>
-    );
+    return <Image source={LOGO_BALL} style={{ width: size, height: size }} contentFit="contain" accessibilityIgnoresInvertColors />;
   }
   const icon = PRODUCTS[(step - 1) % PRODUCTS.length];
   return (
@@ -190,14 +177,19 @@ export function LoadingDots({ color = KM_TURQUOISE }: { color?: string }) {
   );
 }
 
+const SCREEN_BALL = 112;
+const SCREEN_JUMP = 104;
+const SCREEN_SHADOW = Math.max(4, SCREEN_BALL * 0.14);
+
 /**
- * Écran de chargement plein écran (démarrage, téléchargement de la mise à jour) :
- * fond rouge Kin Marché, boule animée, « KIN MARCHÉ », la phrase d'accroche et une indication discrète.
- * `children` remplace l'indication (par exemple la progression du téléchargement).
+ * Écran de chargement plein écran (démarrage, téléchargement de la mise à jour) : fond rouge Kin Marché
+ * et la boule animée seule, sans texte. Au repos, la boule est au centre exact de l'écran, à la même place
+ * et à la même taille que l'image de l'écran natif : le passage de l'un à l'autre ne se voit pas.
+ * `children` s'affiche sous la boule (par exemple la progression du téléchargement).
  */
-export function LoadingScreen({ tagline, children, onLayout }: { tagline: string; children?: ReactNode; onLayout?: () => void }) {
+export function LoadingScreen({ children, onLayout }: { children?: ReactNode; onLayout?: () => void }) {
   return (
-    <View style={styles.screen} onLayout={onLayout}>
+    <View style={styles.screen} onLayout={onLayout} accessibilityRole="progressbar" accessibilityLabel="Kin Marché">
       <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
         <Defs>
           <LinearGradient id="kmScreen" x1="0" y1="0" x2="1" y2="1">
@@ -209,12 +201,9 @@ export function LoadingScreen({ tagline, children, onLayout }: { tagline: string
         <Rect x="0" y="0" width="100%" height="100%" fill="url(#kmScreen)" />
       </Svg>
       <View style={styles.content}>
-        <KinLoader size={112} jump={104} onRed />
-        <Text style={styles.brand} accessibilityRole="header">KIN MARCHÉ</Text>
-        <View style={styles.rule} />
-        <Text style={styles.tagline}>{tagline}</Text>
-        <View style={styles.below}>{children ?? <LoadingDots />}</View>
+        <KinLoader size={SCREEN_BALL} jump={SCREEN_JUMP} onRed style={{ transform: [{ translateY: -(SCREEN_JUMP - SCREEN_SHADOW) / 2 }] }} />
       </View>
+      {children ? <View style={styles.below}>{children}</View> : null}
     </View>
   );
 }
@@ -224,9 +213,6 @@ const styles = StyleSheet.create({
   dots: { flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', height: 16 },
   dot: { width: 7, height: 7, borderRadius: 4 },
   screen: { ...StyleSheet.absoluteFillObject, backgroundColor: KM_RED },
-  content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
-  brand: { color: '#FFFFFF', fontSize: 28, fontWeight: '900', letterSpacing: 6, marginTop: 18, textAlign: 'center' },
-  rule: { width: 44, height: 3, borderRadius: 2, backgroundColor: KM_TURQUOISE, marginTop: 10 },
-  tagline: { color: 'rgba(255,255,255,0.88)', fontSize: 15, marginTop: 12, textAlign: 'center' },
-  below: { marginTop: 28, alignSelf: 'stretch', alignItems: 'center' },
+  content: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  below: { position: 'absolute', left: 28, right: 28, top: '50%', marginTop: SCREEN_BALL / 2 + 36, alignItems: 'center' },
 });

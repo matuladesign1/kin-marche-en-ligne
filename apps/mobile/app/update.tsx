@@ -166,7 +166,7 @@ export default function UpdateScreen() {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
-      <LoadingScreen tagline={t('loader.tagline')}>
+      <LoadingScreen>
         <View style={styles.panel}>{body}</View>
       </LoadingScreen>
       <Pressable onPress={close} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common.close')}

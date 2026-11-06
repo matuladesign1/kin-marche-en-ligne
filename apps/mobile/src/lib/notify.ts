@@ -68,7 +68,7 @@ export async function presentLocal(args: { title: string; body?: string | null; 
     const trigger = (Platform.OS === 'android' ? { channelId: args.channel ?? 'general' } : null) as Notifications.NotificationTriggerInput;
     await Notifications.scheduleNotificationAsync({
       // Petite icône : logo Kin Marché (rond découpé), teintée du rouge du logo.
-      content: { title: args.title, body: args.body ?? undefined, data: args.data ?? {}, sound: 'default', color: '#CE0000' },
+      content: { title: args.title, body: args.body ?? undefined, data: args.data ?? {}, sound: 'default', color: '#1CB7B8' },
       trigger,
     });
   } catch {

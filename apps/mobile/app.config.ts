@@ -33,7 +33,7 @@ const base = {
       "foregroundImage": "./assets/images/adaptive-icon.png",
       "backgroundImage": "./assets/images/adaptive-icon-background.png",
       "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
-      "backgroundColor": "#CE0000"
+      "backgroundColor": "#F5F5F3"
     },
     "permissions": [
       "CAMERA",
@@ -66,7 +66,7 @@ const base = {
       "expo-notifications",
       {
         "icon": "./assets/images/notification-icon.png",
-        "color": "#CE0000"
+        "color": "#1CB7B8"
       }
     ],
     "expo-localization",

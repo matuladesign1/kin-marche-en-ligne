@@ -703,7 +703,6 @@ const sw: Record<TranslationKey, string> = {
   'inbox.filter.rewards': 'Zawadi',
   'inbox.filter.account': 'Akaunti',
   'inbox.markAllRead': 'Weka zote zimesomwa',
-  "loader.tagline": "Soko lako, popote ulipo.",
   "update.checking": "Inatafuta toleo jipya…",
   "update.downloading": "Inapakua...",
   "update.done": "Upakuaji umekamilika",

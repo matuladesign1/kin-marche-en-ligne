@@ -703,7 +703,6 @@ const ln: Record<TranslationKey, string> = {
   'inbox.filter.rewards': 'Bosembo mpe makabo',
   'inbox.filter.account': 'Compte',
   'inbox.markAllRead': 'Tia nyonso etangami',
-  "loader.tagline": "Zando na yo, esika nyonso oyo ozali.",
   "update.checking": "Tozali koluka version ya sika…",
   "update.downloading": "Ezali kokita...",
   "update.done": "Ekiti mobimba",

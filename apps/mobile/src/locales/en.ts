@@ -467,7 +467,6 @@ const en: Record<TranslationKey, string> = {
   'inbox.filter.rewards': 'Rewards',
   'inbox.filter.account': 'Account',
   'inbox.markAllRead': 'Mark all as read',
-  "loader.tagline": "Your market, wherever you are.",
   "update.checking": "Looking for the new version…",
   "update.downloading": "Downloading...",
   "update.done": "Download complete",

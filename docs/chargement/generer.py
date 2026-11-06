@@ -2,7 +2,7 @@
 
 Source unique des icônes : apps/mobile/src/components/loader/icons.json (utilisé tel quel par l'application).
 Ce script écrit :
-  - icones/<produit>.svg : chaque icône au trait (48 × 48, trait 2,6, rouge Kin Marché + détail turquoise) ;
+  - icones/<produit>.svg : chaque icône au trait (48 × 48, trait 2,6, rouge Kin Marché + détail turquoise du logo « ligne ») ;
   - apercu.html          : l'écran de chargement animé, mêmes durées et mêmes courbes que KinLoader.tsx.
 Usage : python3 docs/chargement/generer.py
 """
@@ -13,8 +13,8 @@ from pathlib import Path
 ICI = Path(__file__).resolve().parent
 RACINE = ICI.parent.parent
 ICONES = json.loads((RACINE / 'apps/mobile/src/components/loader/icons.json').read_text(encoding='utf-8'))
-LOGO = RACINE / 'apps/mobile/assets/images/logo-round.png'
-ROUGE, TURQUOISE = '#CE0000', '#00B0A8'
+LOGO = RACINE / 'apps/mobile/assets/images/logo-ball.png'
+ROUGE, TURQUOISE = '#CE0000', '#1CB7B8'
 
 
 def svg_icone(icone: dict) -> str:

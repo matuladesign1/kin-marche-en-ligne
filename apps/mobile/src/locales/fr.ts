@@ -735,7 +735,6 @@ const fr = {
   'inbox.filter.rewards': 'Fidélité et cadeaux',
   'inbox.filter.account': 'Compte',
   'inbox.markAllRead': 'Tout marquer comme lu',
-  "loader.tagline": "Votre marché, partout avec vous.",
   "update.checking": "Recherche de la nouvelle version…",
   "update.downloading": "Téléchargement en cours...",
   "update.done": "Téléchargement terminé",
