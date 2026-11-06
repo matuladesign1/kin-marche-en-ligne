@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
-import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { useMarkNotificationsRead, useNotifications, useUnreadCount } from '@/hooks/data';
+import { Alert, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useDeleteNotifications, useMarkNotificationsRead, useNotifications, useUnreadCount } from '@/hooks/data';
 import { timeAgo } from '@/lib/format';
 import { openNotification } from '@/lib/notify';
 import { TO_RECEIVE } from '@/lib/orders';
@@ -10,6 +10,7 @@ import { radius, spacing } from '@/lib/theme';
 import type { AppNotification, OrderStatus } from '@/lib/types';
 import { useAuth } from '@/providers/AuthProvider';
 import { useSettings } from '@/providers/SettingsProvider';
+import { BannerCarousel, MESSAGES_BANNER_RATIO } from './BannerCarousel';
 import { ChatAvatar } from './ChatAvatar';
 import { CountBadge, FilterChip, WheelIcon } from './kit';
 import { EmptyState, Loading, T, type IconName } from './ui';
@@ -52,13 +53,31 @@ export function Inbox() {
   const q = useNotifications();
   const unread = useUnreadCount();
   const markRead = useMarkNotificationsRead();
+  const del = useDeleteNotifications();
   const [filter, setFilter] = useState<Filter>('all');
 
   const list = useMemo(() => (q.data ?? []).filter((n) => filter === 'all' || categoryOf(n.kind) === filter), [q.data, filter]);
 
+  // Publicité produits en haut de la page (1667 × 238 px), gérée par l'administrateur général.
+  const ad = <BannerCarousel placement="messages" ratio={MESSAGES_BANNER_RATIO} inset={spacing.md} captions={false} />;
+
   if (!session) {
-    return <EmptyState icon="chatbox-ellipses-outline" message={t('inbox.signIn')} action={t('auth.signIn')} onAction={() => router.push('/(auth)/sign-in')} />;
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: spacing.md }}>
+        {ad}
+        <EmptyState icon="chatbox-ellipses-outline" message={t('inbox.signIn')} action={t('auth.signIn')} onAction={() => router.push('/(auth)/sign-in')} />
+      </View>
+    );
   }
+
+  const deleteShown = () => {
+    const ids = list.map((n) => n.id);
+    if (!ids.length) return;
+    Alert.alert(t('inbox.deleteAll'), t('inbox.deleteAllConfirm', { n: ids.length }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('inbox.delete'), style: 'destructive', onPress: () => del.mutate(ids) },
+    ]);
+  };
 
   const filters: { key: Filter; label: string }[] = [
     { key: 'all', label: t('inbox.filter.all') },
@@ -69,6 +88,7 @@ export function Inbox() {
 
   const header = (
     <View style={{ gap: spacing.md, paddingTop: spacing.md }}>
+      {ad}
       <Pressable onPress={() => router.push('/support')} accessibilityRole="button"
         style={({ pressed }) => [styles.support, { backgroundColor: colors.surface, opacity: pressed ? 0.9 : 1 }]}>
         <ChatAvatar size={48} />
@@ -86,11 +106,18 @@ export function Inbox() {
 
       <View style={styles.listHead}>
         <T size="lg" weight="800">{t('notifications.title')}</T>
-        {(unread.data?.notifications ?? 0) > 0 ? (
-          <Pressable onPress={() => markRead.mutate(undefined)} hitSlop={8} accessibilityRole="button">
-            <T size="sm" weight="700" color={colors.primary}>{t('inbox.markAllRead')}</T>
-          </Pressable>
-        ) : null}
+        <View style={styles.headActions}>
+          {(unread.data?.notifications ?? 0) > 0 ? (
+            <Pressable onPress={() => markRead.mutate(undefined)} hitSlop={8} accessibilityRole="button">
+              <T size="sm" weight="700" color={colors.primary}>{t('inbox.markAllRead')}</T>
+            </Pressable>
+          ) : null}
+          {list.length > 0 ? (
+            <Pressable onPress={deleteShown} hitSlop={8} accessibilityRole="button">
+              <T size="sm" weight="700" color={colors.danger}>{t('inbox.deleteAll')}</T>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
     </View>
   );
@@ -118,6 +145,10 @@ export function Inbox() {
             {n.body ? <T size="sm" muted numberOfLines={2}>{n.body}</T> : null}
           </View>
           {!n.read_at ? <View style={[styles.dot, { backgroundColor: colors.primary }]} /> : null}
+          <Pressable onPress={() => del.mutate([n.id])} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('inbox.delete')}
+            style={({ pressed }) => [styles.trash, { opacity: pressed ? 0.5 : 1 }]}>
+            <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
+          </Pressable>
         </Pressable>
       )}
       ListEmptyComponent={q.isLoading ? <Loading /> : <EmptyState icon="notifications-off-outline" message={t('notifications.empty')} />}
@@ -129,6 +160,8 @@ export function Inbox() {
 const styles = StyleSheet.create({
   support: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginHorizontal: spacing.md, borderRadius: radius.md, padding: spacing.md },
   listHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
+  headActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  trash: { padding: 4 },
   item: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   itemTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   kindIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },

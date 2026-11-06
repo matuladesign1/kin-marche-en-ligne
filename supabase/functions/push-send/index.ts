@@ -15,9 +15,12 @@ Deno.serve(async (req) => {
   const { data: tokens } = await admin.from('push_tokens').select('token').eq('user_id', n.user_id);
   if (!tokens?.length) return reply({ sent: 0 });
 
+  // Même canal Android que l'application (lib/notify.ts : channelForKind).
+  const channelId = n.kind === 'delivery_offer' ? 'missions'
+    : ['order_status', 'new_order', 'no_driver'].includes(n.kind) ? 'orders' : 'general';
   const messages = tokens.map((t) => ({
     to: t.token, title: n.title, body: n.body ?? undefined, sound: 'default', priority: 'high',
-    channelId: n.kind === 'delivery_offer' ? 'missions' : 'orders',
+    channelId,
     data: { ...(n.data ?? {}), notification_id: n.id, kind: n.kind },
   }));
   const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };

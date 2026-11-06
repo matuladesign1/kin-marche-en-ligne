@@ -46,8 +46,9 @@ export function useLiveNotifications() {
           qc.invalidateQueries({ queryKey: qk.myCoupons });
         }
 
-        // Affichage sur le téléphone (sauf si le serveur s'en charge déjà ou si le client l'a désactivé).
-        if (isPushActive() || n.data?.push === false || n.kind === 'welcome') return;
+        // Chaque notification s'affiche aussi sur le téléphone (bienvenue et gains de la roue compris),
+        // sauf si le push du serveur s'en charge déjà ou si le client a coupé cette catégorie.
+        if (isPushActive()) return;
         const cat = categoryOf(n.kind);
         if (cat !== 'system' && prefs.current?.[cat] === false) return;
         presentLocal({

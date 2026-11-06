@@ -127,7 +127,7 @@ Logo officiel (version 2.0.0) : carré rouge « U KM En ligne » pour l'icône d
 
 **Roue de la chance** : un tour offert pour chaque commande payée d'au moins 50 $ (réglable). Lots gérés par l'administrateur général (points fidélité, codes promo personnels, cadeaux produits, tours supplémentaires, « pas de chance ») avec poids, stock et couleurs ; tirage fait par le serveur, chances affichées aux clients. Les cadeaux sont joints gratuitement à la commande payée suivante (le supermarché les voit dans la commande) ou remis en magasin ; tours et gains sont retirés si la commande est annulée ou remboursée. **Période facultative** : date de début et date de fin (heure de Kinshasa) ; avant et après, la roue disparaît de l'application, les achats ne donnent plus de tours et les tours non joués ne servent plus ; les cadeaux déjà gagnés restent dus.
 
-**Notifications** : un message à chaque étape de la commande (remerciement, félicitations au paiement, préparation, livreur, livraison…) dans la langue du client, bienvenue à l'inscription et à la connexion, tours et gains de la roue. Affichées sur le téléphone dès que l'application est ouverte ou en arrière-plan ; **application fermée**, il faut le push Android (voir « Actions à faire »). Le client choisit ses catégories dans Paramètres → Notifications.
+**Notifications** : un message à chaque étape de la commande (remerciement, félicitations au paiement, préparation, livreur, livraison…) dans la langue du client, bienvenue à l'inscription et à la connexion, tours et gains de la roue. **Chaque notification** (bienvenue et gains de la roue compris) s'affiche aussi sur le téléphone dès que l'application est ouverte ou en arrière-plan ; **application fermée**, il faut le push Android (voir « Actions à faire »). Le client choisit ses catégories dans Paramètres → Notifications et peut supprimer ses notifications (une à une ou « Tout supprimer ») dans l'onglet Messages.
 
 ## Administration web (`apps/admin`)
 
@@ -169,7 +169,7 @@ Dans l'application : **Compte → Messages**, l'icône Messages en haut de l'acc
 
 ### Bannières de l'accueil
 
-Format des bannières de l'accueil : **1200 × 448 px, 100 pixels/pouce** ; elles sont affichées en entier (sans recadrage), toutes à la même taille, et défilent automatiquement. Vidéo : MP4 (H.264), 15 s maximum, 50 Mo maximum, lue sans le son, avec une image d'aperçu au même format. Les fichiers partent directement du navigateur vers le stockage (aucune limite de taille du serveur web).
+Format des bannières de l'accueil : **1200 × 448 px, 100 pixels/pouce** ; elles sont affichées en entier (sans recadrage), toutes à la même taille, et défilent automatiquement. **Bannière de la page Messages** (publicité des produits, en haut de l'onglet Messages) : **1667 × 238 px**, photo, gérée uniquement par l'administrateur général. Chaque bannière peut être supprimée (bouton « Supprimer ») et les bannières terminées en une fois (« Supprimer les bannières terminées »), fichiers compris. Vidéo : MP4 (H.264), 15 s maximum, 50 Mo maximum, lue sans le son, avec une image d'aperçu au même format. Les fichiers partent directement du navigateur vers le stockage (aucune limite de taille du serveur web).
 
 ## APK Android de test
 

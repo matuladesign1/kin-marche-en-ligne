@@ -329,6 +329,29 @@ export function useMarkNotificationsRead() {
   });
 }
 
+/** Supprime des notifications du client (disparition immédiate de la liste, rétablie en cas d'erreur). */
+export function useDeleteNotifications() {
+  const qc = useQueryClient();
+  const { session } = useAuth();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (!ids.length) return;
+      unwrap(await supabase.from('notifications').delete().eq('user_id', session!.user.id).in('id', ids));
+    },
+    onMutate: async (ids: string[]) => {
+      await qc.cancelQueries({ queryKey: qk.notifications });
+      const prev = qc.getQueryData<AppNotification[]>(qk.notifications);
+      if (prev) qc.setQueryData<AppNotification[]>(qk.notifications, prev.filter((n) => !ids.includes(n.id)));
+      return { prev };
+    },
+    onError: (_e, _ids, ctx) => { if (ctx?.prev) qc.setQueryData(qk.notifications, ctx.prev); },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.notifications });
+      qc.invalidateQueries({ queryKey: qk.unread });
+    },
+  });
+}
+
 /** Roue de la chance : règles et lots (visiteur) ou données complètes (client connecté). */
 export function useWheel() {
   const { session } = useAuth();
