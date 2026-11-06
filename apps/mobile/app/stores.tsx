@@ -3,7 +3,7 @@ import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Platform } from 'react-native';
-import { MapBlock } from '@/components/Map';
+import { KinMap } from '@/components/KinMap';
 import { Button, Card, EmptyState, ErrorState, Loading, Notice, Row, Screen, T } from '@/components/ui';
 import { useAddresses, useCart, useRecommendedStores, useStores } from '@/hooks/data';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -52,17 +52,25 @@ export default function Stores() {
     <Screen>
       <Button title={t('stores.useLocation')} icon="locate-outline" variant="ghost" loading={locating} onPress={locate} />
       {denied ? <Notice tone="warning" text={t('stores.locationDenied')} /> : null}
-      <MapBlock
-        points={[
-          ...list.filter((s) => s.latitude != null && s.longitude != null).map((s) => ({
-            id: s.store_id, latitude: s.latitude!, longitude: s.longitude!, title: s.name,
-            description: s.can_deliver ? t('stores.canDeliver') : t('stores.cannotDeliver'),
-            color: s.can_deliver ? colors.success : colors.primary,
-            onPress: () => { setSelectedStoreId(s.store_id); router.back(); },
-          })),
-          ...(lat != null && lng != null ? [{ id: 'me', latitude: lat, longitude: lng, title: t('home.deliverTo'), color: colors.accent }] : []),
+      {/* Tous les points de vente Kin Marché sur notre carte ; toucher un magasin le choisit. */}
+      <KinMap
+        height={320}
+        showLabels
+        fitKey={`${list.length}-${lat ?? ''}`}
+        markers={[
+          ...(stores.data ?? []).filter((x) => x.latitude != null && x.longitude != null).map((x) => {
+            const r = list.find((s) => s.store_id === x.id);
+            return {
+              id: x.id, latitude: x.latitude!, longitude: x.longitude!, kind: 'store' as const, label: x.name,
+              color: r?.can_deliver === false ? colors.textMuted : undefined,
+              active: x.id === selectedStoreId,
+              onPress: () => { setSelectedStoreId(x.id); router.back(); },
+            };
+          }),
+          ...(lat != null && lng != null ? [{ id: 'me', latitude: lat, longitude: lng, kind: 'me' as const, label: t('home.deliverTo') }] : []),
         ]}
       />
+      <T size="xs" muted>{t('stores.mapHint', { n: (stores.data ?? []).filter((x) => x.latitude != null).length })}</T>
       {list.length === 0 ? <EmptyState icon="storefront-outline" message={t('home.noStores')} /> : null}
       {list.map((s) => {
         const full = stores.data?.find((x) => x.id === s.store_id);

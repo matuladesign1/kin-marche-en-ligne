@@ -118,8 +118,12 @@ const config: ExpoConfig = {
   extra: {
     ...base.extra,
     buildNumber: buildNumber ?? null,
-    // Sur Android, la carte n'est affichée que si la clé Google Maps a été fournie au build.
+    // Ancienne carte Google (plus utilisée : la carte Kin Marché fonctionne sans clé Google).
     mapsEnabled: { android: !!mapsKey, ios: true, web: false },
+    // Fond de la carte Kin Marché (OpenStreetMap par défaut). Pour un autre fournisseur de tuiles
+    // (MapTiler, CARTO… avec leur clé gratuite) : MAP_TILES_URL avec {z}/{x}/{y} et MAP_ATTRIBUTION.
+    mapTilesUrl: process.env.MAP_TILES_URL ?? null,
+    mapAttribution: process.env.MAP_ATTRIBUTION ?? null,
     ...(easProjectId ? { eas: { projectId: easProjectId } } : {}),
   },
 };

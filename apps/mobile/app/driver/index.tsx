@@ -110,10 +110,13 @@ export default function DriverHome() {
   }, [session, qc]);
 
   const activeOrderIds = useRef<string[]>([]);
+  const lastEta = useRef<Record<string, number>>({});
   activeOrderIds.current = (active.data ?? []).map((a) => a.order_id);
 
   // Partage de position (premier plan) tant que le livreur est en ligne ou en mission.
-  const sharing = !!driver.data?.is_available || (active.data?.length ?? 0) > 0;
+  // En mission : position précise toutes les 5 s (le client suit le livreur en direct) ; sinon toutes les 30 s.
+  const onMission = (active.data?.length ?? 0) > 0;
+  const sharing = !!driver.data?.is_available || onMission;
   useEffect(() => {
     if (!sharing) return;
     let sub: Location.LocationSubscription | null = null;
@@ -122,18 +125,22 @@ export default function DriverHome() {
       if (status !== 'granted') { setLocError(true); return; }
       setLocError(false);
       sub = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.High, timeInterval: 20_000, distanceInterval: 30 },
+        onMission
+          ? { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 5_000, distanceInterval: 10 }
+          : { accuracy: Location.Accuracy.High, timeInterval: 30_000, distanceInterval: 50 },
         async (pos) => {
           await supabase.rpc('update_driver_location', { p_lat: pos.coords.latitude, p_lng: pos.coords.longitude, p_share: true });
-          // Itinéraire réel (Google Routes) recalculé côté serveur, au plus une fois par minute.
+          // Itinéraire réel (routes OpenStreetMap) recalculé côté serveur, au plus une fois par minute.
           for (const orderId of activeOrderIds.current) {
+            if (Date.now() - (lastEta.current[orderId] ?? 0) < 60_000) continue;
+            lastEta.current[orderId] = Date.now();
             supabase.functions.invoke('delivery-eta', { body: { order_id: orderId } }).then(() => undefined);
           }
         },
       );
     })();
     return () => { sub?.remove(); };
-  }, [sharing]);
+  }, [sharing, onMission]);
 
   if (loading || driver.isLoading) return <Loading />;
   if (profile?.role !== 'driver') return <Redirect href={homeForRole(profile?.role)} />;

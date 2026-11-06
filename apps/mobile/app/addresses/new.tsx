@@ -2,7 +2,8 @@ import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, Chip, Input, Notice, Row, Screen } from '@/components/ui';
+import { KinMap } from '@/components/KinMap';
+import { Button, Chip, Input, Notice, Row, Screen, T } from '@/components/ui';
 import { qk } from '@/hooks/data';
 import { errorMessage } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
@@ -21,6 +22,9 @@ export default function NewAddress() {
   const [isDefault, setIsDefault] = useState(true);
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
+  // Position exacte : le client déplace la carte pour mettre le repère sur sa porte.
+  const [mapKey, setMapKey] = useState(0);
+  const [pinMoved, setPinMoved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
@@ -29,8 +33,9 @@ export default function NewAddress() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return setError(t('stores.locationDenied'));
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
       setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+      setMapKey((k) => k + 1);   // la carte se place sur la position trouvée
     } finally {
       setLocating(false);
     }
@@ -68,6 +73,17 @@ export default function NewAddress() {
       <Input label={t('address.number')} value={f.street_number} onChangeText={set('street_number')} />
       <Input label={t('address.landmark')} value={f.landmark} onChangeText={set('landmark')} />
       <Button title={coords ? t('address.gpsSaved') : t('address.useGps')} icon="locate-outline" variant={coords ? 'secondary' : 'ghost'} loading={locating} onPress={gps} />
+      <KinMap
+        key={mapKey}
+        height={260}
+        centerPin
+        controls
+        initialCenter={coords ?? undefined}
+        initialZoom={coords ? 18 : 12}
+        onUserMove={() => setPinMoved(true)}
+        onCenterChange={(c) => { if (pinMoved || coords) setCoords(c); }}
+      />
+      <T size="xs" muted>{coords ? t('address.pinSet', { lat: coords.latitude.toFixed(5), lng: coords.longitude.toFixed(5) }) : t('address.pinHint')}</T>
       <Row><Chip label={t('address.default')} icon="checkmark" active={isDefault} onPress={() => setIsDefault((v) => !v)} /></Row>
       <Button title={t('common.save')} onPress={save} loading={saving} />
     </Screen>

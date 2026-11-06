@@ -123,6 +123,7 @@ function Navigator() {
         <Stack.Screen name="driver/offers" options={{ title: t('driver.availableRuns') }} />
         <Stack.Screen name="driver/history" options={{ title: t('driver.history') }} />
         <Stack.Screen name="driver/mission/[id]" options={{ title: t('driver.mission') }} />
+        <Stack.Screen name="driver/navigate/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="driver/earnings" options={{ title: t('driver.earnings') }} />
         <Stack.Screen name="driver/card" options={{ title: t('driver.card') }} />
         <Stack.Screen name="driver-signup" options={{ title: t('driver.signupTitle') }} />
