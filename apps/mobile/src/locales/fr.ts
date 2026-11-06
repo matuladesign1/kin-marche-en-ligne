@@ -114,6 +114,7 @@ const fr = {
   'stores.selected': 'Magasin choisi',
   'stores.km': '{km} km',
   'stores.prep': 'Préparation ~{min} min',
+  'stores.locationUnavailable': 'Position introuvable pour le moment. Activez la localisation du téléphone, puis réessayez (de préférence près d’une fenêtre ou dehors).',
   'stores.locationDenied': 'Position refusée : choisissez votre commune dans vos adresses ou un magasin dans la liste.',
   'stores.openMaps': 'Itinéraire',
 

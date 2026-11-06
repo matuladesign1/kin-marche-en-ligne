@@ -6,6 +6,7 @@ import { Linking, Platform } from 'react-native';
 import { KinMap } from '@/components/KinMap';
 import { Button, Card, EmptyState, ErrorState, Loading, Notice, Row, Screen, T } from '@/components/ui';
 import { useAddresses, useCart, useRecommendedStores, useStores } from '@/hooks/data';
+import { currentPosition } from '@/lib/location';
 import { useSettings } from '@/providers/SettingsProvider';
 
 function mapsUrl(lat: number, lng: number) {
@@ -17,6 +18,7 @@ export default function Stores() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [denied, setDenied] = useState(false);
+  const [notFound, setNotFound] = useState(false);
   const addresses = useAddresses();
   const cart = useCart();
   const defaultAddr = addresses.data?.[0];
@@ -31,14 +33,18 @@ export default function Stores() {
   const locate = async () => {
     setLocating(true);
     setDenied(false);
+    setNotFound(false);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setDenied(true);
         return;
       }
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const pos = await currentPosition(Location.Accuracy.Balanced);
+      if (!pos) { setNotFound(true); return; }
       setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+    } catch {
+      setNotFound(true);
     } finally {
       setLocating(false);
     }
@@ -52,6 +58,7 @@ export default function Stores() {
     <Screen>
       <Button title={t('stores.useLocation')} icon="locate-outline" variant="ghost" loading={locating} onPress={locate} />
       {denied ? <Notice tone="warning" text={t('stores.locationDenied')} /> : null}
+      {notFound ? <Notice tone="warning" text={t('stores.locationUnavailable')} /> : null}
       {/* Tous les points de vente Kin Marché sur notre carte ; toucher un magasin le choisit. */}
       <KinMap
         height={320}

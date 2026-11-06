@@ -14,6 +14,7 @@ import { errorMessage } from '@/lib/errors';
 import { formatDate, formatQty, formatRate } from '@/lib/format';
 import { bearingDeg, distanceM, type LatLng } from '@/lib/geo';
 import { decodePolyline } from '@/lib/polyline';
+import { currentPosition } from '@/lib/location';
 import { supabase, unwrap } from '@/lib/supabase';
 import { useSettings } from '@/providers/SettingsProvider';
 
@@ -77,7 +78,8 @@ export default function OrderScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') { setShareNote({ tone: 'danger', text: t('stores.locationDenied') }); return; }
-      const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+      const p = await currentPosition(Location.Accuracy.Highest, { timeoutMs: 20_000, maxAgeMs: 2 * 60_000 });
+      if (!p) { setShareNote({ tone: 'danger', text: t('stores.locationUnavailable') }); return; }
       unwrap(await supabase.rpc('update_delivery_point', {
         p_order_id: id, p_lat: p.coords.latitude, p_lng: p.coords.longitude, p_accuracy: p.coords.accuracy ?? null,
       }));

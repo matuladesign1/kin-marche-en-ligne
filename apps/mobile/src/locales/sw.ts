@@ -372,6 +372,7 @@ const sw: Record<TranslationKey, string> = {
   "auth.withFacebook": "Facebook",
   "auth.providerDisabled": "Njia hii ya kuingia bado haijawashwa na Kin Marché.",
   "map.unavailable": "Ramani haikuweza kuonyeshwa.",
+  "stores.locationUnavailable": "Mahali hapajapatikana kwa sasa. Washa eneo kwenye simu, kisha ujaribu tena (karibu na dirisha au nje).",
   "auth.socialFailed": "Kuingia kumekatizwa. Jaribu tena.",
   "auth.resetChoose": "Chagua nenosiri lako jipya.",
   "auth.resetExpired": "Kiungo hiki si halali tena. Omba kiungo kipya kupitia « Umesahau nenosiri ».",

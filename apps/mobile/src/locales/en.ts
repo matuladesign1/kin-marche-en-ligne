@@ -41,7 +41,7 @@ const en: Record<TranslationKey, string> = {
   'search.photoTerms': 'Detected: {terms}',
   'search.photoNone': "No similar item found. Frame the product well, in good light, and take the photo again.",
   'search.photoNotEnabled': 'Photo search is not active yet (Google Cloud Vision must be enabled).',
-  'stores.title': 'Kin Marché supermarkets', 'stores.useLocation': 'Use my location', 'stores.canDeliver': 'Can deliver to you',
+  'stores.title': 'Kin Marché supermarkets', 'stores.locationUnavailable': 'Location not available right now. Turn on location on your phone and try again (ideally near a window or outside).', 'stores.useLocation': 'Use my location', 'stores.canDeliver': 'Can deliver to you',
   'stores.cannotDeliver': 'Outside delivery area', 'stores.closed': 'Closed', 'stores.open': 'Open', 'stores.addressToVerify': 'Address to be verified',
   'stores.select': 'Choose this store', 'stores.selected': 'Selected store', 'stores.km': '{km} km', 'stores.prep': 'Preparation ~{min} min',
   'stores.locationDenied': 'Location denied: pick your commune in your addresses or a store in the list.', 'stores.openMaps': 'Directions',

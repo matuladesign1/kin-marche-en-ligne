@@ -372,6 +372,7 @@ const ln: Record<TranslationKey, string> = {
   "auth.withFacebook": "Facebook",
   "auth.providerDisabled": "Lolenge oyo ya kokota Kin Marché ebandisi naino te.",
   "map.unavailable": "Carte ekoki komonana te.",
+  "stores.locationUnavailable": "Position ezwami te sikoyo. Fungola localisation ya telefone, meka lisusu (pene na lininisa to libanda).",
   "auth.socialFailed": "Kokota ekatani. Meka lisusu.",
   "auth.resetChoose": "Pona mot de passe na yo ya sika.",
   "auth.resetExpired": "Lien oyo esili ntango. Senga lien ya sika na « Mot de passe obosani ».",

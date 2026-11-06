@@ -6,6 +6,7 @@ import { KinMap } from '@/components/KinMap';
 import { Button, Chip, Input, Notice, Row, Screen, T } from '@/components/ui';
 import { qk } from '@/hooks/data';
 import { errorMessage } from '@/lib/errors';
+import { currentPosition } from '@/lib/location';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -26,16 +27,21 @@ export default function NewAddress() {
   const [mapKey, setMapKey] = useState(0);
   const [pinMoved, setPinMoved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
   const gps = async () => {
     setLocating(true);
+    setGpsError(null);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return setError(t('stores.locationDenied'));
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+      if (status !== 'granted') return setGpsError(t('stores.locationDenied'));
+      const pos = await currentPosition(Location.Accuracy.Highest, { timeoutMs: 20_000, maxAgeMs: 2 * 60_000 });
+      if (!pos) return setGpsError(t('stores.locationUnavailable'));
       setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
       setMapKey((k) => k + 1);   // la carte se place sur la position trouvée
+    } catch {
+      setGpsError(t('stores.locationUnavailable'));
     } finally {
       setLocating(false);
     }
@@ -73,6 +79,7 @@ export default function NewAddress() {
       <Input label={t('address.number')} value={f.street_number} onChangeText={set('street_number')} />
       <Input label={t('address.landmark')} value={f.landmark} onChangeText={set('landmark')} />
       <Button title={coords ? t('address.gpsSaved') : t('address.useGps')} icon="locate-outline" variant={coords ? 'secondary' : 'ghost'} loading={locating} onPress={gps} />
+      {gpsError ? <Notice tone="warning" text={gpsError} /> : null}
       <KinMap
         key={mapKey}
         height={260}

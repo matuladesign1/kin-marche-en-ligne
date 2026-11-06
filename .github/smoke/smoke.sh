@@ -43,6 +43,11 @@ for m in re.finditer(r'<node [^>]*>', x):
 PY
   if [ -s "$OUT/tap.txt" ]; then adb shell input tap $(cat "$OUT/tap.txt"); echo "appui sur « $1 » ($(cat "$OUT/tap.txt"))"; else echo "texte introuvable : $1"; fi
 }
+# Taille de l'écran (les gestes en dépendent) et position GPS simulée envoyée plusieurs fois.
+read -r W H <<< "$(adb shell wm size | grep -o '[0-9]*x[0-9]*' | tail -1 | tr 'x' ' ')"
+W=${W:-1080}; H=${H:-1920}
+scroll_down() { adb shell input swipe $((W / 2)) $((H * 8 / 10)) $((W / 2)) $((H * 2 / 10)) 400; sleep 2; }
+gps_fix() { for _ in 1 2 3 4 5 6; do adb emu geo fix 15.3139 -4.3317 >/dev/null 2>&1; sleep 2; done; }
 open_url() { adb shell am start -W -a android.intent.action.VIEW -d "$1" "$PKG" >/dev/null 2>&1; }
 
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
@@ -51,14 +56,14 @@ sleep 40; shot 01-lancement; alive lancement
 open_url "kinmarche://stores"
 sleep 25; shot 02-magasins; alive magasins
 tap_text "Utiliser ma position|Use my location" magasins
-sleep 20; shot 03-magasins-position; alive "magasins + position"
+gps_fix; sleep 8; shot 03-magasins-position; alive "magasins + position"
 
 open_url "kinmarche://addresses/new"
 sleep 25; shot 04-adresse; alive adresse
-adb shell input swipe 540 1700 540 700 400; sleep 2; adb shell input swipe 540 1700 540 900 400; sleep 3
+scroll_down; scroll_down; scroll_down
 shot 04b-adresse-bas
 tap_text "Enregistrer ma position GPS|Save my current GPS" adresse
-sleep 20; shot 05-adresse-gps; alive "adresse + GPS"
+gps_fix; sleep 10; shot 05-adresse-gps; alive "adresse + GPS"
 
 open_url "kinmarche://sign-in"
 sleep 15; shot 06-connexion; alive connexion
