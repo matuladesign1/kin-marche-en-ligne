@@ -1,0 +1,66 @@
+name: Test sur émulateur Android
+
+# Installe le dernier APK publié sur un émulateur Android, ouvre les écrans sensibles
+# (magasins, nouvelle adresse, bouton de position) et garde le journal (logcat) et des captures.
+# Lancement : pousser une branche « smoke/... » (ou bouton « Run workflow »).
+on:
+  push:
+    branches: ['smoke/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Écrans carte et position
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Connexion Google / Facebook côté serveur (fournisseurs activés ?)
+        env:
+          URL: https://trobgcehelmxkvqjtdbo.supabase.co
+          KEY: sb_publishable_rli_t0Z108wF-V5yMc3f_w_9HDXp9_X
+        run: |
+          echo "== Fournisseurs activés =="
+          curl -s -H "apikey: $KEY" "$URL/auth/v1/settings" | python3 -c "import json,sys; d=json.load(sys.stdin); print({k: v for k, v in d.get('external', {}).items() if k in ('google','facebook','email')})"
+          for p in google facebook; do
+            echo "== /authorize $p =="
+            curl -s -o body.txt -w 'HTTP %{http_code} -> %{redirect_url}\n' "$URL/auth/v1/authorize?provider=$p&redirect_to=kinmarche%3A%2F%2Fauth-callback" | sed -E 's/(client_id=)[^&]*/\1…/'
+            head -c 300 body.txt; echo
+          done
+
+      - name: Télécharger l'APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=$(cat .github/smoke/tag 2>/dev/null || true)
+          gh release download $TAG --pattern '*.apk' --dir apk --repo "${{ github.repository }}"
+          ls -l apk
+
+      - name: Activer KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Émulateur et parcours
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: google_apis
+          ram-size: 4096M
+          disk-size: 6000M
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
+          disable-animations: true
+          script: bash .github/smoke/smoke.sh
+
+      - name: Captures et journal
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke
+          path: smoke-out
