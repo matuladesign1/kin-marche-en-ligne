@@ -28,6 +28,7 @@ const validEmail = (e: string | null) => !!e && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.tes
 
 /** Lien « Voir l'offre » : page publique de l'administration qui ouvre l'application (ou propose de la télécharger). */
 function offerLink(c: Campaign, openBase: string | null): string | null {
+  if (!c.link_type) return null;                   // message seul : pas de bouton
   if (c.link_type === 'url') return c.link_value && /^https:\/\//.test(c.link_value) ? c.link_value : null;
   if (!openBase) return null;
   const q = new URLSearchParams({ c: c.id });
