@@ -147,7 +147,7 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
       <form action={addBanner} className="card stack" style={{ marginTop: 14 }}>
         <div className="card-title"><span>Nouvelle bannière</span></div>
         <div className="notice" style={{ margin: 0 }}>
-          Format conseillé : <b>1200 × 600 px (rapport 2:1)</b> — toutes les bannières s’affichent à la même taille.
+          Format des bannières de l’accueil : <b>1200 × 448 px, 100 pixels/pouce</b> — toutes les bannières s’affichent en entier, à la même taille.
           Vidéo : MP4 (H.264), 15 secondes maximum, 50 Mo maximum, lue sans le son ; ajoutez une image d’aperçu au même format.
         </div>
         <div className="cols">

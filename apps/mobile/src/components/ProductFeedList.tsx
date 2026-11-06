@@ -17,7 +17,7 @@ const CELL = (Dimensions.get('window').width - SIDE * 2 - GAP) / 2;
  * Écran en liste avec, en bas, une grille de produits qui se charge au fil du défilement.
  * Un petit panier animé s'affiche pendant le chargement de la suite ; le pied de page à la fin.
  */
-export function ProductFeedList({ feed, header, title, subtitle, onRefresh, refreshing, enabled = true, contentStyle, footer, emptyMessage }: {
+export function ProductFeedList({ feed, header, title, subtitle, onRefresh, refreshing, enabled = true, contentStyle, footer, emptyMessage, endFooter = true }: {
   feed: Feed;
   header?: ReactElement | null;
   title?: string;
@@ -28,6 +28,8 @@ export function ProductFeedList({ feed, header, title, subtitle, onRefresh, refr
   contentStyle?: StyleProp<ViewStyle>;
   footer?: ReactElement | null;
   emptyMessage?: string;
+  /** Pied de page « Tous droits réservés » à la fin de la liste (retiré sur l'accueil). */
+  endFooter?: boolean;
 }) {
   const { colors } = useSettings();
   const q = useProductFeed(feed, enabled);
@@ -76,7 +78,7 @@ export function ProductFeedList({ feed, header, title, subtitle, onRefresh, refr
         <View>
           {loadingMore ? <BasketLoader size="mini" showLabel={false} /> : null}
           {footer}
-          {!loadingMore && !q.hasNextPage ? <AppFooter /> : null}
+          {endFooter && !loadingMore && !q.hasNextPage ? <AppFooter /> : null}
         </View>
       }
     />

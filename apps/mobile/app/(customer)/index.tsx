@@ -5,7 +5,6 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
-import { AppFooter } from '@/components/AppFooter';
 import { BannerCarousel } from '@/components/BannerCarousel';
 import { CountBadge, FilterChip, FlagCD, GradientBg, TopTabs, WheelIcon } from '@/components/kit';
 import { ProductFeedList } from '@/components/ProductFeedList';
@@ -258,7 +257,6 @@ export default function Home() {
                 <Ionicons name="map-outline" size={18} color={colors.primary} />
                 <T weight="700" color={colors.primary}>{t('home.storesMap')}</T>
               </Pressable>
-              <AppFooter />
             </View>
           }
           refreshControl={<RefreshControl refreshing={stores.isRefetching} onRefresh={refresh} tintColor={colors.primary} colors={[colors.primary]} />}
@@ -292,6 +290,7 @@ export default function Home() {
         emptyMessage={tab === 'promos' ? t('home.noPromos') : tab === 'local' ? t('home.noLocal') : noCatalog}
         refreshing={stores.isRefetching}
         onRefresh={refresh}
+        endFooter={false}
       />
     </View>
   );

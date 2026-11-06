@@ -24,9 +24,10 @@ export interface Banner {
   ends_at: string | null;
 }
 
-// Toutes les bannières ont exactement le même format (2:1, conseillé 1200 × 600 px).
+// Toutes les bannières ont exactement le même format : 1200 × 448 px (100 ppp), affichées en entier, sans recadrage.
+export const BANNER_RATIO = 1200 / 448;
 const WIDTH = Dimensions.get('window').width - spacing.lg * 2;
-const HEIGHT = Math.round(WIDTH / 2);
+const HEIGHT = Math.round(WIDTH / BANNER_RATIO);
 const IMAGE_MS = 5000;
 const VIDEO_MS = 9000;
 
@@ -128,20 +129,18 @@ export function BannerCarousel() {
         renderItem={({ item, index: i }) => {
           const inputRange = [(i - 1) * step, i * step, (i + 1) * step];
           const scale = scrollX.interpolate({ inputRange, outputRange: [0.92, 1, 0.92], extrapolate: 'clamp' });
-          const parallax = scrollX.interpolate({ inputRange, outputRange: [-WIDTH * 0.18, 0, WIDTH * 0.18], extrapolate: 'clamp' });
           const textY = scrollX.interpolate({ inputRange, outputRange: [24, 0, 24], extrapolate: 'clamp' });
           const textOpacity = scrollX.interpolate({ inputRange, outputRange: [0, 1, 0], extrapolate: 'clamp' });
           const title = localized(item.title_i18n ?? undefined, language, item.title ?? '');
           return (
             <Pressable onPress={() => openBanner(item)} accessibilityRole="imagebutton" accessibilityLabel={title || undefined}>
               <Animated.View style={[styles.slide, { transform: [{ scale }], backgroundColor: colors.surfaceAlt }]}>
-                <Animated.View style={[StyleSheet.absoluteFill, { width: WIDTH * 1.36, left: -WIDTH * 0.18, transform: [{ translateX: parallax }] }]}>
-                  {item.media_type === 'video' && item.video_url ? (
-                    <VideoSlide uri={item.video_url} poster={item.image_url} active={i === index} />
-                  ) : (
-                    <Image source={{ uri: item.image_url }} style={StyleSheet.absoluteFill} contentFit="cover" transition={300} />
-                  )}
-                </Animated.View>
+                {/* Image au format exact du cadre (1200 × 448) : rien n'est coupé. */}
+                {item.media_type === 'video' && item.video_url ? (
+                  <VideoSlide uri={item.video_url} poster={item.image_url} active={i === index} />
+                ) : (
+                  <Image source={{ uri: item.image_url }} style={StyleSheet.absoluteFill} contentFit="cover" transition={300} />
+                )}
                 {title ? (
                   <>
                     <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
