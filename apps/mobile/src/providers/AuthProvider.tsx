@@ -22,7 +22,7 @@ const WELCOME_KEY = 'km.welcome.notified';
  * Notification sur le téléphone dès l'inscription (« Bienvenue ») ou la connexion (« Content de vous revoir »).
  * Une seule fois par connexion réelle (date de dernière connexion du compte).
  */
-async function welcomeOnce(user: User, t: TFunction) {
+async function welcomeOnce(user: User, role: Profile['role'] | undefined, t: TFunction) {
   const stamp = `${user.id}:${user.last_sign_in_at ?? ''}`;
   try {
     if ((await AsyncStorage.getItem(WELCOME_KEY)) === stamp) return;
@@ -32,15 +32,23 @@ async function welcomeOnce(user: User, t: TFunction) {
   }
   const first = String(user.user_metadata?.full_name ?? '').trim().split(/\s+/)[0] ?? '';
   const isNew = Date.now() - Date.parse(user.created_at) < 10 * 60_000;
-  const title = isNew
-    ? (first ? t('notif.welcome.title', { name: first }) : t('notif.welcome.titleNoName'))
-    : (first ? t('notif.welcomeBack.title', { name: first }) : t('notif.welcomeBack.titleNoName'));
-  await presentLocal({
-    title,
-    body: isNew ? t('notif.welcome.body') : t('notif.welcomeBack.body'),
-    data: { kind: 'welcome' },
-    channel: 'general',
-  });
+  let title: string;
+  let body: string;
+  if (role === 'driver') {
+    // Espace livreur : textes de livreur (passer en ligne, recevoir des courses), jamais ceux d'un client.
+    title = isNew
+      ? (first ? t('notif.driver.welcome.title', { name: first }) : t('notif.driver.welcome.titleNoName'))
+      : (first ? t('notif.driver.welcomeBack.title', { name: first }) : t('notif.driver.welcomeBack.titleNoName'));
+    body = isNew ? t('notif.driver.welcome.body') : t('notif.driver.welcomeBack.body');
+  } else {
+    title = isNew
+      ? (first ? t('notif.welcome.title', { name: first }) : t('notif.welcome.titleNoName'))
+      : (first ? t('notif.welcomeBack.title', { name: first }) : t('notif.welcomeBack.titleNoName'));
+    body = role && role !== 'customer'
+      ? t('notif.staff.welcomeBack.body')
+      : (isNew ? t('notif.welcome.body') : t('notif.welcomeBack.body'));
+  }
+  await presentLocal({ title, body, data: { kind: 'welcome' }, channel: 'general' });
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -51,14 +59,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = useCallback(async (s: Session | null) => {
+  const loadProfile = useCallback(async (s: Session | null): Promise<Profile | null> => {
     if (!s) {
       setProfile(null);
-      return;
+      return null;
     }
     // ensure_profile crée le profil client si le compte est antérieur à l'installation.
     const { data, error } = await supabase.rpc('ensure_profile');
     if (!error && data) setProfile(data as Profile);
+    return !error && data ? (data as Profile) : null;
   }, []);
 
   useEffect(() => {
@@ -73,8 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       // Différé : ne pas appeler Supabase directement dans le callback d'auth.
       setTimeout(() => {
-        loadProfile(s).finally(() => setLoading(false));
-        if (event === 'SIGNED_IN' && s?.user) welcomeOnce(s.user, tRef.current).catch(() => undefined);
+        loadProfile(s)
+          .then((p) => {
+            // Bienvenue selon le compte : textes de livreur pour un livreur, de client pour un client.
+            if (event === 'SIGNED_IN' && s?.user) welcomeOnce(s.user, p?.role, tRef.current).catch(() => undefined);
+          })
+          .finally(() => setLoading(false));
       }, 0);
     });
     return () => {
@@ -87,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     profile,
     loading,
-    refreshProfile: () => loadProfile(session),
+    refreshProfile: () => loadProfile(session).then(() => undefined),
     signOut: async () => {
       await supabase.auth.signOut();
       setProfile(null);

@@ -46,7 +46,7 @@ export default function CustomerTabs() {
         }}
       >
         <Tabs.Screen name="index" options={{ headerShown: false, title: t('tab.home'), tabBarIcon: tabIcon('home') }} />
-        <Tabs.Screen name="categories" options={{ title: t('tab.categories'), tabBarIcon: tabIcon('grid') }} />
+        <Tabs.Screen name="categories" options={{ headerShown: false, title: t('tab.categories'), tabBarIcon: tabIcon('grid') }} />
         <Tabs.Screen name="messages" options={{ title: t('tab.messages'), tabBarBadge: messages > 0 ? (messages > 99 ? '99+' : messages) : undefined, tabBarIcon: tabIcon('chatbox-ellipses') }} />
         <Tabs.Screen name="cart" options={{ title: t('tab.cart'), tabBarBadge: count > 0 ? count : undefined, tabBarIcon: tabIcon('cart') }} />
         <Tabs.Screen name="account" options={{ headerShown: false, title: t('tab.account'), tabBarIcon: tabIcon('person') }} />

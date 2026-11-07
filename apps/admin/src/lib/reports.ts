@@ -34,7 +34,7 @@ export function filtersToQuery(f: ReportFilters): string {
   return new URLSearchParams(Object.entries(f).filter(([, v]) => v) as [string, string][]).toString();
 }
 
-const ORDER_COLS = 'id, order_number, created_at, paid_at, status, payment_status, subtotal_usd, delivery_fee_usd, coupon_discount_usd, loyalty_discount_usd, total_usd, display_currency, delivery_address, customer_id, store_id, stores!inner(name, province, city, commune), profiles!orders_customer_id_fkey(full_name, email, phone)';
+const ORDER_COLS = 'id, order_number, created_at, paid_at, status, payment_status, subtotal_usd, delivery_fee_usd, coupon_discount_usd, loyalty_discount_usd, tax_usd, total_usd, display_currency, delivery_address, customer_id, store_id, stores!inner(name, province, city, commune), profiles!orders_customer_id_fkey(full_name, email, phone)';
 
 /** Commandes filtrées. La RLS limite déjà les lignes au périmètre de l'utilisateur (magasin ou plateforme). */
 export async function fetchOrders(sb: SupabaseClient, f: ReportFilters, limit = 5000) {
@@ -88,11 +88,11 @@ export async function buildExport(sb: SupabaseClient, type: string, f: ReportFil
       return {
         name: `commandes_${stamp}`,
         csv: toCsv(
-          ['N° commande', 'Date', 'Payée le', 'Magasin', 'Province', 'Ville', 'Client', 'E-mail', 'Téléphone', 'Commune livraison', 'Quartier', 'Statut', 'Paiement', 'Sous-total USD', 'Livraison USD', 'Réduction coupon USD', 'Réduction fidélité USD', 'Total USD', 'Devise affichée'],
+          ['N° commande', 'Date', 'Payée le', 'Magasin', 'Province', 'Ville', 'Client', 'E-mail', 'Téléphone', 'Commune livraison', 'Quartier', 'Statut', 'Paiement', 'Sous-total USD', 'Livraison USD', 'Réduction coupon USD', 'Réduction fidélité USD', 'TVA USD', 'Total USD', 'Devise affichée'],
           rows.map((o) => [o.order_number, d(o.created_at), d(o.paid_at), o.stores?.name, o.stores?.province, o.stores?.city,
             o.profiles?.full_name, o.profiles?.email, o.profiles?.phone, o.delivery_address?.commune, o.delivery_address?.quartier,
             STATUS_FR[o.status], PAY_FR[o.payment_status], Number(o.subtotal_usd), Number(o.delivery_fee_usd),
-            Number(o.coupon_discount_usd), Number(o.loyalty_discount_usd), Number(o.total_usd), o.display_currency]),
+            Number(o.coupon_discount_usd), Number(o.loyalty_discount_usd), Number(o.tax_usd ?? 0), Number(o.total_usd), o.display_currency]),
         ),
       };
     }

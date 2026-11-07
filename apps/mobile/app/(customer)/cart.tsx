@@ -5,9 +5,9 @@ import { Alert, StyleSheet, View } from 'react-native';
 import { QuantityStepper } from '@/components/product';
 import { ProductFeedList } from '@/components/ProductFeedList';
 import { Button, Card, Divider, EmptyState, ErrorState, Loading, Notice, Row, T } from '@/components/ui';
-import { useCart, useSetCartQuantity } from '@/hooks/data';
+import { useCart, useSetCartQuantity, useTaxRate } from '@/hooks/data';
 import { errorMessage } from '@/lib/errors';
-import { formatQty } from '@/lib/format';
+import { formatQty, formatRate } from '@/lib/format';
 import { localized } from '@/lib/i18n';
 import { radius, spacing } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
@@ -18,6 +18,7 @@ export default function Cart() {
   const { session } = useAuth();
   const cart = useCart();
   const setQty = useSetCartQuantity();
+  const taxRate = useTaxRate().data ?? 0;
 
   const lines = cart.data?.lines ?? [];
   const subtotal = lines.reduce((s, l) => s + (l.item ? l.item.effective_price_usd * l.quantity : 0), 0);
@@ -80,6 +81,7 @@ export default function Cart() {
             <T>{t('cart.subtotal')}</T>
             <T size="lg" weight="700">{money(subtotal)}</T>
           </Row>
+          {taxRate > 0 ? <T size="xs" muted>{t('cart.taxNote', { rate: formatRate(taxRate) })}</T> : null}
           <Divider />
           <T size="xs" muted>{t('checkout.noCash')}</T>
         </Card>
@@ -95,6 +97,7 @@ export default function Cart() {
       title={t('cart.featured')}
       refreshing={cart.isRefetching}
       onRefresh={() => cart.refetch()}
+      endFooter={false}
     />
   );
 }

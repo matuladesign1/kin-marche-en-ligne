@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+  <title>Lait</title>
+  <path d="M17.5 19l3.5-6h6l3.5 6v17a2.5 2.5 0 0 1-2.5 2.5h-8a2.5 2.5 0 0 1-2.5-2.5z" stroke="#E60024"/>
+  <path d="M17.5 19h13M21 13V9.5h6V13" stroke="#E60024"/>
+  <path d="M17.5 27.5c2.2-1.6 4.3-1.6 6.5 0s4.3 1.6 6.5 0" stroke="#1CB7B8"/>
+</svg>

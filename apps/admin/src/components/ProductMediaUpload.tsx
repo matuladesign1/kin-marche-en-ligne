@@ -1,11 +1,12 @@
 'use client';
 import { useState } from 'react';
+import { blurhashFromFile } from '@/lib/blurhash';
 import { supabaseBrowser } from '@/lib/supabase-browser';
 
 const EXT: Record<string, string> = {
   'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov',
 };
-interface Item { key: string; name: string; kind: 'image' | 'video'; state: 'busy' | 'done' | 'error'; url?: string; error?: string }
+interface Item { key: string; name: string; kind: 'image' | 'video'; state: 'busy' | 'done' | 'error'; url?: string; error?: string; blurhash?: string | null }
 
 /**
  * Photos et vidéos du produit envoyées directement au stockage (aucune limite de taille du serveur web),
@@ -27,9 +28,13 @@ export function ProductMediaUpload() {
       if (file.size > 50 * 1024 * 1024) { setItems((l) => [...l, { key, name: file.name, kind, state: 'error', error: 'Plus de 50 Mo' }]); continue; }
       setItems((l) => [...l, { key, name: file.name, kind, state: 'busy' }]);
       const path = `catalogue/${key}.${ext}`;
-      const { error } = await sb.storage.from('product-media').upload(path, file, { contentType: file.type, upsert: false });
+      // Empreinte visuelle de la photo (recherche par photo similaire dans l'application), calculée ici.
+      const [{ error }, blurhash] = await Promise.all([
+        sb.storage.from('product-media').upload(path, file, { contentType: file.type, upsert: false }),
+        kind === 'image' ? blurhashFromFile(file) : Promise.resolve(null),
+      ]);
       if (error) patch(key, { state: 'error', error: error.message });
-      else patch(key, { state: 'done', url: sb.storage.from('product-media').getPublicUrl(path).data.publicUrl });
+      else patch(key, { state: 'done', url: sb.storage.from('product-media').getPublicUrl(path).data.publicUrl, blurhash });
     }
   }
 
@@ -49,6 +54,7 @@ export function ProductMediaUpload() {
                 // eslint-disable-next-line @next/next/no-img-element
                 : <img src={it.url} alt={it.name} />) : <span>{it.state === 'busy' ? 'Envoi…' : it.error}</span>}
               {it.url ? <input type="hidden" name="media_url" value={it.url} /> : null}
+              {it.url && it.blurhash ? <input type="hidden" name="media_blurhash" value={`${it.url} ${it.blurhash}`} /> : null}
               <button type="button" className="secondary" onClick={() => setItems((l) => l.filter((x) => x.key !== it.key))}>Retirer</button>
             </div>
           ))}

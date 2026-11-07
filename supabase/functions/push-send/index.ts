@@ -15,9 +15,19 @@ Deno.serve(async (req) => {
   const { data: tokens } = await admin.from('push_tokens').select('token').eq('user_id', n.user_id);
   if (!tokens?.length) return reply({ sent: 0 });
 
+  // Même canal Android que l'application (lib/notify.ts : channelForKind).
+  // Offre de course : canal « appel » (sonnerie de 25 s, écran verrouillé, Ne pas déranger), valable 2 minutes.
+  const channelId = n.kind === 'delivery_offer' || n.kind === 'call_test' ? 'missions_appel'
+    : ['order_status', 'new_order', 'no_driver'].includes(n.kind) ? 'orders'
+    : ['message', 'ticket'].includes(n.kind) ? 'messages'
+    : ['promo', 'marketing'].includes(n.kind) ? 'promos' : 'general';
+  // Promotion avec photo : affichée en grand dans la notification (Android l'affiche directement).
+  const image = typeof n.data?.image_url === 'string' && /^https:\/\//.test(n.data.image_url) ? n.data.image_url : null;
   const messages = tokens.map((t) => ({
     to: t.token, title: n.title, body: n.body ?? undefined, sound: 'default', priority: 'high',
-    channelId: n.kind === 'delivery_offer' ? 'missions' : 'orders',
+    channelId,
+    ...(n.kind === 'delivery_offer' ? { ttl: 120 } : n.kind === 'call_test' ? { ttl: 60 } : {}),
+    ...(image ? { richContent: { image } } : {}),
     data: { ...(n.data ?? {}), notification_id: n.id, kind: n.kind },
   }));
   const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };

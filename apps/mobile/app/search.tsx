@@ -1,19 +1,21 @@
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
-import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import * as VideoThumbnails from 'expo-video-thumbnails';
+import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { ProductGrid } from '@/components/product';
-import { Button, Chip, Input, Loading, Notice, Row, Screen, SectionHeader, T } from '@/components/ui';
+import { Button, Chip, EmptyState, Input, Loading, Notice, Row, Screen, SectionHeader, T } from '@/components/ui';
 import { useCatalog } from '@/hooks/data';
 import { supabase, unwrap } from '@/lib/supabase';
 import type { CatalogItem } from '@/lib/types';
-import { spacing } from '@/lib/theme';
+import { radius, spacing } from '@/lib/theme';
 import type { Language } from '@/lib/types';
+import { readPhotoText } from '@/lib/textRecognition';
+import { findSimilarProducts, photoBlurhash } from '@/lib/visualSearch';
 import { useSettings } from '@/providers/SettingsProvider';
 
 // Langues de reconnaissance vocale. Le lingala dépend du moteur installé sur le téléphone :
@@ -22,7 +24,7 @@ const SPEECH_LANG: Record<Language, string> = { fr: 'fr-FR', en: 'en-US', sw: 's
 
 export default function Search() {
   const params = useLocalSearchParams<{ promo?: string; q?: string; mode?: string }>();
-  const { t, selectedStoreId, language } = useSettings();
+  const { t, selectedStoreId, language, colors } = useSettings();
   const [text, setText] = useState(params.q ?? '');
   const [query, setQuery] = useState(params.q ?? '');
   const [inStockOnly, setInStockOnly] = useState(false);
@@ -33,9 +35,11 @@ export default function Search() {
   const [listening, setListening] = useState(false);
   const [voiceNote, setVoiceNote] = useState<string | null>(null);
   const triedFallback = useRef(false);
-  const [visual, setVisual] = useState<{ terms: string[]; items: CatalogItem[] } | null>(null);
+  const [visual, setVisual] = useState<{ photo: string; terms: string[]; items: CatalogItem[] } | null>(null);
   const [visualBusy, setVisualBusy] = useState(false);
   const [visualError, setVisualError] = useState<string | null>(null);
+  // Recherche par photo : la page ne montre que la photo et les articles similaires.
+  const [photoMode, setPhotoMode] = useState(params.mode === 'photo');
 
   useSpeechRecognitionEvent('result', (e) => {
     const text = e.results[0]?.transcript ?? '';
@@ -66,29 +70,36 @@ export default function Search() {
     setListening(true);
   };
 
-  const runVisual = async (base64: string) => {
+  // Recherche par photo, entièrement sur le téléphone (voir lib/visualSearch) : le nom lu sur l'emballage
+  // désigne l'article exact ; sinon, l'article qui ressemble nettement (couleurs et forme) et sa catégorie.
+  const runVisual = async (uri: string) => {
+    setPhotoMode(true);
     setVisualBusy(true);
     setVisualError(null);
     setVisual(null);
-    const { data, error } = await supabase.functions.invoke('image-search', { body: { image_base64: base64, store_id: selectedStoreId } });
-    setVisualBusy(false);
-    if (error) {
-      let code: string | undefined;
-      try { code = (await (error as { context?: Response }).context?.json())?.error; } catch { /* ignore */ }
-      setVisualError(code === 'VISION_API_ERROR' || code === 'VISION_NOT_CONFIGURED' ? t('search.photoNotEnabled') : t('common.error'));
-      return;
+    try {
+      const [hash, words] = await Promise.all([photoBlurhash(uri).catch(() => null), readPhotoText(uri)]);
+      if (!hash && !words.length) throw new Error('NO_FEATURE');
+      const found = await findSimilarProducts(hash, { storeId: selectedStoreId, words });
+      setVisual({ photo: uri, terms: found.readWords, items: found.items });
+    } catch {
+      setVisualError(t('search.photoError'));
+    } finally {
+      setVisualBusy(false);
     }
-    setVisual(data as { terms: string[]; items: CatalogItem[] });
   };
 
   const searchByPhoto = async (fromCamera: boolean) => {
-    const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.4, base64: true };
+    // Recadrage carré sur le produit : la comparaison porte sur le produit, pas sur le décor.
+    const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.7, allowsEditing: true, aspect: [1, 1] };
     if (fromCamera) {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) return;
     }
     const res = fromCamera ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
-    if (!res.canceled && res.assets[0]?.base64) runVisual(res.assets[0].base64);
+    const asset = res.canceled ? null : res.assets[0];
+    if (asset) runVisual(asset.uri);
+    else if (!visual) setPhotoMode(false);   // photo annulée : retour à la recherche normale
   };
 
   // Recherche par vidéo : on analyse une image extraite de la vidéo (1re seconde).
@@ -97,9 +108,8 @@ export default function Search() {
     if (res.canceled || !res.assets[0]) return;
     setVisualBusy(true);
     try {
-      const thumb = await VideoThumbnails.getThumbnailAsync(res.assets[0].uri, { time: 1000, quality: 0.5 });
-      const b64 = await FileSystem.readAsStringAsync(thumb.uri, { encoding: FileSystem.EncodingType.Base64 });
-      await runVisual(b64);
+      const thumb = await VideoThumbnails.getThumbnailAsync(res.assets[0].uri, { time: 1000, quality: 0.7 });
+      await runVisual(thumb.uri);
     } catch {
       setVisualBusy(false);
       setVisualError(t('common.error'));
@@ -156,6 +166,36 @@ export default function Search() {
     setQuery(r.data);
   };
 
+  if (photoMode) {
+    return (
+      <Screen>
+        {visualBusy ? <Loading label={t('search.photoAnalyzing')} /> : null}
+        {visualError ? <Notice tone="warning" text={visualError} /> : null}
+        {visual ? (
+          <View style={{ gap: spacing.md }}>
+            <View style={[styles.photoHead, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Image source={{ uri: visual.photo }} style={[styles.photoThumb, { backgroundColor: colors.surfaceAlt }]} contentFit="cover"
+                accessibilityLabel={t('search.yourPhoto')} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <T weight="800">{t('search.photoResults')}</T>
+                {visual.items.length ? <T size="xs" muted>{t('search.photoSimilarHint')}</T> : null}
+                {visual.terms.length ? <T size="xs" muted numberOfLines={2}>{t('search.photoRead', { terms: visual.terms.slice(0, 6).join(', ').toUpperCase() })}</T> : null}
+              </View>
+            </View>
+            {visual.items.length ? <ProductGrid items={visual.items} emptyMessage="" /> : <EmptyState icon="images-outline" message={t('search.photoNone')} />}
+          </View>
+        ) : null}
+        {!visualBusy ? (
+          <Row style={{ flexWrap: 'wrap' }}>
+            <Chip label={t('search.photoAgain')} icon="camera-outline" onPress={() => searchByPhoto(true)} />
+            <Chip label={t('search.gallery')} icon="image-outline" onPress={() => searchByPhoto(false)} />
+            <Chip label={t('search.textSearch')} icon="search-outline" onPress={() => { setVisual(null); setVisualError(null); setPhotoMode(false); }} />
+          </Row>
+        ) : null}
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <Input value={text} onChangeText={setText} placeholder={t('home.searchPlaceholder')} autoFocus={!promoOnly && !params.mode} returnKeyType="search" clearButtonMode="while-editing" />
@@ -170,17 +210,8 @@ export default function Search() {
       {permission && !permission.granted && !permission.canAskAgain ? <T size="sm" muted>{t('search.cameraDenied')}</T> : null}
 
       {voiceNote ? <Notice tone="warning" text={voiceNote} /> : null}
-      {visualError ? <Notice tone="warning" text={visualError} /> : null}
-      {visualBusy ? <Loading /> : null}
-      {visual ? (
-        <View style={{ gap: spacing.md }}>
-          <SectionHeader title={t('search.photoResults')} />
-          {visual.terms.length ? <T size="xs" muted>{t('search.photoTerms', { terms: visual.terms.slice(0, 8).join(', ') })}</T> : null}
-          <ProductGrid items={visual.items} emptyMessage={t('search.photoNone')} />
-        </View>
-      ) : null}
 
-      {visual ? null : results.isLoading ? <Loading /> : (query || promoOnly) ? (
+      {results.isLoading ? <Loading /> : (query || promoOnly) ? (
         list.length > 0 ? <ProductGrid items={list} emptyMessage="" /> : (
           <View style={{ gap: spacing.md }}>
             <T muted>{t('search.noResult', { q: query })}</T>
@@ -210,3 +241,8 @@ export default function Search() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  photoHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.sm, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth },
+  photoThumb: { width: 64, height: 64, borderRadius: radius.md },
+});

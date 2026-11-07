@@ -5,7 +5,7 @@ import { dateTime, PAY_FR, STATUS_FR, usd } from '@/lib/format';
 import { supabaseServer } from '@/lib/supabase-server';
 
 const ROLES: Record<string, string> = {
-  customer: 'Client', driver: 'Livreur', store_admin: 'Directeur / gestionnaire', agent: 'Agent', super_admin: 'Administrateur général',
+  customer: 'Client', driver: 'Livreur', pastry_chef: 'Pâtissier', store_admin: 'Directeur / gestionnaire', agent: 'Agent', super_admin: 'Administrateur général',
 };
 const TICKET: Record<string, string> = { open: 'Ouverte', pending: 'En attente', resolved: 'Résolue', closed: 'Fermée' };
 

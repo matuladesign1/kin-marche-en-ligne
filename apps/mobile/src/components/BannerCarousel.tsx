@@ -1,11 +1,11 @@
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Easing, Linking, Pressable, StyleSheet, View, type FlatList } from 'react-native';
+import { Animated, Dimensions, Easing, Pressable, StyleSheet, View, type FlatList } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions, useQuery } from '@tanstack/react-query';
 import { localized } from '@/lib/i18n';
+import { openAppLink } from '@/lib/links';
 import { supabase } from '@/lib/supabase';
 import { radius, spacing } from '@/lib/theme';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -24,20 +24,23 @@ export interface Banner {
   ends_at: string | null;
 }
 
-// Toutes les bannières ont exactement le même format (2:1, conseillé 1200 × 600 px).
-const WIDTH = Dimensions.get('window').width - spacing.lg * 2;
-const HEIGHT = Math.round(WIDTH / 2);
+// Chaque emplacement a un format unique, affiché en entier, sans recadrage :
+// accueil 1200 × 448 px (100 ppp) ; page Messages 1667 × 238 px (gérée par l'administrateur général).
+export type BannerPlacement = 'home' | 'messages';
+export const BANNER_RATIO = 1200 / 448;
+export const MESSAGES_BANNER_RATIO = 1667 / 238;
 const IMAGE_MS = 5000;
 const VIDEO_MS = 9000;
 
-export function useBanners() {
-  return useQuery({
-    queryKey: ['banners'],
+/** Requête des bannières d'un emplacement (partagée avec le préchargement au démarrage). */
+export function bannersQuery(placement: BannerPlacement) {
+  return queryOptions({
+    queryKey: ['banners', placement],
     staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await supabase.from('banners')
         .select('id, title, title_i18n, image_url, media_type, video_url, link_type, link_value, starts_at, ends_at')
-        .eq('is_active', true).order('sort_order').order('created_at', { ascending: false });
+        .eq('is_active', true).eq('placement', placement).order('sort_order').order('created_at', { ascending: false });
       const now = Date.now();
       return ((data ?? []) as Banner[]).filter((b) =>
         (!b.starts_at || new Date(b.starts_at).getTime() <= now) && (!b.ends_at || new Date(b.ends_at).getTime() > now));
@@ -45,15 +48,12 @@ export function useBanners() {
   });
 }
 
+export function useBanners(placement: BannerPlacement = 'home') {
+  return useQuery(bannersQuery(placement));
+}
+
 function openBanner(b: Banner) {
-  if (!b.link_value && b.link_type !== 'promotion') return;
-  switch (b.link_type) {
-    case 'product': router.push(`/product/${b.link_value}`); break;
-    case 'category': router.push(`/category/${b.link_value}`); break;
-    case 'promotion': router.push('/search?promo=1'); break;
-    case 'url': if (b.link_value && /^https:\/\//.test(b.link_value)) Linking.openURL(b.link_value); break;
-    default: break;
-  }
+  openAppLink(b.link_type, b.link_value);
 }
 
 function VideoSlide({ uri, poster, active }: { uri: string; poster: string; active: boolean }) {
@@ -74,11 +74,24 @@ function VideoSlide({ uri, poster, active }: { uri: string; poster: string; acti
   );
 }
 
-/** Bannière publicitaire : défilement automatique, effet de profondeur et indicateurs de progression. */
-export function BannerCarousel() {
+/**
+ * Bannière publicitaire : défilement automatique, effet de profondeur et indicateurs de progression.
+ * `placement` choisit les bannières (accueil ou page Messages), `ratio` leur format exact.
+ */
+export function BannerCarousel({ placement = 'home', ratio = BANNER_RATIO, inset = spacing.lg, captions = true }: {
+  placement?: BannerPlacement;
+  ratio?: number;
+  /** Marge à gauche et à droite. */
+  inset?: number;
+  /** Titre affiché sur l'image (masqué sur le bandeau fin de la page Messages). */
+  captions?: boolean;
+}) {
   const { language, colors } = useSettings();
-  const banners = useBanners();
+  const banners = useBanners(placement);
   const list = banners.data ?? [];
+  const WIDTH = Dimensions.get('window').width - inset * 2;
+  const HEIGHT = Math.round(WIDTH / ratio);
+  const corner = HEIGHT < 90 ? radius.md : radius.lg;
   const scrollX = useRef(new Animated.Value(0)).current;
   const progress = useRef(new Animated.Value(0)).current;
   const listRef = useRef<FlatList<Banner>>(null);
@@ -117,7 +130,7 @@ export function BannerCarousel() {
         showsHorizontalScrollIndicator={false}
         snapToInterval={step}
         decelerationRate="fast"
-        contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}
+        contentContainerStyle={{ paddingHorizontal: inset, gap: spacing.sm }}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
         onScrollBeginDrag={() => setPaused(true)}
@@ -128,21 +141,19 @@ export function BannerCarousel() {
         renderItem={({ item, index: i }) => {
           const inputRange = [(i - 1) * step, i * step, (i + 1) * step];
           const scale = scrollX.interpolate({ inputRange, outputRange: [0.92, 1, 0.92], extrapolate: 'clamp' });
-          const parallax = scrollX.interpolate({ inputRange, outputRange: [-WIDTH * 0.18, 0, WIDTH * 0.18], extrapolate: 'clamp' });
           const textY = scrollX.interpolate({ inputRange, outputRange: [24, 0, 24], extrapolate: 'clamp' });
           const textOpacity = scrollX.interpolate({ inputRange, outputRange: [0, 1, 0], extrapolate: 'clamp' });
           const title = localized(item.title_i18n ?? undefined, language, item.title ?? '');
           return (
             <Pressable onPress={() => openBanner(item)} accessibilityRole="imagebutton" accessibilityLabel={title || undefined}>
-              <Animated.View style={[styles.slide, { transform: [{ scale }], backgroundColor: colors.surfaceAlt }]}>
-                <Animated.View style={[StyleSheet.absoluteFill, { width: WIDTH * 1.36, left: -WIDTH * 0.18, transform: [{ translateX: parallax }] }]}>
-                  {item.media_type === 'video' && item.video_url ? (
-                    <VideoSlide uri={item.video_url} poster={item.image_url} active={i === index} />
-                  ) : (
-                    <Image source={{ uri: item.image_url }} style={StyleSheet.absoluteFill} contentFit="cover" transition={300} />
-                  )}
-                </Animated.View>
-                {title ? (
+              <Animated.View style={[styles.slide, { width: WIDTH, height: HEIGHT, borderRadius: corner, transform: [{ scale }], backgroundColor: colors.surfaceAlt }]}>
+                {/* Image au format exact du cadre (1200 × 448) : rien n'est coupé. */}
+                {item.media_type === 'video' && item.video_url ? (
+                  <VideoSlide uri={item.video_url} poster={item.image_url} active={i === index} />
+                ) : (
+                  <Image source={{ uri: item.image_url }} style={StyleSheet.absoluteFill} contentFit="cover" transition={300} />
+                )}
+                {captions && title ? (
                   <>
                     <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
                       <Defs>
@@ -181,7 +192,7 @@ export function BannerCarousel() {
 }
 
 const styles = StyleSheet.create({
-  slide: { width: WIDTH, height: HEIGHT, borderRadius: radius.lg, overflow: 'hidden' },
+  slide: { overflow: 'hidden' },
   caption: { position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   accentBar: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
   bars: { flexDirection: 'row', justifyContent: 'center', gap: 6 },

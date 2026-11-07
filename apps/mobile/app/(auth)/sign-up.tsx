@@ -1,3 +1,4 @@
+import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform } from 'react-native';
@@ -30,7 +31,7 @@ export default function SignUp() {
     const { data, error: e } = await supabase.auth.signUp({
       email: form.email.trim().toLowerCase(),
       password: form.password,
-      options: { data: { full_name: form.fullName.trim(), phone: phone || null, language } },
+      options: { data: { full_name: form.fullName.trim(), phone: phone || null, language }, emailRedirectTo: Linking.createURL('auth-callback') },
     });
     setLoading(false);
     if (e) return setError(errorMessage(e, t));

@@ -5,7 +5,6 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
-import { AppFooter } from '@/components/AppFooter';
 import { BannerCarousel } from '@/components/BannerCarousel';
 import { CountBadge, FilterChip, FlagCD, GradientBg, TopTabs, WheelIcon } from '@/components/kit';
 import { ProductFeedList } from '@/components/ProductFeedList';
@@ -39,17 +38,17 @@ function SearchBar() {
         accessibilityRole="button"
         accessibilityLabel={t('search.photo')}
       >
-        <Ionicons name="camera-outline" size={20} color={colors.primary} />
-        <T weight="700" color={colors.primary}>{t('home.photo')}</T>
+        <Ionicons name="camera-outline" size={17} color={colors.primary} />
+        <T size="sm" weight="700" color={colors.primary}>{t('home.photo')}</T>
       </Pressable>
       <Pressable style={styles.searchText} onPress={() => router.push('/search')} accessibilityRole="search" accessibilityLabel={t('home.searchPlaceholder')}>
-        <T muted numberOfLines={1}>{t('home.searchPlaceholder')}</T>
+        <T size="sm" muted numberOfLines={1}>{t('home.searchPlaceholder')}</T>
       </Pressable>
       <Pressable onPress={() => router.push('/search?mode=voice')} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('search.voice')}>
-        <Ionicons name="mic-outline" size={24} color={colors.text} />
+        <Ionicons name="mic-outline" size={21} color={colors.text} />
       </Pressable>
       <Pressable onPress={() => router.push('/search')} style={[styles.searchBtn, { backgroundColor: colors.primary }]} accessibilityRole="button" accessibilityLabel={t('search.title')}>
-        <Ionicons name="search" size={22} color={colors.onPrimary} />
+        <Ionicons name="search" size={19} color={colors.onPrimary} />
       </Pressable>
     </View>
   );
@@ -65,7 +64,7 @@ function Shortcut({ icon, label, onPress, badge }: { icon: ReactNode; label: str
         {icon}
         <CountBadge count={badge ?? 0} style={{ position: 'absolute', top: -6, right: -10 }} />
       </View>
-      <T size="sm" weight="600" numberOfLines={2} style={{ flex: 1 }}>{label}</T>
+      <T size="xs" weight="600" numberOfLines={2} style={{ flex: 1 }}>{label}</T>
     </Pressable>
   );
 }
@@ -77,14 +76,14 @@ function Tile({ image, price, label, onPress }: { image: string | null; price?: 
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}
       style={({ pressed }) => [styles.tile, { backgroundColor: colors.surface, opacity: pressed ? 0.88 : 1 }]}>
       <View style={[styles.tileImage, { backgroundColor: colors.surfaceAlt }]}>
-        {image ? <Image source={{ uri: image }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} /> : <Ionicons name="image-outline" size={32} color={colors.textMuted} />}
+        {image ? <Image source={{ uri: image }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} /> : <Ionicons name="image-outline" size={26} color={colors.textMuted} />}
         {price ? (
           <View style={[styles.pricePill, { backgroundColor: colors.surface }]}>
-            <T size="sm" weight="800">{price}</T>
+            <T size="xs" weight="800">{price}</T>
           </View>
         ) : null}
       </View>
-      <T size="sm" weight="600" numberOfLines={2} style={{ textAlign: 'center' }}>{label}</T>
+      <T size="xs" weight="500" numberOfLines={2} style={{ textAlign: 'center' }}>{label}</T>
     </Pressable>
   );
 }
@@ -154,14 +153,14 @@ export default function Home() {
   ];
 
   const top = (
-    <View style={{ paddingTop: insets.top + spacing.md, paddingBottom: spacing.md, gap: spacing.md }}>
+    <View style={{ paddingTop: insets.top + spacing.sm, paddingBottom: spacing.sm, gap: 10 }}>
       <GradientBg from={colors.primarySoft} to={colors.background} />
       <TopTabs tabs={tabs} value={tab} onChange={setTab} />
       <View style={{ paddingHorizontal: spacing.md, gap: spacing.sm }}>
         <SearchBar />
         <Pressable onPress={() => router.push('/stores')} style={styles.storeLine} accessibilityRole="button" accessibilityHint={t('home.chooseStore')}>
-          <Ionicons name="location-outline" size={16} color={colors.text} />
-          <T size="sm" numberOfLines={1} style={{ flexShrink: 1 }}>
+          <Ionicons name="location-outline" size={14} color={colors.text} />
+          <T size="xs" numberOfLines={1} style={{ flexShrink: 1 }}>
             {selectedStore ? t('home.shopAt', { store: selectedStore.name }) : t('home.allStoresShort')}
           </T>
           <Ionicons name="chevron-down" size={14} color={colors.textMuted} />
@@ -172,17 +171,17 @@ export default function Home() {
 
   const wheelOn = !!wheel.data?.enabled && (wheel.data?.prizes.length ?? 0) > 0;
   const shortcuts: { key: string; label: string; icon: ReactNode; onPress: () => void; badge?: number }[] = [
-    { key: 'cats', label: t('home.short.categories'), icon: <Ionicons name="grid" size={28} color="#FF6A00" />, onPress: () => router.push('/(customer)/categories') },
-    ...(wheelOn ? [{ key: 'wheel', label: t('wheel.title'), icon: <WheelIcon size={30} />, onPress: () => router.push('/wheel'), badge: wheel.data?.spins_available ?? 0 }] : []),
-    { key: 'loyalty', label: t('home.short.loyalty'), icon: <Ionicons name="card" size={28} color="#E8A317" />, onPress: () => router.push('/loyalty') },
-    { key: 'top', label: t('home.short.top'), icon: <Ionicons name="trophy" size={28} color="#E8A317" />, onPress: () => router.push('/collection/best') },
-    { key: 'coupons', label: t('home.short.coupons'), icon: <Ionicons name="pricetags" size={26} color={colors.primary} />, onPress: () => router.push('/coupons') },
-    { key: 'cakes', label: t('home.cakes'), icon: <Ionicons name="gift" size={26} color="#7B3FE4" />, onPress: () => router.push('/cake') },
+    { key: 'cats', label: t('home.short.categories'), icon: <Ionicons name="grid" size={22} color="#FF6A00" />, onPress: () => router.push('/(customer)/categories') },
+    ...(wheelOn ? [{ key: 'wheel', label: t('wheel.title'), icon: <WheelIcon size={24} />, onPress: () => router.push('/wheel'), badge: wheel.data?.spins_available ?? 0 }] : []),
+    { key: 'loyalty', label: t('home.short.loyalty'), icon: <Ionicons name="card" size={22} color="#E8A317" />, onPress: () => router.push('/loyalty') },
+    { key: 'top', label: t('home.short.top'), icon: <Ionicons name="trophy" size={22} color="#E8A317" />, onPress: () => router.push('/collection/best') },
+    { key: 'coupons', label: t('home.short.coupons'), icon: <Ionicons name="pricetags" size={21} color={colors.primary} />, onPress: () => router.push('/coupons') },
+    { key: 'cakes', label: t('home.cakes'), icon: <Ionicons name="gift" size={21} color="#7B3FE4" />, onPress: () => router.push('/cake') },
   ];
 
   const lastSeen = recent.items?.[0];
   const productExtras = (
-    <View style={{ gap: spacing.md }}>
+    <View style={{ gap: 10 }}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
         {shortcuts.map(({ key, ...s }) => <Shortcut key={key} {...s} />)}
       </ScrollView>
@@ -258,7 +257,6 @@ export default function Home() {
                 <Ionicons name="map-outline" size={18} color={colors.primary} />
                 <T weight="700" color={colors.primary}>{t('home.storesMap')}</T>
               </Pressable>
-              <AppFooter />
             </View>
           }
           refreshControl={<RefreshControl refreshing={stores.isRefetching} onRefresh={refresh} tintColor={colors.primary} colors={[colors.primary]} />}
@@ -292,6 +290,7 @@ export default function Home() {
         emptyMessage={tab === 'promos' ? t('home.noPromos') : tab === 'local' ? t('home.noLocal') : noCatalog}
         refreshing={stores.isRefetching}
         onRefresh={refresh}
+        endFooter={false}
       />
     </View>
   );
@@ -299,19 +298,19 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   search: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 2, borderRadius: 14,
-    paddingLeft: 5, paddingRight: 5, minHeight: 54,
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 2, borderRadius: 12,
+    paddingLeft: 4, paddingRight: 4, minHeight: 44,
   },
-  photoPill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 10, paddingHorizontal: 10, height: 42 },
+  photoPill: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 8, paddingHorizontal: 8, height: 34 },
   searchText: { flex: 1, alignSelf: 'stretch', justifyContent: 'center' },
-  searchBtn: { width: 54, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  searchBtn: { width: 46, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   storeLine: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 2 },
   hScroll: { gap: spacing.sm, paddingHorizontal: spacing.md },
-  shortcut: { width: 168, minHeight: 70, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md },
-  shortcutIcon: { width: 36, alignItems: 'center' },
-  tile: { width: 136, borderRadius: radius.md, padding: spacing.sm, gap: spacing.sm },
-  tileImage: { width: '100%', aspectRatio: 1, borderRadius: radius.sm, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  pricePill: { position: 'absolute', bottom: 6, alignSelf: 'center', borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3 },
+  shortcut: { width: 138, minHeight: 48, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: 10 },
+  shortcutIcon: { width: 28, alignItems: 'center' },
+  tile: { width: 108, borderRadius: radius.sm, padding: 6, gap: 6 },
+  tileImage: { width: '100%', aspectRatio: 1, borderRadius: 6, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  pricePill: { position: 'absolute', bottom: 5, alignSelf: 'center', borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 },
   intro: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: radius.md, padding: spacing.lg },
   storeCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: radius.md, padding: spacing.md, borderWidth: 2 },
   storeIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },

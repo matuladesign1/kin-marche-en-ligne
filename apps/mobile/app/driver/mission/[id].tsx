@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Linking, Modal, Platform, StyleSheet, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MapBlock, mapsAvailable, RouteSketch } from '@/components/Map';
+import { KinMap } from '@/components/KinMap';
 import { Button, Card, Chip, Divider, Input, Loading, Notice, Row, Screen, SectionHeader, T } from '@/components/ui';
 import { errorMessage } from '@/lib/errors';
 import { formatDate, formatQty } from '@/lib/format';
@@ -20,7 +20,7 @@ function mapsUrl(lat: number, lng: number) {
   return Platform.OS === 'ios' ? `maps://?daddr=${lat},${lng}` : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 }
 
-/** Navigation guidée (Google Maps) vers l'étape suivante ; repli sur le lien web. */
+/** Navigation dans Google Maps (en second : la navigation Kin Marché est dans l'application). */
 async function startNavigation(lat: number, lng: number, waypoint?: { lat: number; lng: number } | null) {
   const web = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}${waypoint ? `&waypoints=${waypoint.lat},${waypoint.lng}` : ''}&travelmode=driving`;
   const native = Platform.OS === 'android' && !waypoint ? `google.navigation:q=${lat},${lng}&mode=d` : Platform.OS === 'ios' ? `comgooglemaps://?daddr=${lat},${lng}&directionsmode=driving` : null;
@@ -74,6 +74,14 @@ export default function Mission() {
     const timer = setInterval(refresh, 60_000);
     return () => clearInterval(timer);
   }, [accepted, id, qc]);
+
+  // Le client partage sa position exacte ou la commande avance : la carte se met à jour aussitôt.
+  useEffect(() => {
+    const ch = supabase.channel(`mission-${id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` }, () => qc.invalidateQueries({ queryKey: ['mission', id] }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [id, qc]);
 
   if (q.isLoading) return <Loading />;
   if (!q.data?.order) return <Screen><Notice tone="danger" text={t('err.FORBIDDEN')} /></Screen>;
@@ -142,25 +150,19 @@ export default function Mission() {
         const next = toStore ? storePt : homePt;
         return (
           <View style={{ gap: 8 }}>
-            {mapsAvailable() ? (
-              <MapBlock
-                height={300}
-                route={route}
-                points={[
-                  ...(storePt ? [{ id: 'store', ...storePt, title: store!.name, description: t('driver.pickup'), color: colors.accent2 }] : []),
-                  ...(homePt ? [{ id: 'home', ...homePt, title: String(addr.recipient_name ?? t('driver.dropoff')), description: t('driver.dropoff'), color: colors.primary }] : []),
-                ]}
-              />
-            ) : route.length > 1 ? (
-              <RouteSketch
-                route={route}
-                marks={[
-                  ...(mePt ? [{ id: 'me', ...mePt, color: colors.accent, label: t('driver.you') }] : []),
-                  ...(storePt ? [{ id: 'store', ...storePt, color: colors.accent2, label: t('driver.pickup') }] : []),
-                  ...(homePt ? [{ id: 'home', ...homePt, color: colors.primary, label: t('driver.client') }] : []),
-                ]}
-              />
-            ) : null}
+            <KinMap
+              height={320}
+              cooperative
+              fitKey={`${status}-${route.length}-${homePt?.latitude ?? ''}`}
+              route={route}
+              markers={[
+                ...(mePt ? [{ id: 'me', ...mePt, kind: 'driver' as const, label: t('driver.you') }] : []),
+                ...(storePt ? [{ id: 'store', ...storePt, kind: 'store' as const, label: store!.name, active: toStore }] : []),
+                ...(homePt ? [{ id: 'home', ...homePt, kind: 'home' as const, label: String(addr.recipient_name ?? t('driver.client')), active: !toStore }] : []),
+              ]}
+              showLabels
+            />
+            {addr.shared_at ? <Notice tone="success" text={t('track.clientShared', { time: formatDate(String(addr.shared_at), language) })} /> : null}
             <Card>
               <Row style={{ justifyContent: 'space-between' }}>
                 <View style={{ flex: 1 }}>
@@ -174,8 +176,10 @@ export default function Mission() {
               </Row>
               {assignment.eta_updated_at ? <T size="xs" muted>{t('orders.etaSource', { time: formatDate(assignment.eta_updated_at, language) })}</T> : null}
               {next ? (
-                <Button title={t('driver.startNavigation')} icon="navigate"
-                  onPress={() => startNavigation(next.latitude, next.longitude)} />
+                <>
+                  <Button title={t('nav.start')} icon="navigate" onPress={() => router.push(`/driver/navigate/${id}`)} />
+                  <Button title={t('nav.googleMaps')} icon="logo-google" variant="ghost" onPress={() => startNavigation(next.latitude, next.longitude)} />
+                </>
               ) : null}
             </Card>
           </View>

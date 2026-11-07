@@ -8,7 +8,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const can = (p: keyof typeof PERMISSION_LABELS) => user.permissions.includes(p);
   const sb = await supabaseServer();
   const count = async (table: string, f: (q: any) => any) => (await f(sb.from(table).select('*', { count: 'exact', head: true }))).count ?? 0;
-  const [pendingDrivers, pendingProofs, openTickets, loyaltyToVerify, giftsToHand] = await Promise.all([
+  const [pendingDrivers, pendingProofs, openTickets, loyaltyToVerify, giftsToHand, pastryNew, pastryToCertify] = await Promise.all([
     can('drivers') ? count('drivers', (q) => q.eq('status', 'pending_review')) : 0,
     can('finance') ? count('payment_proofs', (q) => q.eq('status', 'pending')) : 0,
     can('support') ? count('support_tickets', (q) => q.eq('status', 'open')) : 0,
@@ -16,6 +16,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     user.isSuper ? count('loyalty_accounts', (q) => q.not('external_member_id', 'is', null).is('link_verified_at', null)) : 0,
     // Cadeaux de la Roue de la chance gagnés et pas encore remis (0 tant que la migration n'est pas appliquée).
     user.isSuper ? count('wheel_rewards', (q) => q.eq('kind', 'product').in('status', ['pending', 'attached'])) : 0,
+    // Pâtisserie : demandes sans prix et profils de pâtissiers complets à certifier (0 tant que la migration n'est pas appliquée).
+    can('stores') ? count('cake_orders', (q) => q.eq('status', 'submitted')) : 0,
+    user.isSuper ? count('pastry_chefs', (q) => q.eq('status', 'active').eq('certified', false).not('profile_completed_at', 'is', null)) : 0,
   ]);
 
   const groups: NavGroup[] = [
@@ -24,7 +27,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       ...(can('finance') ? [{ href: '/admin/rapports', label: 'Rapports et exports', icon: 'chart' }] : []),
     ] },
     { title: 'Opérations', links: [
-      ...(can('stores') ? [{ href: '/admin/magasins', label: 'Supermarchés', icon: 'store' }] : []),
+      ...(can('stores') ? [
+        { href: '/admin/magasins', label: 'Supermarchés', icon: 'store' },
+        { href: '/admin/patisserie', label: 'Pâtisserie', icon: 'cake', badge: pastryNew + pastryToCertify },
+      ] : []),
       ...(can('drivers') ? [{ href: '/admin/livreurs', label: 'Livreurs', icon: 'truck', badge: pendingDrivers }] : []),
       ...(can('support') ? [{ href: '/admin/messagerie', label: 'Messagerie', icon: 'chat', badge: openTickets }] : []),
     ] },
@@ -38,6 +44,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       ...(user.isSuper ? [
         { href: '/admin/fidelite', label: 'Cartes fidélité', icon: 'card', badge: loyaltyToVerify },
         { href: '/admin/roue', label: 'Roue de la chance', icon: 'wheel', badge: giftsToHand },
+        { href: '/admin/campagnes', label: 'Campagnes (push, WhatsApp, e-mail)', icon: 'megaphone' },
       ] : []),
       ...(can('marketing') ? [{ href: '/admin/marketing', label: 'Coupons, bannières, partenaires', icon: 'tag' }] : []),
     ] },
@@ -47,6 +54,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: '/admin/agents', label: 'Agents et accès', icon: 'shield' },
         { href: '/admin/categories', label: 'Catégories', icon: 'layers' },
         { href: '/admin/taux', label: 'Taux de change', icon: 'exchange' },
+        { href: '/admin/taxe', label: 'Taxe sur les achats (TVA)', icon: 'percent' },
         { href: '/admin/parametres', label: 'Logo et couleurs', icon: 'settings' },
       ] : []),
     ] },

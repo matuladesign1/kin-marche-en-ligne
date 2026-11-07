@@ -15,7 +15,7 @@ const base = {
   "splash": {
     "image": "./assets/images/splash-logo.png",
     "resizeMode": "contain",
-    "backgroundColor": "#CE0000"
+    "backgroundColor": "#FFFFFF"
   },
   "ios": {
     "supportsTablet": true,
@@ -33,13 +33,16 @@ const base = {
       "foregroundImage": "./assets/images/adaptive-icon.png",
       "backgroundImage": "./assets/images/adaptive-icon-background.png",
       "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
-      "backgroundColor": "#CE0000"
+      "backgroundColor": "#F5F5F3"
     },
     "permissions": [
       "CAMERA",
       "ACCESS_COARSE_LOCATION",
       "ACCESS_FINE_LOCATION",
-      "RECORD_AUDIO"
+      "RECORD_AUDIO",
+      "REQUEST_INSTALL_PACKAGES",
+      "VIBRATE",
+      "WAKE_LOCK"
     ]
   },
   "web": {
@@ -65,7 +68,8 @@ const base = {
       "expo-notifications",
       {
         "icon": "./assets/images/notification-icon.png",
-        "color": "#CE0000"
+        "color": "#1CB7B8",
+        "sounds": ["./assets/sounds/appel_mission.wav"]
       }
     ],
     "expo-localization",
@@ -75,7 +79,7 @@ const base = {
         "image": "./assets/images/splash-logo.png",
         "imageWidth": 220,
         "resizeMode": "contain",
-        "backgroundColor": "#CE0000"
+        "backgroundColor": "#FFFFFF"
       }
     ],
     [
@@ -113,9 +117,14 @@ const config: ExpoConfig = {
   },
   extra: {
     ...base.extra,
-    buildNumber: buildNumber ?? null,
-    // Sur Android, la carte n'est affichée que si la clé Google Maps a été fournie au build.
+    // Jamais de valeur « null » ici : dans l'APK, un null de la configuration devient un objet vide {}.
+    ...(buildNumber ? { buildNumber } : {}),
+    // Ancienne carte Google (plus utilisée : la carte Kin Marché fonctionne sans clé Google).
     mapsEnabled: { android: !!mapsKey, ios: true, web: false },
+    // Fond de la carte Kin Marché (OpenStreetMap par défaut). Pour un autre fournisseur de tuiles
+    // (MapTiler, CARTO… avec leur clé gratuite) : MAP_TILES_URL avec {z}/{x}/{y} et MAP_ATTRIBUTION.
+    ...(process.env.MAP_TILES_URL ? { mapTilesUrl: process.env.MAP_TILES_URL } : {}),
+    ...(process.env.MAP_ATTRIBUTION ? { mapAttribution: process.env.MAP_ATTRIBUTION } : {}),
     ...(easProjectId ? { eas: { projectId: easProjectId } } : {}),
   },
 };

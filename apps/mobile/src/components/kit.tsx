@@ -88,7 +88,7 @@ export function CountBadge({ count, style }: { count: number; style?: StyleProp<
   if (!count) return null;
   return (
     <View style={[styles.badge, { backgroundColor: colors.primary, borderColor: colors.surface }, style]}>
-      <Text style={styles.badgeText}>{count > 99 ? '99+' : count}</Text>
+      <Text maxFontSizeMultiplier={1.15} style={styles.badgeText}>{count > 99 ? '99+' : count}</Text>
     </View>
   );
 }
@@ -106,7 +106,7 @@ export function IconTile({ icon, label, count, onPress, color, width = '20%', cu
         <CountBadge count={count ?? 0} style={styles.tileBadge} />
       </View>
       {/* Césure propre (trait d'union) si un mot ne tient pas sur la largeur de la tuile. */}
-      <Text numberOfLines={2} android_hyphenationFrequency="normal"
+      <Text maxFontSizeMultiplier={1.15} numberOfLines={2} android_hyphenationFrequency="normal"
         style={{ fontSize: font.xs, lineHeight: 16, textAlign: 'center', color: colors.text }}>{label}</Text>
     </Pressable>
   );
@@ -119,7 +119,7 @@ export function Avatar({ uri, name, size = 56 }: { uri?: string | null; name?: s
   if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.surfaceAlt }} contentFit="cover" />;
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: colors.onPrimary, fontSize: size * 0.38, fontWeight: '800' }}>{initials}</Text>
+      <Text maxFontSizeMultiplier={1.15} style={{ color: colors.onPrimary, fontSize: size * 0.38, fontWeight: '800' }}>{initials}</Text>
     </View>
   );
 }
@@ -185,8 +185,8 @@ export function FilterChip({ label, icon, iconColor, active, onPress }: { label:
         backgroundColor: active ? colors.surface : colors.surfaceAlt,
         borderColor: active ? colors.text : 'transparent',
       }]}>
-      {icon ? <Ionicons name={icon} size={16} color={iconColor ?? colors.primary} /> : null}
-      <Text style={{ color: colors.text, fontSize: font.md, fontWeight: active ? '700' : '500' }}>{label}</Text>
+      {icon ? <Ionicons name={icon} size={14} color={iconColor ?? colors.primary} /> : null}
+      <Text maxFontSizeMultiplier={1.15} style={{ color: colors.text, fontSize: font.sm, fontWeight: active ? '700' : '500' }}>{label}</Text>
     </Pressable>
   );
 }
@@ -208,7 +208,7 @@ export function TopTabs<K extends string>({ tabs, value, onChange }: { tabs: { k
         return (
           <Pressable key={tb.key} onPress={() => onChange(tb.key)} accessibilityRole="tab" accessibilityState={{ selected: active }} style={styles.topTab}
             onLayout={(e) => { xs.current[tb.key] = e.nativeEvent.layout.x; if (active) reveal(tb.key); }}>
-            <Text style={{ color: colors.text, fontSize: active ? 22 : 17, fontWeight: '800' }}>{tb.label}</Text>
+            <Text maxFontSizeMultiplier={1.15} style={{ color: colors.text, fontSize: active ? 18 : 15, fontWeight: active ? '800' : '700' }}>{tb.label}</Text>
             <View style={[styles.topTabBar, { backgroundColor: active ? colors.primary : 'transparent' }]} />
           </Pressable>
         );
@@ -266,10 +266,10 @@ const styles = StyleSheet.create({
   badgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
   tile: { alignItems: 'center', gap: 6, paddingVertical: spacing.sm, paddingHorizontal: 2 },
   tileBadge: { position: 'absolute', top: -8, right: -12 },
-  filterChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: radius.pill, borderWidth: 1.5, paddingHorizontal: spacing.lg, minHeight: 40 },
-  topTabs: { gap: spacing.xl, paddingHorizontal: spacing.lg, alignItems: 'flex-end' },
-  topTab: { alignItems: 'center', gap: 6 },
-  topTabBar: { height: 4, width: '70%', borderRadius: 2 },
+  filterChip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: radius.pill, borderWidth: 1.2, paddingHorizontal: spacing.md, minHeight: 30 },
+  topTabs: { gap: 20, paddingHorizontal: spacing.lg, alignItems: 'flex-end' },
+  topTab: { alignItems: 'center', gap: 4 },
+  topTabBar: { height: 3, width: '70%', borderRadius: 2 },
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
   sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: spacing.sm, paddingBottom: spacing.lg },
   sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, marginBottom: spacing.md },

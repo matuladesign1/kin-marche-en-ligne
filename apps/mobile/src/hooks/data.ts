@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, unwrap } from '@/lib/supabase';
 import { cardNumberFromPhone } from '@/lib/loyalty';
+import { CUSTOMER_ONLY_KINDS } from '@/lib/notify';
 import { countOrderTabs } from '@/lib/orders';
 import { readRecent } from '@/lib/recent';
 import type {
@@ -118,6 +119,8 @@ export function useStores() {
 export function useRecommendedStores(args: { lat?: number | null; lng?: number | null; commune?: string | null; productIds?: string[] | null }) {
   return useQuery({
     queryKey: qk.recommend(args),
+    // Nouvelle position : on garde la liste affichée pendant le recalcul (pas d'écran de chargement).
+    placeholderData: (previous) => previous,
     queryFn: async () =>
       unwrap(await supabase.rpc('recommend_stores', {
         p_lat: args.lat ?? null, p_lng: args.lng ?? null, p_commune: args.commune ?? null, p_product_ids: args.productIds ?? null,
@@ -286,25 +289,36 @@ export function useLinkLoyaltyCard() {
   });
 }
 
+/** Filtre des espaces livreur et pâtissier : ils ne voient pas les notifications de client. */
+const NOT_FOR_DRIVER = `(${CUSTOMER_ONLY_KINDS.join(',')})`;
+
 export function useNotifications() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
+  const driver = profile?.role === 'driver' || profile?.role === 'pastry_chef';
   return useQuery({
     queryKey: qk.notifications,
     enabled: !!session,
-    queryFn: async () => unwrap(await supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(100)) as AppNotification[],
+    queryFn: async () => {
+      let q = supabase.from('notifications').select('*');
+      if (driver) q = q.not('kind', 'in', NOT_FOR_DRIVER);
+      return unwrap(await q.order('created_at', { ascending: false }).limit(100)) as AppNotification[];
+    },
   });
 }
 
 /** Non lus : notifications + messages de l'assistance (pastille de l'onglet « Messages »). */
 export function useUnreadCount() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
+  const driver = profile?.role === 'driver' || profile?.role === 'pastry_chef';
   return useQuery({
     queryKey: qk.unread,
     enabled: !!session,
     refetchInterval: 60_000,
     queryFn: async () => {
       const [notes, messages] = await Promise.all([
-        supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null),
+        driver
+          ? supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null).not('kind', 'in', NOT_FOR_DRIVER)
+          : supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null),
         supabase.from('messages').select('id', { count: 'exact', head: true }).is('read_at', null).neq('sender_id', session!.user.id),
       ]);
       return { notifications: notes.count ?? 0, messages: messages.count ?? 0, total: (notes.count ?? 0) + (messages.count ?? 0) };
@@ -323,6 +337,29 @@ export function useMarkNotificationsRead() {
       unwrap(await q);
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.notifications });
+      qc.invalidateQueries({ queryKey: qk.unread });
+    },
+  });
+}
+
+/** Supprime des notifications du client (disparition immédiate de la liste, rétablie en cas d'erreur). */
+export function useDeleteNotifications() {
+  const qc = useQueryClient();
+  const { session } = useAuth();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (!ids.length) return;
+      unwrap(await supabase.from('notifications').delete().eq('user_id', session!.user.id).in('id', ids));
+    },
+    onMutate: async (ids: string[]) => {
+      await qc.cancelQueries({ queryKey: qk.notifications });
+      const prev = qc.getQueryData<AppNotification[]>(qk.notifications);
+      if (prev) qc.setQueryData<AppNotification[]>(qk.notifications, prev.filter((n) => !ids.includes(n.id)));
+      return { prev };
+    },
+    onError: (_e, _ids, ctx) => { if (ctx?.prev) qc.setQueryData(qk.notifications, ctx.prev); },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.notifications });
       qc.invalidateQueries({ queryKey: qk.unread });
     },
@@ -464,7 +501,7 @@ export function useAppUpdate(currentBuild: number | null) {
         headers: { Accept: 'application/vnd.github+json' },
       });
       if (!res.ok) return null;
-      const list = (await res.json()) as { tag_name: string; html_url: string; assets?: { name: string; browser_download_url: string }[] }[];
+      const list = (await res.json()) as { tag_name: string; html_url: string; assets?: { name: string; size: number; browser_download_url: string }[] }[];
       const builds = list
         .map((r) => ({ build: Number(/^apk-(\d+)$/.exec(r.tag_name)?.[1]), r }))
         .filter((x) => Number.isFinite(x.build))
@@ -472,7 +509,24 @@ export function useAppUpdate(currentBuild: number | null) {
       const latest = builds[0];
       if (!latest) return null;
       const apk = latest.r.assets?.find((a) => a.name.endsWith('.apk'));
-      return { build: latest.build, url: apk?.browser_download_url ?? latest.r.html_url, newer: currentBuild != null && latest.build > currentBuild };
+      return {
+        build: latest.build, url: apk?.browser_download_url ?? latest.r.html_url, newer: currentBuild != null && latest.build > currentBuild,
+        /** Fichier APK direct (téléchargement dans l'application) et sa taille en octets. */
+        apkUrl: apk?.browser_download_url ?? null, size: apk?.size ?? 0,
+      };
+    },
+  });
+}
+
+/** Taux de la taxe sur les achats (TVA réglée par l'administrateur général ; 0 si elle est désactivée). */
+export function useTaxRate() {
+  return useQuery({
+    queryKey: ['tax-setting'],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase.from('app_settings').select('value').eq('key', 'tax').maybeSingle();
+      const v = (data?.value ?? {}) as { enabled?: boolean; rate?: number | string };
+      return v.enabled ? Math.min(Math.max(Number(v.rate ?? 0), 0), 100) : 0;
     },
   });
 }

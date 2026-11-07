@@ -14,7 +14,7 @@ export default function ForgotPassword() {
   const submit = async () => {
     if (!email.trim()) return;
     setLoading(true);
-    await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: Linking.createURL('/') });
+    await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: Linking.createURL('reset-password') });
     setLoading(false);
     // Même message dans tous les cas : on ne révèle pas si un compte existe.
     setSent(true);

@@ -207,7 +207,9 @@ button.danger, .btn.danger { background: var(--danger); }
 /* ---------- Marketing : bannières, partenaires, envois ---------- */
 .banner-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
 .banner-card { display: grid; gap: 8px; padding: 12px; }
-.banner-media { position: relative; aspect-ratio: 2 / 1; border-radius: 10px; overflow: hidden; background: var(--surface-alt); }
+.banner-media { position: relative; aspect-ratio: 1200 / 448; border-radius: 10px; overflow: hidden; background: var(--surface-alt); }
+.banner-media.messages { aspect-ratio: 1667 / 238; border-radius: 8px; }
+.banner-grid.wide { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
 .banner-media img, .banner-media video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .banner-kind { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,.6); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
 .banner-meta { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
@@ -374,3 +376,57 @@ button.danger, .btn.danger { background: var(--danger); }
 .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; font-weight: 600; }
+
+/* ---------- Campagnes promotionnelles ---------- */
+.campaign-composer { margin-bottom: 8px; }
+.campaign-grid { display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+.campaign-grid .stack { display: grid; gap: 12px; }
+@media (max-width: 1100px) { .campaign-grid { grid-template-columns: 1fr; } }
+.campaign-channels { border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px 12px; display: grid; gap: 8px; margin: 0; }
+.campaign-channels legend { font-size: 13px; color: var(--muted); padding: 0 6px; }
+.campaign-composer button:disabled { opacity: .5; cursor: not-allowed; }
+.campaign-preview { position: sticky; top: 16px; display: grid; gap: 8px; background: var(--surface-alt); border-radius: 16px; padding: 14px; }
+.pv-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+.pv-phone { background: linear-gradient(160deg, #2A3340, #10161D); border-radius: 18px; padding: 14px 10px; }
+.pv-notif { background: #FFFFFF; color: #1B1D22; border-radius: 16px; padding: 10px 12px 12px; display: grid; gap: 6px; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+.pv-head { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #5B6170; }
+.pv-app { width: 16px; height: 16px; border-radius: 50%; background: #1CB7B8 url('/logo-round.png') center / cover; flex-shrink: 0; }
+.pv-row { display: flex; gap: 8px; }
+.pv-text { display: grid; gap: 2px; min-width: 0; font-size: 13px; line-height: 1.35; }
+.pv-text b { font-size: 13.5px; }
+.pv-text span { color: #3D4250; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pv-big { aspect-ratio: 2 / 1; border-radius: 10px; overflow: hidden; background: #EEF0F3; }
+.pv-big img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pv-big.empty { display: grid; place-items: center; font-size: 12px; color: #8A8F9C; border: 1px dashed #C9CDD4; }
+.pv-card { background: var(--surface); border-radius: 14px; padding: 10px; display: grid; gap: 6px; font-size: 13px; }
+.pv-card span { color: var(--muted); }
+.pv-tag { font-size: 10.5px; font-weight: 800; color: var(--primary); letter-spacing: .05em; }
+.pv-card-img { aspect-ratio: 2 / 1; border-radius: 10px; overflow: hidden; }
+.pv-card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pv-card .pv-cta { justify-self: start; background: var(--primary); color: #fff; font-weight: 700; border-radius: 999px; padding: 4px 12px; font-size: 12px; }
+.pv-wa { background: #E7DED5; border-radius: 14px; padding: 10px; }
+.pv-wa-bubble { background: #FFFFFF; color: #111B21; border-radius: 10px; padding: 4px 4px 8px; display: grid; gap: 4px; font-size: 13px; max-width: 92%; box-shadow: 0 1px 1px rgba(0,0,0,.12); }
+.pv-wa-bubble img { width: 100%; border-radius: 8px; display: block; aspect-ratio: 1.91 / 1; object-fit: cover; }
+.pv-wa-bubble b, .pv-wa-bubble span { padding: 0 6px; }
+.pv-mail { background: #FFFFFF; color: #1B1D22; border-radius: 14px; overflow: hidden; font-size: 13px; }
+.pv-mail-subject { padding: 8px 10px; font-weight: 700; border-bottom: 1px solid #EEE; background: #FAFAFA; }
+.pv-mail img { width: 100%; display: block; }
+.pv-mail-body { padding: 10px; display: grid; gap: 4px; }
+.pv-mail-body span { color: #3D4250; }
+.pv-mail-btn { justify-self: start; margin-top: 4px; background: #E60024; color: #fff !important; font-weight: 700; border-radius: 8px; padding: 6px 12px; }
+.pv-note { font-size: 12px; margin: 4px 0 0; }
+.campaign-list { display: grid; gap: 12px; }
+.campaign-item { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 760px) { .campaign-item { grid-template-columns: 1fr; } }
+.campaign-thumb { aspect-ratio: 2 / 1; border-radius: 10px; overflow: hidden; background: var(--surface-alt); display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+.campaign-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.campaign-info { display: grid; gap: 6px; min-width: 0; }
+.campaign-body { margin: 0; color: var(--muted); font-size: 14px; white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.campaign-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); }
+.campaign-stats { display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; }
+.campaign-stats span { background: var(--surface-alt); border-radius: 8px; padding: 3px 9px; }
+.campaign-stats .warn { color: var(--warning); background: color-mix(in srgb, var(--warning) 14%, transparent); }
+.campaign-actions { margin-top: 4px; }
+.campaign-actions button { min-height: 34px; padding: 6px 12px; font-size: 13.5px; }
+.campaign-settings { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
+.campaign-settings code { background: var(--surface-alt); border-radius: 6px; padding: 1px 5px; }

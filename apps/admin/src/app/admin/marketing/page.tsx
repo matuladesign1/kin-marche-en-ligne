@@ -1,5 +1,6 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { ConfirmButton } from '@/components/ConfirmButton';
 import { MediaUpload } from '@/components/MediaUpload';
 import { Flash } from '@/components/Shell';
 import { inScope, requirePermission } from '@/lib/auth';
@@ -47,9 +48,12 @@ async function toggle(f: FormData) {
 
 async function addBanner(f: FormData) {
   'use server';
-  await requirePermission('marketing');
+  const user = await requirePermission('marketing');
   const sb = await supabaseServer();
-  const media = f.get('media_type') === 'video' ? 'video' : 'image';
+  // Page Messages (1667 × 238) : photo seulement, pour toute l'application, réservée à l'administrateur général.
+  const placement = f.get('placement') === 'messages' ? 'messages' : 'home';
+  if (placement === 'messages' && !user.isSuper) back('err=' + encodeURIComponent('Les bannières de la page Messages sont réservées à l’administrateur général.'));
+  const media = placement === 'home' && f.get('media_type') === 'video' ? 'video' : 'image';
   const image = brandingUrl(f.get('image_url'));
   const video = media === 'video' ? brandingUrl(f.get('video_url')) : null;
   if (!image) back('err=' + encodeURIComponent(media === 'video' ? 'Image d’aperçu obligatoire (affichée pendant le chargement de la vidéo).' : 'Image obligatoire.'));
@@ -57,11 +61,33 @@ async function addBanner(f: FormData) {
   const { error } = await sb.from('banners').insert({
     title: String(f.get('title') ?? '').trim() || null, image_url: image, media_type: media, video_url: video,
     link_type: String(f.get('link_type') ?? '') || null, link_value: String(f.get('link_value') ?? '').trim() || null,
-    store_id: String(f.get('store_id') ?? '') || null, sort_order: Number(f.get('sort') || 0),
-    starts_at: String(f.get('starts') ?? '') || null, ends_at: String(f.get('ends') ?? '') || null,
+    store_id: placement === 'messages' ? null : String(f.get('store_id') ?? '') || null, sort_order: Number(f.get('sort') || 0),
+    starts_at: String(f.get('starts') ?? '') || null, ends_at: String(f.get('ends') ?? '') || null, placement,
   });
   revalidatePath('/admin/marketing');
   back(error ? 'err=' + msg(error.message) : 'ok=Bannière publiée');
+}
+
+/** Supprime une ou plusieurs bannières (par exemple toutes celles qui sont terminées), avec leurs fichiers. */
+async function deleteBanners(f: FormData) {
+  'use server';
+  const user = await requirePermission('marketing');
+  const sb = await supabaseServer();
+  const ids = f.getAll('id').map(String).filter(Boolean);
+  if (!ids.length) back('err=' + encodeURIComponent('Aucune bannière à supprimer.'));
+  const { data: gone, error } = await sb.from('banners').delete().in('id', ids).select('image_url, video_url');
+  if (error) back('err=' + msg(error.message));
+  // Fichiers devenus inutiles dans le stockage « branding » (seul l'administrateur général peut les effacer).
+  const urls = [...new Set((gone ?? []).flatMap((b) => [b.image_url, b.video_url]).filter((u): u is string => !!u && u.startsWith(BRANDING)))];
+  if (urls.length && user.isSuper) {
+    const { data: rest } = await sb.from('banners').select('image_url, video_url');
+    const used = new Set((rest ?? []).flatMap((b) => [b.image_url, b.video_url]));
+    const paths = urls.filter((u) => !used.has(u)).map((u) => decodeURIComponent(u.slice(BRANDING.length)));
+    if (paths.length) await sb.storage.from('branding').remove(paths);
+  }
+  revalidatePath('/admin/marketing');
+  const n = gone?.length ?? 0;
+  back(n ? `ok=${encodeURIComponent(n > 1 ? `${n} bannières supprimées` : 'Bannière supprimée')}` : 'err=' + encodeURIComponent('Aucune bannière supprimée (hors de votre zone ?).'));
 }
 
 async function addPartner(f: FormData) {
@@ -87,6 +113,63 @@ function Toggle({ table, id, active }: { table: string; id: string; active: bool
 
 const LINKS: Record<string, string> = { product: 'Produit', category: 'Catégorie', promotion: 'Promotion', url: 'Site web' };
 
+type BannerRow = {
+  id: string; title: string | null; image_url: string; media_type: string; video_url: string | null; link_type: string | null;
+  store_id: string | null; sort_order: number; starts_at: string | null; ends_at: string | null; is_active: boolean; placement: string;
+};
+
+/** Liste des bannières d'un emplacement : aperçu au format exact, état, activation et suppression. */
+function BannerList({ list, wide, label }: {
+  list: BannerRow[]; wide?: boolean; label: (b: BannerRow) => string;
+}) {
+  const now = Date.now();
+  const ended = list.filter((b) => b.ends_at && new Date(b.ends_at).getTime() <= now);
+  return (
+    <>
+      {ended.length ? (
+        <form action={deleteBanners} style={{ marginBottom: 12 }}>
+          {ended.map((b) => <input key={b.id} type="hidden" name="id" value={b.id} />)}
+          <ConfirmButton className="secondary" message={`Supprimer définitivement ${ended.length > 1 ? `les ${ended.length} bannières terminées` : 'la bannière terminée'} ?`}>
+            Supprimer les bannières terminées ({ended.length})
+          </ConfirmButton>
+        </form>
+      ) : null}
+      <div className={`banner-grid${wide ? ' wide' : ''}`}>
+        {list.map((b) => {
+          const isEnded = ended.includes(b);
+          return (
+            <div key={b.id} className="card banner-card">
+              <div className={`banner-media${wide ? ' messages' : ''}`}>
+                {b.media_type === 'video' && b.video_url ? (
+                  <video src={b.video_url} poster={b.image_url} muted loop playsInline controls preload="none" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={b.image_url} alt={b.title ?? 'Bannière'} />
+                )}
+                {wide ? null : <span className="banner-kind">{b.media_type === 'video' ? 'Vidéo' : 'Photo'}</span>}
+              </div>
+              <div className="banner-meta">
+                <b>{b.title || 'Sans titre'}</b>
+                {isEnded ? <span className="badge bad">terminée</span>
+                  : b.is_active ? <span className="badge ok">active</span> : <span className="badge">inactive</span>}
+              </div>
+              <div className="muted" style={{ fontSize: 12 }}>{label(b)}</div>
+              <div className="row-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <Toggle table="banners" id={b.id} active={b.is_active} />
+                <form action={deleteBanners}>
+                  <input type="hidden" name="id" value={b.id} />
+                  <ConfirmButton className="danger" message="Supprimer définitivement cette bannière ?">Supprimer</ConfirmButton>
+                </form>
+              </div>
+            </div>
+          );
+        })}
+        {!list.length ? <p className="muted">Aucune bannière pour le moment.</p> : null}
+      </div>
+    </>
+  );
+}
+
 export default async function Marketing({ searchParams }: { searchParams: Promise<{ ok?: string; err?: string }> }) {
   const user = await requirePermission('marketing');
   const sp = await searchParams;
@@ -102,6 +185,11 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
   const storeName = (id: string | null) => (id ? (storeRows ?? []).find((s) => s.id === id)?.name ?? 'Magasin' : 'Toute l’application');
   const period = (b: { starts_at: string | null; ends_at: string | null }) =>
     b.starts_at || b.ends_at ? `${b.starts_at ? `du ${dateTime(b.starts_at)}` : ''}${b.ends_at ? ` jusqu’au ${dateTime(b.ends_at)}` : ''}` : 'Permanente';
+  const label = (b: BannerRow) =>
+    `Ordre ${b.sort_order} · ${storeName(b.store_id)} · ${period(b)}${b.link_type ? ` · lien : ${LINKS[b.link_type] ?? b.link_type}` : ''}`;
+  const allBanners = (banners ?? []) as BannerRow[];
+  const homeBanners = allBanners.filter((b) => (b.placement ?? 'home') !== 'messages');
+  const messageBanners = allBanners.filter((b) => b.placement === 'messages');
 
   const storeSelect = (
     <label>Portée
@@ -115,39 +203,16 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
   return (
     <>
       <h1>Coupons, bannières et partenaires</h1>
-      <p className="page-sub">Bannières photo ou vidéo de l’accueil (défilement automatique dans l’application), coupons de réduction et logos des partenaires.</p>
+      <p className="page-sub">Bannières photo ou vidéo de l’accueil (défilement automatique dans l’application), bannière de la page Messages, coupons de réduction et logos des partenaires.</p>
       <Flash ok={sp.ok} err={sp.err} />
 
       <h2>Bannières de l’accueil</h2>
-      <div className="banner-grid">
-        {(banners ?? []).map((b) => (
-          <div key={b.id} className="card banner-card">
-            <div className="banner-media">
-              {b.media_type === 'video' && b.video_url ? (
-                <video src={b.video_url} poster={b.image_url} muted loop playsInline controls preload="none" />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={b.image_url} alt={b.title ?? 'Bannière'} />
-              )}
-              <span className="banner-kind">{b.media_type === 'video' ? 'Vidéo' : 'Photo'}</span>
-            </div>
-            <div className="banner-meta">
-              <b>{b.title || 'Sans titre'}</b>
-              {b.is_active ? <span className="badge ok">active</span> : <span className="badge">inactive</span>}
-            </div>
-            <div className="muted" style={{ fontSize: 12 }}>
-              Ordre {b.sort_order} · {storeName(b.store_id)} · {period(b)}
-              {b.link_type ? ` · lien : ${LINKS[b.link_type] ?? b.link_type}` : ''}
-            </div>
-            <Toggle table="banners" id={b.id} active={b.is_active} />
-          </div>
-        ))}
-        {!banners?.length ? <p className="muted">Aucune bannière pour le moment.</p> : null}
-      </div>
+      <BannerList list={homeBanners} label={label} />
       <form action={addBanner} className="card stack" style={{ marginTop: 14 }}>
+        <input type="hidden" name="placement" value="home" />
         <div className="card-title"><span>Nouvelle bannière</span></div>
         <div className="notice" style={{ margin: 0 }}>
-          Format conseillé : <b>1200 × 600 px (rapport 2:1)</b> — toutes les bannières s’affichent à la même taille.
+          Format des bannières de l’accueil : <b>1200 × 448 px, 100 pixels/pouce</b> — toutes les bannières s’affichent en entier, à la même taille.
           Vidéo : MP4 (H.264), 15 secondes maximum, 50 Mo maximum, lue sans le son ; ajoutez une image d’aperçu au même format.
         </div>
         <div className="cols">
@@ -157,7 +222,7 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
               <option value="video">Vidéo (avec image d’aperçu)</option>
             </select>
           </label>
-          <MediaUpload name="image_url" label="Image ou image d’aperçu *" accept="image/jpeg,image/png,image/webp" prefix="banner" maxMb={8} kind="image" hint="JPG, PNG ou WebP · 8 Mo max." />
+          <MediaUpload name="image_url" label="Image ou image d’aperçu *" accept="image/jpeg,image/png,image/webp,image/gif" prefix="banner" maxMb={8} kind="image" hint="JPG, PNG, WebP ou GIF animé · 8 Mo max." />
           <MediaUpload name="video_url" label="Vidéo (si type Vidéo)" accept="video/mp4,video/webm,video/quicktime" prefix="banner" maxMb={50} kind="video" hint="MP4, WebM ou MOV · 50 Mo max." />
           <label>Titre (affiché sur la bannière)<input name="title" maxLength={80} /></label>
           {storeSelect}
@@ -174,6 +239,36 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
         </div>
         <div><button type="submit">Publier la bannière</button></div>
       </form>
+
+      {user.isSuper ? (
+        <>
+          <h2 style={{ marginTop: 28 }}>Bannière de la page Messages</h2>
+          <p className="page-sub">Publicité des produits en haut de la page Messages de l’application (assistance et notifications). Réservée à l’administrateur général ; plusieurs bannières défilent automatiquement.</p>
+          <BannerList list={messageBanners} wide label={label} />
+          <form action={addBanner} className="card stack" style={{ marginTop: 14 }}>
+            <input type="hidden" name="placement" value="messages" />
+            <div className="card-title"><span>Nouvelle bannière de la page Messages</span></div>
+            <div className="notice" style={{ margin: 0 }}>
+              Format : <b>1667 × 238 px</b> — l’image s’affiche en entier, en bandeau, en haut de la page Messages. Placez le texte et le produit dans l’image.
+            </div>
+            <div className="cols">
+              <MediaUpload name="image_url" label="Image *" accept="image/jpeg,image/png,image/webp,image/gif" prefix="banner" maxMb={8} kind="image" hint="JPG, PNG, WebP ou GIF animé · 8 Mo max." />
+              <label>Nom (non affiché sur l’image)<input name="title" maxLength={80} placeholder="Ex. : Promo riz 25 kg" /></label>
+              <label>Lien au toucher
+                <select name="link_type" defaultValue="product">
+                  <option value="">Aucun</option>
+                  {Object.entries(LINKS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </label>
+              <label>Valeur du lien (identifiant du produit, de la catégorie ou adresse https)<input name="link_value" /></label>
+              <label>Ordre d’affichage<input name="sort" defaultValue={0} inputMode="numeric" /></label>
+              <label>Début<input type="datetime-local" name="starts" /></label>
+              <label>Fin<input type="datetime-local" name="ends" /></label>
+            </div>
+            <div><button type="submit">Publier la bannière</button></div>
+          </form>
+        </>
+      ) : null}
 
       <h2 style={{ marginTop: 28 }}>Coupons</h2>
       <div className="table-wrap">

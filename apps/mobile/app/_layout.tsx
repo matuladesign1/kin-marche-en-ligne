@@ -1,26 +1,65 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { View } from 'react-native';
-import { BasketLoader } from '@/components/BasketLoader';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, StyleSheet } from 'react-native';
+import { bannersQuery } from '@/components/BannerCarousel';
+import { LoadingScreen } from '@/components/KinLoader';
+import { MissionCall } from '@/components/MissionCall';
+import { PromoPopup } from '@/components/PromoPopup';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SettingsProvider, useSettings } from '@/providers/SettingsProvider';
 import { useLiveNotifications } from '@/hooks/useLiveNotifications';
 import { useNotificationNavigation, usePushRegistration } from '@/hooks/usePushRegistration';
 
-// Écran d'ouverture animé : affiché au démarrage le temps de charger la session (au moins 2,4 s).
+// L'écran natif (rouge, logo) reste affiché jusqu'à ce que l'écran animé soit prêt : aucun écran blanc entre les deux.
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
+try { SplashScreen.setOptions({ duration: 250, fade: true }); } catch { /* ancienne version : fondu par défaut */ }
+const hideSplash = () => { SplashScreen.hideAsync().catch(() => undefined); };
+/** Durée minimale de l'animation d'ouverture : 4 sauts de 0,75 s. */
+const STARTUP_MS = 3000;
+
+/**
+ * Écran d'ouverture animé, sans texte : la boule au logo saute et se transforme en produits.
+ * Pendant ce temps, la session se charge et les bannières de l'accueil sont préchargées ;
+ * l'accueil s'affiche après au moins 3 s d'animation (plus si l'application n'est pas encore prête), avec un fondu de 0,3 s.
+ */
 function StartupOverlay() {
-  const { colors } = useSettings();
   const { loading } = useAuth();
-  const [minElapsed, setMinElapsed] = useState(false);
-  useEffect(() => { const h = setTimeout(() => setMinElapsed(true), 2400); return () => clearTimeout(h); }, []);
-  if (!loading && minElapsed) return null;
+  const qc = useQueryClient();
+  const opacity = useRef(new Animated.Value(1)).current;
+  const [gone, setGone] = useState(false);
+  // L'animation se voit à chaque ouverture : au moins 4 sauts (logo → pomme → tomates → huile → boisson).
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const h = setTimeout(() => setShown(true), STARTUP_MS);
+    return () => clearTimeout(h);
+  }, []);
+
+  useEffect(() => {
+    qc.prefetchQuery(bannersQuery('home'))
+      .then(() => {
+        const urls = (qc.getQueryData(bannersQuery('home').queryKey) ?? []).map((b) => b.image_url);
+        if (urls.length) Image.prefetch(urls).catch(() => undefined);
+      })
+      .catch(() => undefined);
+  }, [qc]);
+
+  useEffect(() => {
+    if (loading || !shown) return;
+    hideSplash();
+    Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setGone(true));
+  }, [loading, shown, opacity]);
+
+  if (gone) return null;
   return (
-    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.background, zIndex: 10 }}>
-      <BasketLoader size="large" />
-    </View>
+    <Animated.View style={[StyleSheet.absoluteFill, { zIndex: 10, opacity }]} pointerEvents={loading || !shown ? 'auto' : 'none'}>
+      <StatusBar style="dark" />
+      <LoadingScreen onLayout={hideSplash} />
+    </Animated.View>
   );
 }
 
@@ -60,8 +99,12 @@ function Navigator() {
         <Stack.Screen name="support/index" options={{ title: t('inbox.title') }} />
         <Stack.Screen name="support/[id]" options={{ title: '' }} />
         <Stack.Screen name="about" options={{ title: t('about.title') }} />
-        <Stack.Screen name="cake" options={{ title: t('cake.title') }} />
+        <Stack.Screen name="cake" options={{ title: t('pastry.title') }} />
+        <Stack.Screen name="pastry-orders/index" options={{ title: t('pastry.myOrders') }} />
+        <Stack.Screen name="pastry-orders/[id]" options={{ title: t('pastry.title') }} />
+        <Stack.Screen name="pastry-chat/[id]" options={{ title: '' }} />
         <Stack.Screen name="settings" options={{ title: t('settings.title') }} />
+        <Stack.Screen name="update" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="orders" options={{ title: t('orders.mine') }} />
         <Stack.Screen name="wheel" options={{ title: t('wheel.title') }} />
         <Stack.Screen name="recent" options={{ title: t('account.history') }} />
@@ -78,16 +121,23 @@ function Navigator() {
         <Stack.Screen name="order/proof/[id]" options={{ title: t('proof.title') }} />
         <Stack.Screen name="order/review/[id]" options={{ title: t('review.title') }} />
         <Stack.Screen name="auth-callback" options={{ headerShown: false }} />
+        <Stack.Screen name="reset-password" options={{ title: t('account.changePassword') }} />
         <Stack.Screen name="store-admin/index" options={{ title: t('role.storeAdmin') }} />
-        <Stack.Screen name="driver/index" options={{ title: t('driver.spaceTitle') }} />
+        <Stack.Screen name="driver/index" options={{ headerShown: false }} />
+        <Stack.Screen name="pastry/index" options={{ headerShown: false }} />
+        <Stack.Screen name="pastry/order/[id]" options={{ title: t('pastryChef.space') }} />
+        <Stack.Screen name="pastry/profile" options={{ title: t('pastryProfile.title') }} />
         <Stack.Screen name="driver/offers" options={{ title: t('driver.availableRuns') }} />
         <Stack.Screen name="driver/history" options={{ title: t('driver.history') }} />
         <Stack.Screen name="driver/mission/[id]" options={{ title: t('driver.mission') }} />
+        <Stack.Screen name="driver/navigate/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="driver/earnings" options={{ title: t('driver.earnings') }} />
         <Stack.Screen name="driver/card" options={{ title: t('driver.card') }} />
         <Stack.Screen name="driver-signup" options={{ title: t('driver.signupTitle') }} />
         <Stack.Screen name="admin/index" options={{ title: t('role.superAdmin') }} />
       </Stack>
+      <PromoPopup />
+      <MissionCall />
       <StartupOverlay />
     </>
   );

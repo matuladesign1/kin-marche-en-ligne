@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { AppFooter } from '@/components/AppFooter';
 import { Avatar, FlagCD, ListGroup, ListRow, OptionSheet } from '@/components/kit';
@@ -71,7 +71,10 @@ export default function Settings() {
   const languageLabel = LANGUAGES.find((l) => l.code === language)?.label ?? language;
 
   const updateRight = update.data?.newer ? (
-    <Pressable onPress={() => Linking.openURL(update.data!.url)} style={[styles.updateBtn, { backgroundColor: colors.primary }]} accessibilityRole="button">
+    <Pressable
+      // Android : téléchargement dans l'application avec la progression réelle (écran « update »).
+      onPress={() => (Platform.OS === 'android' && update.data?.apkUrl ? router.push('/update') : Linking.openURL(update.data!.url))}
+      style={[styles.updateBtn, { backgroundColor: colors.primary }]} accessibilityRole="button">
       <T size="xs" weight="800" color={colors.onPrimary}>{t('settings.updateNow')}</T>
     </Pressable>
   ) : (

@@ -40,9 +40,13 @@ const PATHS: Record<string, string> = {
   lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   globe: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/>',
   card: '<rect x="2" y="5" width="20" height="14" rx="2.5"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="11" y2="15"/>',
+  percent: '<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+  megaphone: '<path d="M3 11v2a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19.5 5.5a9 9 0 0 1 0 13"/><path d="M7 14l1.5 5h2.5l-1.2-4.2"/>',
   wheel: '<circle cx="12" cy="13" r="9"/><circle cx="12" cy="13" r="2"/><line x1="12" y1="4" x2="12" y2="11"/><line x1="12" y1="15" x2="12" y2="22"/><line x1="3" y1="13" x2="10" y2="13"/><line x1="14" y1="13" x2="21" y2="13"/><polygon points="12 1 14 4 10 4 12 1"/>',
   upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
   download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+  cake: '<path d="M4 21V12a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9"/><path d="M4 15.5c1.3 1 2.7 1 4 0s2.7-1 4 0 2.7 1 4 0 2.7-1 4 0"/><line x1="2" y1="21" x2="22" y2="21"/><line x1="8" y1="10" x2="8" y2="7"/><line x1="12" y1="10" x2="12" y2="7"/><line x1="16" y1="10" x2="16" y2="7"/><path d="M8 4.5c0-.8.6-1.5 0-2.5-.6 1-1 1.7 0 2.5z"/><path d="M12 4.5c0-.8.6-1.5 0-2.5-.6 1-1 1.7 0 2.5z"/><path d="M16 4.5c0-.8.6-1.5 0-2.5-.6 1-1 1.7 0 2.5z"/>',
+  chef: '<path d="M6 13.9V20h12v-6.1"/><path d="M6 13.9A4 4 0 0 1 7.5 6.2a4.5 4.5 0 0 1 9 0A4 4 0 0 1 18 13.9z"/><line x1="6" y1="17" x2="18" y2="17"/>',
 };
 
 export type IconName = keyof typeof PATHS;
@@ -74,7 +78,7 @@ export function Verified({ size = 15 }: { size?: number }) {
 }
 
 /** Badge « livreur certifié » : sceau festonné (comme le badge bleu de Facebook), dégradé vert -> bleu. */
-export function CertifiedDriver({ size = 18 }: { size?: number }) {
+export function CertifiedDriver({ size = 18, label = 'Livreur certifié' }: { size?: number; label?: string }) {
   const pts: string[] = [];
   for (let i = 0; i <= 120; i++) {
     const a = (2 * Math.PI * i) / 120 - Math.PI / 2;
@@ -82,7 +86,7 @@ export function CertifiedDriver({ size = 18 }: { size?: number }) {
     pts.push(`${(12 + r * Math.cos(a)).toFixed(2)},${(12 + r * Math.sin(a)).toFixed(2)}`);
   }
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-label="Livreur certifié" role="img" style={{ verticalAlign: '-3px', flexShrink: 0 }}>
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-label={label} role="img" style={{ verticalAlign: '-3px', flexShrink: 0 }}>
       <defs>
         <linearGradient id="km-cert-grad" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#16C47F" />

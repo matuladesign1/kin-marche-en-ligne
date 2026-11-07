@@ -78,3 +78,9 @@ export function timeAgo(iso: string, language: Language, t: TFunction): string {
   if (d >= yesterday && d.getDate() === yesterday.getDate()) return t('time.yesterday');
   return formatDate(iso, language, false);
 }
+
+/** Taux de taxe affiché : 16 → « 16 », 16.5 → « 16,5 ». */
+export function formatRate(rate: number | string | null | undefined): string {
+  const n = Math.round(Number(rate ?? 0) * 100) / 100;
+  return String(n).replace('.', ',');
+}
