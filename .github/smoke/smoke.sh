@@ -58,6 +58,12 @@ open_url "kinmarche://stores"
 sleep 25; shot 02-magasins; alive magasins
 tap_text "Utiliser ma position|Use my location" magasins
 gps_fix; sleep 8; shot 03-magasins-position; alive "magasins + position"
+scroll_down
+tap_text "^Itinéraire$|^Directions$" itineraire
+gps_fix; sleep 12; shot 03b-itineraire; alive "itinéraire"
+tap_text "^Vélo$|^Bike$" itineraire-velo
+sleep 8; shot 03c-itineraire-velo; alive "itinéraire à vélo"
+adb shell input keyevent KEYCODE_BACK; sleep 3
 
 open_url "kinmarche://addresses/new"
 sleep 25; shot 04-adresse; alive adresse

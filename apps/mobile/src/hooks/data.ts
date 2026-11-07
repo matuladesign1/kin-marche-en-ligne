@@ -119,6 +119,8 @@ export function useStores() {
 export function useRecommendedStores(args: { lat?: number | null; lng?: number | null; commune?: string | null; productIds?: string[] | null }) {
   return useQuery({
     queryKey: qk.recommend(args),
+    // Nouvelle position : on garde la liste affichée pendant le recalcul (pas d'écran de chargement).
+    placeholderData: (previous) => previous,
     queryFn: async () =>
       unwrap(await supabase.rpc('recommend_stores', {
         p_lat: args.lat ?? null, p_lng: args.lng ?? null, p_commune: args.commune ?? null, p_product_ids: args.productIds ?? null,

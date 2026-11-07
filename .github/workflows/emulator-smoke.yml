@@ -78,6 +78,19 @@ jobs:
             head -c 300 body.txt; echo
           done
 
+      - name: Itinéraire vers un magasin (serveur)
+        env:
+          URL: https://trobgcehelmxkvqjtdbo.supabase.co
+          KEY: sb_publishable_rli_t0Z108wF-V5yMc3f_w_9HDXp9_X
+        run: |
+          SID=$(curl -s -H "apikey: $KEY" "$URL/rest/v1/stores?select=id&is_active=eq.true&latitude=not.is.null&limit=1" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d[0]['id'] if d else '')")
+          echo "magasin : $SID"
+          for m in walk bike drive; do
+            curl -s -X POST "$URL/functions/v1/store-route" -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+              -d "{\"store_id\":\"$SID\",\"mode\":\"$m\",\"origin\":{\"lat\":-4.3317,\"lng\":15.3139}}" > route.json
+            python3 -c "import json; d=json.load(open('route.json')); print('$m', {k: d.get(k) for k in ('distance_m','duration_s','source','error')}, 'tracé :', len(d.get('route_polyline') or ''), 'caractères')"
+          done
+
       - uses: actions/download-artifact@v4
         with:
           name: apk-x86
