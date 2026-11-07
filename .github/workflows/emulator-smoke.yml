@@ -56,7 +56,7 @@ jobs:
           path: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
 
   smoke:
-    name: Écrans carte, position et connexion
+    name: Écrans carte, position, pâtisserie et connexion
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -90,6 +90,24 @@ jobs:
               -d "{\"store_id\":\"$SID\",\"mode\":\"$m\",\"origin\":{\"lat\":-4.3317,\"lng\":15.3139}}" -w ' HTTP %{http_code}' > route.json
             echo "$m : $(tail -c 20 route.json)" 
           done
+
+      - name: Pâtisserie (serveur ; sans compte)
+        env:
+          URL: https://trobgcehelmxkvqjtdbo.supabase.co
+          KEY: sb_publishable_rli_t0Z108wF-V5yMc3f_w_9HDXp9_X
+        run: |
+          echo "== Réglages pâtisserie (lecture publique) =="
+          curl -s -H "apikey: $KEY" "$URL/rest/v1/app_settings?select=value&key=eq.pastry" -w ' HTTP %{http_code}'; echo
+          echo "== Supermarchés avec pâtissier (fonction publique) =="
+          curl -s -X POST -H "apikey: $KEY" -H "Content-Type: application/json" "$URL/rest/v1/rpc/pastry_stores" -d '{}' -w ' HTTP %{http_code}'; echo
+          echo "== Demandes pâtisserie sans compte (aucune attendue) =="
+          curl -s -H "apikey: $KEY" "$URL/rest/v1/cake_orders?select=id&limit=5" -w ' HTTP %{http_code}'; echo
+          echo "== Création de demande sans compte (refus attendu) =="
+          curl -s -X POST -H "apikey: $KEY" -H "Content-Type: application/json" "$URL/rest/v1/cake_orders" \
+            -d '{"full_name":"Test","phone":"+243810000000","cake_type":"Test"}' -w ' HTTP %{http_code}'; echo
+          echo "== Pièces d'identité des pâtissiers sans compte (refus attendu) =="
+          curl -s -X POST -H "apikey: $KEY" -H "Content-Type: application/json" "$URL/storage/v1/object/list/pastry-documents" \
+            -d '{"prefix":"","limit":5}' -w ' HTTP %{http_code}'; echo
 
       - uses: actions/download-artifact@v4
         with:

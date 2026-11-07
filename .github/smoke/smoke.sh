@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Parcours de test sur émulateur : lancement, magasins, bouton position, nouvelle adresse, bouton GPS.
+# Parcours de test sur émulateur : lancement, magasins, bouton position, nouvelle adresse, bouton GPS, pâtisserie.
 set -u
 OUT=smoke-out
 PKG=cd.kinmarche.enligne
@@ -77,6 +77,16 @@ tap_text "Ma position GPS|My GPS position" choix-gps
 gps_fix; sleep 10; shot 05c-choix-gps; alive "choix + GPS"
 tap_text "Confirmer cette position|Confirm this position" choix-ok
 sleep 4; shot 05d-adresse-confirmee; alive "position confirmée"
+
+# Pâtisserie sans compte : page de commande (bandeau, invitation à se connecter), suivi des demandes, espace pâtissier.
+open_url "kinmarche://cake"
+sleep 20; shot 07-patisserie; alive "pâtisserie"
+scroll_down
+shot 07b-patisserie-bas; alive "pâtisserie (bas)"
+open_url "kinmarche://pastry-orders"
+sleep 12; shot 07c-patisserie-commandes; alive "mes commandes pâtisserie"
+open_url "kinmarche://pastry"
+sleep 12; shot 07d-espace-patissier; alive "espace pâtissier (sans compte)"
 
 open_url "kinmarche://sign-in"
 sleep 15; shot 06-connexion; alive connexion
