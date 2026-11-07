@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { supabaseServer } from './supabase-server';
 
-export type Role = 'customer' | 'store_admin' | 'driver' | 'super_admin' | 'agent';
+export type Role = 'customer' | 'store_admin' | 'driver' | 'super_admin' | 'agent' | 'pastry_chef';
 export type Permission = 'stores' | 'drivers' | 'support' | 'finance' | 'users' | 'marketing';
 
 export const PERMISSION_LABELS: Record<Permission, string> = {

@@ -7,7 +7,7 @@ import { dateTime } from '@/lib/format';
 import { supabaseServer } from '@/lib/supabase-server';
 
 const ROLES: Record<string, string> = {
-  customer: 'Client', driver: 'Livreur', store_admin: 'Directeur / gestionnaire', agent: 'Agent', super_admin: 'Administrateur général',
+  customer: 'Client', driver: 'Livreur', pastry_chef: 'Pâtissier', store_admin: 'Directeur / gestionnaire', agent: 'Agent', super_admin: 'Administrateur général',
 };
 const ERRORS: Record<string, string> = {
   FORBIDDEN: 'Action non autorisée pour ce compte ou cette région.',
@@ -73,6 +73,8 @@ export default async function Utilisateurs({ searchParams }: { searchParams: Pro
                 <td>
                   {u.role === 'agent' && user.isSuper ? (
                     <Link className="btn secondary" href="/admin/agents">Gérer les accès de l&apos;agent</Link>
+                  ) : u.role === 'pastry_chef' ? (
+                    <Link className="btn secondary" href="/admin/patisserie?tab=chefs&cf=all">Gérer dans « Pâtisserie »</Link>
                   ) : (
                     <form action={updateUser} className="row">
                       <input type="hidden" name="id" value={u.id} /><input type="hidden" name="q" value={q} />
