@@ -30,8 +30,7 @@ function km(a: LatLng, b: LatLng): number {
   return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-// Page des magasins publique (clients connectés ou visiteurs) : limite par compte, ou par adresse IP
-// pour un visiteur, afin de protéger le quota gratuit d'OpenRouteService.
+// Réservé aux clients connectés, avec une limite par compte : protège le quota gratuit d'OpenRouteService.
 const recent = new Map<string, number[]>();
 function allowed(who: string, max: number): boolean {
   const now = Date.now();
@@ -71,12 +70,12 @@ async function viaOsrm(from: LatLng, to: LatLng, mode: Mode): Promise<Route | nu
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   const { user } = await currentUser(req).catch(() => ({ user: null }));
-  const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'inconnue';
+  if (!user) return reply({ error: 'AUTH_REQUIRED' }, 401);
   const { store_id, origin, mode } = await req.json().catch(() => ({}));
   if (typeof store_id !== 'string' || !valid(origin) || typeof mode !== 'string' || !(mode in ORS_PROFILE)) {
     return reply({ error: 'INVALID_BODY' }, 400);
   }
-  if (!allowed(user ? `u:${user.id}` : `ip:${ip}`, user ? 40 : 15)) return reply({ error: 'RATE_LIMITED' }, 429);
+  if (!allowed(user.id, 40)) return reply({ error: 'RATE_LIMITED' }, 429);
 
   const admin = adminClient();
   const { data: s } = await admin.from('stores').select('id, latitude, longitude, is_active').eq('id', store_id).maybeSingle();

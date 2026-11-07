@@ -1,6 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
+import { router } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Linking, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +13,7 @@ import { formatDistance } from '@/lib/navigation';
 import { decodePolyline } from '@/lib/polyline';
 import { supabase } from '@/lib/supabase';
 import { radius, spacing } from '@/lib/theme';
+import { useAuth } from '@/providers/AuthProvider';
 import type { TranslationKey } from '@/locales/fr';
 import { useSettings } from '@/providers/SettingsProvider';
 
@@ -76,6 +78,7 @@ export function StoreRoute({ store, origin, fallback, selected, onClose, onChoos
   onOrigin: (o: RouteOrigin) => void;
 }) {
   const { t, colors, money } = useSettings();
+  const { session } = useAuth();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<RouteMode>('drive');
   const [locating, setLocating] = useState(false);
@@ -111,9 +114,9 @@ export function StoreRoute({ store, origin, fallback, selected, onClose, onChoos
   const key = origin ? `${origin.point.latitude.toFixed(4)},${origin.point.longitude.toFixed(4)}` : '';
   const route = useQuery({
     queryKey: ['store-route', store?.id, mode, key],
-    enabled: !!store && !!origin,
+    enabled: !!store && !!origin && !!session,
     staleTime: 10 * 60_000,
-    retry: (n, e) => n < 1 && !['TOO_FAR', 'RATE_LIMITED', 'STORE_NO_POSITION'].includes((e as Error).message),
+    retry: (n, e) => n < 1 && !['AUTH_REQUIRED', 'TOO_FAR', 'RATE_LIMITED', 'STORE_NO_POSITION'].includes((e as Error).message),
     queryFn: () => fetchRoute(store!.id, origin!.point, mode),
   });
 
@@ -176,7 +179,12 @@ export function StoreRoute({ store, origin, fallback, selected, onClose, onChoos
             })}
           </View>
 
-          {noOrigin ? (
+          {!session ? (
+            <View style={{ gap: spacing.sm }}>
+              <Notice text={t('route.signIn')} />
+              <Button title={t('auth.signIn')} icon="log-in-outline" onPress={() => { onClose(); router.push('/(auth)/sign-in'); }} />
+            </View>
+          ) : noOrigin ? (
             <View style={{ gap: spacing.sm }}>
               <Notice tone="warning" text={t('route.noOrigin')} />
               <Button title={t('stores.useLocation')} icon="locate-outline" variant="secondary" loading={locating} onPress={locate} />
@@ -194,7 +202,8 @@ export function StoreRoute({ store, origin, fallback, selected, onClose, onChoos
             </View>
           ) : route.isError ? (
             <View style={{ gap: spacing.sm }}>
-              <Notice tone="warning" text={errCode === 'TOO_FAR' ? t('route.tooFar') : errCode === 'RATE_LIMITED' ? t('route.busy') : t('route.error')} />
+              <Notice tone="warning" text={errCode === 'TOO_FAR' ? t('route.tooFar') : errCode === 'RATE_LIMITED' ? t('route.busy')
+                : errCode === 'AUTH_REQUIRED' ? t('route.signIn') : t('route.error')} />
               <Button title={t('common.retry')} icon="refresh" variant="secondary" onPress={() => route.refetch()} />
             </View>
           ) : null}

@@ -78,7 +78,7 @@ jobs:
             head -c 300 body.txt; echo
           done
 
-      - name: Itinéraire vers un magasin (serveur)
+      - name: Itinéraire vers un magasin (serveur ; sans compte, refus attendu 401)
         env:
           URL: https://trobgcehelmxkvqjtdbo.supabase.co
           KEY: sb_publishable_rli_t0Z108wF-V5yMc3f_w_9HDXp9_X
@@ -87,8 +87,8 @@ jobs:
           echo "magasin : $SID"
           for m in walk bike drive; do
             curl -s -X POST "$URL/functions/v1/store-route" -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-              -d "{\"store_id\":\"$SID\",\"mode\":\"$m\",\"origin\":{\"lat\":-4.3317,\"lng\":15.3139}}" > route.json
-            python3 -c "import json; d=json.load(open('route.json')); print('$m', {k: d.get(k) for k in ('distance_m','duration_s','source','error')}, 'tracé :', len(d.get('route_polyline') or ''), 'caractères')"
+              -d "{\"store_id\":\"$SID\",\"mode\":\"$m\",\"origin\":{\"lat\":-4.3317,\"lng\":15.3139}}" -w ' HTTP %{http_code}' > route.json
+            echo "$m : $(tail -c 20 route.json)" 
           done
 
       - uses: actions/download-artifact@v4
