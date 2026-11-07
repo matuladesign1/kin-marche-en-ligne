@@ -1,4 +1,4 @@
-export type AppRole = 'customer' | 'store_admin' | 'driver' | 'super_admin' | 'agent';
+export type AppRole = 'customer' | 'store_admin' | 'driver' | 'super_admin' | 'agent' | 'pastry_chef';
 export type Language = 'fr' | 'en' | 'ln' | 'sw';
 export type Currency = 'USD' | 'CDF' | 'EUR';
 export type SaleUnit = 'unit' | 'kg' | 'g' | 'litre' | 'ml' | 'pack' | 'carton';
@@ -326,3 +326,96 @@ export interface LoyaltyTransaction {
   created_at: string;
   expires_at: string | null;
 }
+
+// ---------------------------------------------------------------------
+// Pâtisserie : demandes des clients, pâtissiers, discussion
+// ---------------------------------------------------------------------
+export type PastryCategory = 'cake' | 'bread' | 'viennoiserie' | 'other';
+export type PastryStatus =
+  | 'submitted' | 'quoted' | 'accepted' | 'rejected' | 'cancelled'
+  | 'paid' | 'in_preparation' | 'ready' | 'delivering' | 'delivered';
+
+export interface PastryOrder {
+  id: string;
+  request_number: string | null;
+  customer_id: string;
+  store_id: string;
+  full_name: string;
+  phone: string;
+  email: string | null;
+  category: PastryCategory;
+  cake_type: string;
+  size: string | null;
+  servings: number | null;
+  quantity: number | null;
+  flavor: string | null;
+  color: string | null;
+  inscription: string | null;
+  details: string | null;
+  reference_photo_path: string | null;
+  desired_at: string | null;
+  delivery_address: Record<string, unknown> | null;
+  status: PastryStatus;
+  quoted_price_usd: number | null;
+  quote_details: string | null;
+  quoted_at: string | null;
+  accepted_at: string | null;
+  rejected_at: string | null;
+  reject_reason: string | null;
+  cancelled_at: string | null;
+  chef_id: string | null;
+  order_id: string | null;
+  order_number: string | null;
+  order_status: OrderStatus | null;
+  created_at: string;
+  updated_at: string;
+  stores?: { name: string } | null;
+}
+
+export interface PastryMessage {
+  id: string;
+  cake_order_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+}
+
+export interface PastryChef {
+  id: string;
+  store_id: string;
+  status: 'active' | 'suspended';
+  certified: boolean;
+  certified_at: string | null;
+  display_name: string | null;
+  bio: string | null;
+  specialties: string[];
+  years_experience: number | null;
+  birth_date: string | null;
+  gender: 'female' | 'male' | 'other' | null;
+  nationality: string | null;
+  id_type: 'voter_card' | 'passport' | 'driver_license' | 'other' | null;
+  id_number: string | null;
+  id_photo_path: string | null;
+  address: string | null;
+  commune: string | null;
+  emergency_name: string | null;
+  emergency_phone: string | null;
+  profile_completed_at: string | null;
+  orders_done: number;
+  stores?: { name: string } | null;
+}
+
+/** Carte publique d'un pâtissier, vue par le client (jamais l'identité ni le téléphone). */
+export interface PastryChefCard {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+  certified: boolean;
+  specialties: string[];
+  years_experience: number | null;
+  bio: string | null;
+  orders_done: number;
+}
+
+export interface PastrySettings { enabled: boolean; min_lead_hours: number }
+export interface PastryStore { store_id: string; chefs: number; certified: number }

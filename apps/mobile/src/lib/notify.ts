@@ -129,6 +129,13 @@ export function openNotification(n: { kind: string; data?: Record<string, unknow
     if (!openAppLink(d.link_type, d.link_value)) router.push('/(customer)/messages');
     return;
   }
+  // Pâtisserie : le pâtissier ouvre la commande dans son espace, le client le suivi de sa demande.
+  const cakeOrderId = typeof d.cake_order_id === 'string' ? d.cake_order_id : null;
+  if (cakeOrderId) {
+    router.push(d.screen === 'pastry' ? `/pastry/order/${cakeOrderId}` : `/pastry-orders/${cakeOrderId}`);
+    return;
+  }
+  if (n.kind === 'pastry_role') { router.push('/pastry'); return; }
   if (n.kind === 'wheel' || d.screen === 'wheel') router.push('/wheel');
   else if (n.kind === 'loyalty' || d.screen === 'loyalty') router.push('/loyalty');
   else if (n.kind === 'delivery_offer') router.push('/driver/offers');

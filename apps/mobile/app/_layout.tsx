@@ -99,7 +99,10 @@ function Navigator() {
         <Stack.Screen name="support/index" options={{ title: t('inbox.title') }} />
         <Stack.Screen name="support/[id]" options={{ title: '' }} />
         <Stack.Screen name="about" options={{ title: t('about.title') }} />
-        <Stack.Screen name="cake" options={{ title: t('cake.title') }} />
+        <Stack.Screen name="cake" options={{ title: t('pastry.title') }} />
+        <Stack.Screen name="pastry-orders/index" options={{ title: t('pastry.myOrders') }} />
+        <Stack.Screen name="pastry-orders/[id]" options={{ title: t('pastry.title') }} />
+        <Stack.Screen name="pastry-chat/[id]" options={{ title: '' }} />
         <Stack.Screen name="settings" options={{ title: t('settings.title') }} />
         <Stack.Screen name="update" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="orders" options={{ title: t('orders.mine') }} />
@@ -121,6 +124,9 @@ function Navigator() {
         <Stack.Screen name="reset-password" options={{ title: t('account.changePassword') }} />
         <Stack.Screen name="store-admin/index" options={{ title: t('role.storeAdmin') }} />
         <Stack.Screen name="driver/index" options={{ headerShown: false }} />
+        <Stack.Screen name="pastry/index" options={{ headerShown: false }} />
+        <Stack.Screen name="pastry/order/[id]" options={{ title: t('pastryChef.space') }} />
+        <Stack.Screen name="pastry/profile" options={{ title: t('pastryProfile.title') }} />
         <Stack.Screen name="driver/offers" options={{ title: t('driver.availableRuns') }} />
         <Stack.Screen name="driver/history" options={{ title: t('driver.history') }} />
         <Stack.Screen name="driver/mission/[id]" options={{ title: t('driver.mission') }} />

@@ -289,12 +289,12 @@ export function useLinkLoyaltyCard() {
   });
 }
 
-/** Filtre « espace livreur » : un livreur ne voit pas les notifications de client. */
+/** Filtre des espaces livreur et pâtissier : ils ne voient pas les notifications de client. */
 const NOT_FOR_DRIVER = `(${CUSTOMER_ONLY_KINDS.join(',')})`;
 
 export function useNotifications() {
   const { session, profile } = useAuth();
-  const driver = profile?.role === 'driver';
+  const driver = profile?.role === 'driver' || profile?.role === 'pastry_chef';
   return useQuery({
     queryKey: qk.notifications,
     enabled: !!session,
@@ -309,7 +309,7 @@ export function useNotifications() {
 /** Non lus : notifications + messages de l'assistance (pastille de l'onglet « Messages »). */
 export function useUnreadCount() {
   const { session, profile } = useAuth();
-  const driver = profile?.role === 'driver';
+  const driver = profile?.role === 'driver' || profile?.role === 'pastry_chef';
   return useQuery({
     queryKey: qk.unread,
     enabled: !!session,

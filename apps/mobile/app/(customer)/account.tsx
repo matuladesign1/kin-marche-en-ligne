@@ -137,6 +137,7 @@ export default function Account() {
     { key: 'support', icon: 'headset-outline', label: t('home.support'), onPress: need('/support') },
     { key: 'notifications', icon: 'notifications-outline', label: t('account.notifications'), onPress: need('/notifications') },
     { key: 'cakes', icon: 'gift-outline', label: t('home.cakes'), onPress: () => router.push('/cake') },
+    { key: 'pastryOrders', icon: 'receipt-outline', label: t('pastry.myOrders'), onPress: need('/pastry-orders') },
     { key: 'favorites', icon: 'heart-outline', label: t('favorites.title'), onPress: need('/favorites') },
     { key: 'driver', icon: 'bicycle-outline', label: t('account.feature.driver'), onPress: need('/driver-signup') },
     { key: 'about', icon: 'information-circle-outline', label: t('about.title'), onPress: () => router.push('/about') },
@@ -233,7 +234,7 @@ export default function Account() {
         </Panel>
 
         <Row gap={spacing.sm}>
-          <PromoCard title={t('cake.title')} text={t('account.promo.cakeText')} tint="#FFF1E6"
+          <PromoCard title={t('pastry.title')} text={t('account.promo.cakeText')} tint="#FFF1E6"
             icon={<Ionicons name="gift" size={34} color="#FF6A00" />} onPress={() => router.push('/cake')} />
           <PromoCard title={t('account.promo.driverTitle')} text={t('account.promo.driverText')} tint="#FFF6DD"
             icon={<Ionicons name="bicycle" size={34} color="#E8A317" />} onPress={need('/driver-signup')} />

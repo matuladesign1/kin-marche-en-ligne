@@ -13,7 +13,7 @@ import { qk } from './data';
 function categoryOf(kind: string): NotificationCategory | 'system' {
   if (kind === 'order_status' || kind === 'new_order' || kind === 'no_driver') return 'orders';
   if (kind === 'loyalty' || kind === 'wheel') return 'rewards';
-  if (kind === 'message' || kind === 'ticket') return 'messages';
+  if (kind === 'message' || kind === 'ticket' || kind === 'pastry_message') return 'messages';
   if (kind === 'promo' || kind === 'marketing') return 'promos';
   return 'system';
 }
@@ -24,8 +24,10 @@ function categoryOf(kind: string): NotificationCategory | 'system' {
  * Quand le push est actif (Firebase configuré), c'est le serveur qui l'affiche : pas de doublon.
  */
 export function useLiveNotifications() {
-  const { session, profile } = useAuth();
+  const { session, profile, refreshProfile } = useAuth();
   const qc = useQueryClient();
+  const refresh = useRef(refreshProfile);
+  refresh.current = refreshProfile;
   const prefs = useRef(profile?.notification_prefs ?? {});
   prefs.current = profile?.notification_prefs ?? {};
   const role = useRef(profile?.role);
@@ -38,8 +40,8 @@ export function useLiveNotifications() {
       .channel(`live-notifications-${uid}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${uid}` }, (payload) => {
         const n = payload.new as AppNotification;
-        // Espace livreur : uniquement les notifications de livreur.
-        if (role.current === 'driver' && isCustomerOnlyKind(n.kind)) return;
+        // Espaces livreur et pâtissier : pas de notifications de client.
+        if ((role.current === 'driver' || role.current === 'pastry_chef') && isCustomerOnlyKind(n.kind)) return;
         qc.invalidateQueries({ queryKey: qk.notifications });
         qc.invalidateQueries({ queryKey: qk.unread });
         if (n.kind === 'order_status' || n.kind === 'new_order') {
@@ -48,6 +50,10 @@ export function useLiveNotifications() {
           const orderId = n.data?.order_id;
           if (typeof orderId === 'string') qc.invalidateQueries({ queryKey: qk.order(orderId) });
         }
+        // Pâtisserie : demandes, prix, messages et étapes se mettent à jour partout.
+        if (n.kind.startsWith('pastry_')) qc.invalidateQueries({ queryKey: ['pastry'] });
+        // Accès pâtissier donné ou retiré : le rôle du compte change, l'application ouvre le bon espace.
+        if (n.kind === 'pastry_role') refresh.current().catch(() => undefined);
         if (n.kind === 'wheel' || n.kind === 'loyalty') {
           qc.invalidateQueries({ queryKey: qk.wheel });
           qc.invalidateQueries({ queryKey: qk.loyalty });
@@ -75,6 +81,7 @@ export function useLiveNotifications() {
         if (cat !== 'system' && prefs.current?.[cat] === false) return;
         // Message de la conversation ouverte à l'écran : déjà visible, pas d'alerte.
         if (cat === 'messages' && isChatOpen(n.data?.ticket_id)) return;
+        if (n.kind === 'pastry_message' && isChatOpen(`pastry:${String(n.data?.cake_order_id ?? '')}`)) return;
         // Promotion reçue application ouverte : grande carte avec la photo en entier.
         if (cat === 'promos' && AppState.currentState === 'active') { showPromo(n); return; }
 
