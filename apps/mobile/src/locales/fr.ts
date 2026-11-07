@@ -992,7 +992,7 @@ const fr = {
   "stores.yourPosition": "Votre position",
   "stores.positionGps": "Position actuelle (GPS)",
   "stores.positionAddress": "Adresse « {label} »",
-  "stores.positionNone": "Non définie : utilisez votre position",
+  "stores.positionNone": "Non définie",
   "stores.refresh": "Actualiser",
   "stores.feeShort": "Livraison {fee}",
   "stores.inStock": "{n}/{total} articles du panier en stock",

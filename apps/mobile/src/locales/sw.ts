@@ -960,7 +960,7 @@ const sw: Record<TranslationKey, string> = {
   "stores.yourPosition": "Mahali ulipo",
   "stores.positionGps": "Mahali ulipo sasa (GPS)",
   "stores.positionAddress": "Anwani « {label} »",
-  "stores.positionNone": "Haijawekwa: tumia mahali ulipo",
+  "stores.positionNone": "Haijawekwa",
   "stores.refresh": "Sasisha",
   "stores.feeShort": "Uwasilishaji {fee}",
   "stores.inStock": "Bidhaa {n}/{total} za kikapu zipo",

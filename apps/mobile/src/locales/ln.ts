@@ -960,7 +960,7 @@ const ln: Record<TranslationKey, string> = {
   "stores.yourPosition": "Esika ozali",
   "stores.positionGps": "Esika ozali sikoyo (GPS)",
   "stores.positionAddress": "Adresse « {label} »",
-  "stores.positionNone": "Eyebani te : salelá esika ozali",
+  "stores.positionNone": "Eyebani te",
   "stores.refresh": "Zongisa sika",
   "stores.feeShort": "Livraison {fee}",
   "stores.inStock": "Biloko {n}/{total} ya panier ezali",

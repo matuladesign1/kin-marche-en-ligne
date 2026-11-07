@@ -722,7 +722,7 @@ const en: Record<TranslationKey, string> = {
   "stores.yourPosition": "Your position",
   "stores.positionGps": "Current position (GPS)",
   "stores.positionAddress": "Address “{label}”",
-  "stores.positionNone": "Not set: use your location",
+  "stores.positionNone": "Not set",
   "stores.refresh": "Refresh",
   "stores.feeShort": "Delivery {fee}",
   "stores.inStock": "{n}/{total} cart items in stock",
